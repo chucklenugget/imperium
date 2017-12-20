@@ -145,14 +145,32 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ImageLibrary.cs" />
+    <Compile Include="Data.cs" />
+    <Compile Include="Options.cs" />
+    <Compile Include="Infrastructure\Area.cs" />
+    <Compile Include="Lang.cs" />
+    <Compile Include="Badlands\BadlandsModule.cs" />
+    <Compile Include="Claims\ClaimModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RustFactions.cs" />
-    <Compile Include="RustFactionsMap.cs" />
+    <Compile Include="Core.cs" />
+    <Compile Include="Taxes\TaxModule.cs" />
+    <Compile Include="Ui\UiModule.cs" />
+    <Compile Include="Claims\Claim.cs" />
+    <Compile Include="Claims\ClaimCollection.cs" />
+    <Compile Include="Badlands\BadlandsCollection.cs" />
+    <Compile Include="Infrastructure\MapGrid.cs" />
+    <Compile Include="Infrastructure\PlayerInteractionState.cs" />
+    <Compile Include="Infrastructure\PlayerMapState.cs" />
+    <Compile Include="Infrastructure\RustFactionsComponent.cs" />
+    <Compile Include="Taxes\TaxPolicy.cs" />
+    <Compile Include="Infrastructure\Faction.cs" />
+    <Compile Include="Infrastructure\PlayerStateCollection.cs" />
+    <Compile Include="Taxes\TaxPolicyCollection.cs" />
+    <Compile Include="Util.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd $(ProjectDir)
-copy /y RustFactions.cs C:\rustserver\oxide\plugins</PostBuildEvent>
+copy Core.cs +Data.cs + Options.cs + Lang.cs + Util.cs + Badlands\*.cs + Claims\*.cs + Infrastructure\*.cs + Taxes\*.cs + Ui\*.cs C:\rustserver\oxide\plugins\RustFactions.cs /y /b</PostBuildEvent>
   </PropertyGroup>
 </Project>

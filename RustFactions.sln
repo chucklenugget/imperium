@@ -5,8 +5,6 @@ VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RustFactions", "RustFactions\RustFactions.csproj", "{732DB23B-B7E9-4615-A2E2-C72F7661FB3D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateMapImage", "ConsoleApp1\GenerateMapImage.csproj", "{A39521EB-00F2-4FE2-A98A-3E4A47703C09}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,10 +15,6 @@ Global
 		{732DB23B-B7E9-4615-A2E2-C72F7661FB3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{732DB23B-B7E9-4615-A2E2-C72F7661FB3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{732DB23B-B7E9-4615-A2E2-C72F7661FB3D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A39521EB-00F2-4FE2-A98A-3E4A47703C09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A39521EB-00F2-4FE2-A98A-3E4A47703C09}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A39521EB-00F2-4FE2-A98A-3E4A47703C09}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A39521EB-00F2-4FE2-A98A-3E4A47703C09}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
