@@ -1,0 +1,22 @@
+{
+  "Claims": [
+    {
+      "AreaId": "J16",
+      "FactionId": "TEST",
+      "ClaimantId": 76561197989219433,
+      "CupboardId": 249705,
+      "IsHeadquarters": true
+    }
+  ],
+  "TaxPolicies": [
+    {
+      "FactionId": "TEST",
+      "TaxRate": 10,
+      "TaxChestId": null
+    }
+  ],
+  "BadlandsAreas": [
+    "L2",
+    "J17"
+  ]
+}
