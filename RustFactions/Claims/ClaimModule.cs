@@ -14,7 +14,7 @@
       {
         SendMessage(player, Messages.AreaClaimsDisabled);
         return;
-      };
+      }
 
       if (args.Length == 0)
       {
@@ -362,8 +362,8 @@
 
     int GetCostToClaimArea(BasePlayer player, Faction faction, Area area)
     {
-      // TODO: Add multipliers for scaling the claim cost value.
-      return Options.BaseClaimCost;
+      int numberOfTilesOwned = Claims.GetAllClaimsForFaction(faction).Length;
+      return Options.BaseClaimCost + (Options.AdditionalClaimCostPerArea * numberOfTilesOwned);
     }
 
     bool TryCollectClaimCost(BasePlayer player, Faction faction, Area area, Claim claim)

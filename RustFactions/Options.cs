@@ -15,6 +15,7 @@
       public int MaxTaxRate;
       public int BadlandsGatherBonus;
       public int BaseClaimCost;
+      public int AdditionalClaimCostPerArea;
       public string MapImageUrl;
       public int MapImageSize;
     }
@@ -30,6 +31,7 @@
         MaxTaxRate = Convert.ToInt32(file["MaxTaxRate"]),
         BadlandsGatherBonus = Convert.ToInt32(file["BadlandsGatherBonus"]),
         BaseClaimCost = Convert.ToInt32(file["BaseClaimCost"]),
+        AdditionalClaimCostPerArea = Convert.ToInt32(file["AdditionalClaimCostPerArea"]),
         MapImageUrl = Convert.ToString(file["MapImageUrl"]),
         MapImageSize = Convert.ToInt32(file["MapImageSize"])
       };
@@ -47,6 +49,7 @@
       Config["MaxTaxRate"] = 20;
       Config["BadlandsGatherBonus"] = 10;
       Config["BaseClaimCost"] = 100;
+      Config["AdditionalClaimCostPerArea"] = 50;
       Config["MapImageUrl"] = "";
       Config["MapImageSize"] = 1024;
       SaveConfig();
