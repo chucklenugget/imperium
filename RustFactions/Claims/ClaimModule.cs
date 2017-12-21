@@ -12,7 +12,7 @@
     {
       if (!Options.EnableAreaClaims)
       {
-        SendMessage(player, "AreaClaimsDisabled");
+        SendMessage(player, Messages.AreaClaimsDisabled);
         return;
       };
 
@@ -22,7 +22,7 @@
 
         if (playerState == PlayerInteractionState.AddingClaim || playerState == PlayerInteractionState.RemovingClaim)
         {
-          SendMessage(player, "SelectingClaimCupboardCanceled");
+          SendMessage(player, Messages.SelectingClaimCupboardCanceled);
           PlayerInteractionStates.Reset(player);
         }
         else
@@ -67,7 +67,7 @@
     {
       if (CanChangeFactionClaims(player))
       {
-        SendMessage(player, "SelectClaimCupboardToAdd");
+        SendMessage(player, Messages.SelectClaimCupboardToAdd);
         PlayerInteractionStates.Set(player, PlayerInteractionState.AddingClaim);
       }
     }
@@ -76,7 +76,7 @@
     {
       if (CanChangeFactionClaims(player))
       {
-        SendMessage(player, "SelectClaimCupboardToRemove");
+        SendMessage(player, Messages.SelectClaimCupboardToRemove);
         PlayerInteractionStates.Set(player, PlayerInteractionState.RemovingClaim);
       }
     }
@@ -85,7 +85,7 @@
     {
       if (CanChangeFactionClaims(player))
       {
-        SendMessage(player, "SelectClaimCupboardForHeadquarters");
+        SendMessage(player, Messages.SelectClaimCupboardForHeadquarters);
         PlayerInteractionStates.Set(player, PlayerInteractionState.SelectingHeadquarters);
       }
     }
@@ -94,7 +94,7 @@
     {
       if (args.Length != 1)
       {
-        SendMessage(player, "CannotShowClaimBadUsage");
+        SendMessage(player, Messages.CannotShowClaimBadUsage);
         return;
       }
 
@@ -102,25 +102,25 @@
 
       if (Badlands.Contains(areaId))
       {
-        SendMessage(player, "AreaIsBadlands", areaId);
+        SendMessage(player, Messages.AreaIsBadlands, areaId);
         return;
       }
 
       Claim claim = Claims.Get(areaId);
 
       if (claim == null)
-        SendMessage(player, "AreaIsUnclaimed", areaId);
+        SendMessage(player, Messages.AreaIsUnclaimed, areaId);
       else if (claim.IsHeadquarters)
-        SendMessage(player, "AreaIsHeadquarters", claim.AreaId, claim.FactionId);
+        SendMessage(player, Messages.AreaIsHeadquarters, claim.AreaId, claim.FactionId);
       else
-        SendMessage(player, "AreaIsClaimed", claim.AreaId, claim.FactionId);
+        SendMessage(player, Messages.AreaIsClaimed, claim.AreaId, claim.FactionId);
     }
 
     void OnClaimListCommand(BasePlayer player, string[] args)
     {
       if (args.Length != 1)
       {
-        SendMessage(player, "CannotListClaimsBadUsage");
+        SendMessage(player, Messages.CannotListClaimsBadUsage);
         return;
       }
 
@@ -129,7 +129,7 @@
 
       if (faction == null)
       {
-        SendMessage(player, "CannotListClaimsUnknownFaction", factionId);
+        SendMessage(player, Messages.CannotListClaimsUnknownFaction, factionId);
         return;
       }
 
@@ -177,13 +177,13 @@
     {
       if (args.Length == 0)
       {
-        SendMessage(player, "CannotDeleteClaimsBadUsage");
+        SendMessage(player, Messages.CannotDeleteClaimsBadUsage);
         return;
       }
 
       if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_CLAIMS))
       {
-        SendMessage(player, "CannotDeleteClaimsNoPermission");
+        SendMessage(player, Messages.CannotDeleteClaimsNoPermission);
         return;
       }
 
@@ -195,7 +195,7 @@
 
         if (claim == null)
         {
-          SendMessage(player, "CannotDeleteClaimsAreaNotClaimed", areaId);
+          SendMessage(player, Messages.CannotDeleteClaimsAreaNotClaimed, areaId);
           return;
         }
 
@@ -204,7 +204,7 @@
 
       foreach (Claim claim in claimsToRevoke)
       {
-        Announce("<color=#ff0000ff>AREA CLAIM REMOVED:</color> [{0}]'s claim on {1} has been removed by an admin.", claim.FactionId, claim.AreaId);
+        PrintToChat("<color=#ff0000ff>AREA CLAIM REMOVED:</color> [{0}]'s claim on {1} has been removed by an admin.", claim.FactionId, claim.AreaId);
         Puts($"{player.displayName} deleted [{claim.FactionId}]'s claim on {claim.AreaId}");
         Claims.Remove(claim.AreaId);
       }
@@ -229,7 +229,7 @@
 
       if (Badlands.Contains(area.Id))
       {
-        SendMessage(player, "CannotClaimAreaBadlands");
+        SendMessage(player, Messages.CannotClaimAreaBadlands);
         return false;
       }
 
@@ -243,28 +243,28 @@
         if (oldClaim.FactionId == newClaim.FactionId)
         {
           // If the same faction claims a new cabinet within the same area, move the claim to the new cabinet.
-          SendMessage(player, "ClaimCupboardMoved", area.Id);
+          SendMessage(player, Messages.ClaimCupboardMoved, area.Id);
         }
         else if (oldClaim.CupboardId == newClaim.CupboardId)
         {
           // If a new faction claims the claim cabinet for an area, they take control of that area.
-          SendMessage(player, "ClaimCaptured", area.Id, oldClaim.FactionId);
-          Announce("<color=#ff0000ff>AREA CAPTURED:</color> [{0}] has captured {1} from [{2}]!", faction.Id, area.Id, oldClaim.FactionId);
+          SendMessage(player, Messages.ClaimCaptured, area.Id, oldClaim.FactionId);
+          PrintToChat("<color=#ff0000ff>AREA CAPTURED:</color> [{0}] has captured {1} from [{2}]!", faction.Id, area.Id, oldClaim.FactionId);
         }
         else
         {
           // A new faction can't make a claim on a new cabinet within an area that is already claimed by another faction.
-          SendMessage(player, "ClaimFailedAlreadyClaimed", area.Id, oldClaim.FactionId);
+          SendMessage(player, Messages.ClaimFailedAlreadyClaimed, area.Id, oldClaim.FactionId);
           return false;
         }
       }
       else
       {
-        SendMessage(player, "ClaimAdded", area.Id);
+        SendMessage(player, Messages.ClaimAdded, area.Id);
         if (isHeadquarters)
-          Announce("<color=#00ff00ff>AREA CLAIMED:</color> [{0}] claims {1} as their headquarters!", faction.Id, area.Id);
+          PrintToChat("<color=#00ff00ff>AREA CLAIMED:</color> [{0}] claims {1} as their headquarters!", faction.Id, area.Id);
         else
-          Announce("<color=#00ff00ff>AREA CLAIMED:</color> [{0}] claims {1}!", faction.Id, area.Id);
+          PrintToChat("<color=#00ff00ff>AREA CLAIMED:</color> [{0}] claims {1}!", faction.Id, area.Id);
       }
 
       Claims.Add(newClaim);
@@ -284,12 +284,12 @@
       Claim claim = Claims.GetByCupboard(cupboard.net.ID);
       if (claim == null)
       {
-        SendMessage(player, "SelectingClaimCupboardFailedNotClaimCupboard");
+        SendMessage(player, Messages.SelectingClaimCupboardFailedNotClaimCupboard);
         return false;
       }
 
-      SendMessage(player, "ClaimRemoved", claim.AreaId);
-      Announce("<color=#ff0000ff>CLAIM REMOVED:</color> [{0}] has relinquished their claim on {1}!", faction.Id, claim.AreaId);
+      SendMessage(player, Messages.ClaimRemoved, claim.AreaId);
+      PrintToChat("<color=#ff0000ff>CLAIM REMOVED:</color> [{0}] has relinquished their claim on {1}!", faction.Id, claim.AreaId);
       Claims.Remove(claim.AreaId);
 
       return true;
@@ -306,12 +306,12 @@
       Claim headquartersClaim = Claims.GetByCupboard(cupboard);
       if (headquartersClaim == null)
       {
-        SendMessage(player, "SelectingClaimCupboardFailedNotClaimCupboard");
+        SendMessage(player, Messages.SelectingClaimCupboardFailedNotClaimCupboard);
         return false;
       }
 
-      SendMessage(player, "HeadquartersSet", headquartersClaim.AreaId);
-      Announce("<color=#00ff00ff>HQ CHANGED:</color> [{0}] announces that {1} is their headquarters.", faction.Id, headquartersClaim.AreaId);
+      SendMessage(player, Messages.HeadquartersSet, headquartersClaim.AreaId);
+      PrintToChat("<color=#00ff00ff>HQ CHANGED:</color> [{0}] announces that {1} is their headquarters.", faction.Id, headquartersClaim.AreaId);
 
       Claims.SetHeadquarters(faction, headquartersClaim);
       Puts($"{faction.Id} designates {headquartersClaim.AreaId} as their headquarters");
@@ -325,19 +325,19 @@
 
       if (faction == null)
       {
-        SendMessage(player, "CannotClaimAreaNotMemberOfFaction");
+        SendMessage(player, Messages.CannotClaimAreaNotMemberOfFaction);
         return false;
       }
 
       if (faction.MemberSteamIds.Count < Options.MinFactionMembers)
       {
-        SendMessage(player, "CannotClaimAreaFactionTooSmall", Options.MinFactionMembers);
+        SendMessage(player, Messages.CannotClaimAreaFactionTooSmall, Options.MinFactionMembers);
         return false;
       }
 
       if (!faction.IsLeader(player))
       {
-        SendMessage(player, "CannotClaimAreaNotFactionLeader");
+        SendMessage(player, Messages.CannotClaimAreaNotFactionLeader);
         return false;
       }
 
@@ -348,13 +348,13 @@
     {
       if (cupboard == null)
       {
-        SendMessage(player, "SelectingClaimCupboardFailedInvalidTarget");
+        SendMessage(player, Messages.SelectingClaimCupboardFailedInvalidTarget);
         return false;
       }
 
       if (!cupboard.IsAuthed(player))
       {
-        SendMessage(player, "SelectingClaimCupboardFailedNeedAuth");
+        SendMessage(player, Messages.SelectingClaimCupboardFailedNeedAuth);
         return false;
       }
 

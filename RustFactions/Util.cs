@@ -9,27 +9,6 @@
   public partial class RustFactions
   {
     
-    void SendMessage(BasePlayer player, string messageName)
-    {
-      SendReply(player, lang.GetMessage(messageName, this, player.UserIDString));
-    }
-
-    void SendMessage(BasePlayer player, string messageName, params object[] args)
-    {
-      SendReply(player, String.Format(lang.GetMessage(messageName, this, player.UserIDString), args));
-    }
-
-    void SendMessage(BasePlayer player, StringBuilder sb)
-    {
-      SendReply(player, sb.ToString().TrimEnd());
-    }
-
-    void Announce(string message, params object[] args)
-    {
-      // TODO: Localize text
-      PrintToChat(String.Format(message, args));
-    }
-
     string FormatList(IEnumerable<string> items)
     {
       return String.Join(", ", items.ToArray());

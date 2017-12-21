@@ -9,7 +9,7 @@
     {
       if (!Options.EnableTaxation)
       {
-        SendMessage(player, "TaxationDisabled");
+        SendMessage(player, Messages.TaxationDisabled);
         return;
       };
 
@@ -18,24 +18,24 @@
 
       if (faction == null)
       {
-        SendMessage(player, "CannotSelectTaxChestNotMemberOfFaction");
+        SendMessage(player, Messages.CannotSelectTaxChestNotMemberOfFaction);
         return;
       }
 
       if (!faction.IsLeader(player))
       {
-        SendMessage(player, "CannotSelectTaxChestNotFactionLeader");
+        SendMessage(player, Messages.CannotSelectTaxChestNotFactionLeader);
         return;
       }
 
       if (playerState == PlayerInteractionState.SelectingTaxChest)
       {
-        SendMessage(player, "SelectingTaxChestCanceled");
+        SendMessage(player, Messages.SelectingTaxChestCanceled);
         PlayerInteractionStates.Reset(player);
       }
       else
       {
-        SendMessage(player, "SelectTaxChest");
+        SendMessage(player, Messages.SelectTaxChest);
         PlayerInteractionStates.Set(player, PlayerInteractionState.SelectingTaxChest);
       }
     }
@@ -45,7 +45,7 @@
     {
       if (!Options.EnableTaxation)
       {
-        SendMessage(player, "TaxationDisabled");
+        SendMessage(player, Messages.TaxationDisabled);
         return;
       };
 
@@ -53,13 +53,13 @@
 
       if (faction == null)
       {
-        SendMessage(player, "CannotSetTaxRateNotMemberOfFaction");
+        SendMessage(player, Messages.CannotSetTaxRateNotMemberOfFaction);
         return;
       }
 
       if (!faction.IsLeader(player))
       {
-        SendMessage(player, "CannotSetTaxRateNotFactionLeader");
+        SendMessage(player, Messages.CannotSetTaxRateNotFactionLeader);
         return;
       }
 
@@ -70,18 +70,18 @@
       }
       catch
       {
-        SendMessage(player, "CannotSetTaxRateInvalidValue", Options.MaxTaxRate);
+        SendMessage(player, Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate);
         return;
       }
 
       if (taxRate < 0 || taxRate > Options.MaxTaxRate)
       {
-        SendMessage(player, "CannotSetTaxRateInvalidValue", Options.MaxTaxRate);
+        SendMessage(player, Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate);
         return;
       }
 
       TaxPolicies.SetTaxRate(faction.Id, taxRate);
-      SendMessage(player, "SetTaxRateSuccessful", faction.Id, taxRate);
+      SendMessage(player, Messages.SetTaxRateSuccessful, faction.Id, taxRate);
     }
 
     bool TrySetTaxChest(BasePlayer player, HitInfo hit)
@@ -90,7 +90,7 @@
 
       if (container == null)
       {
-        SendMessage(player, "SelectingTaxChestFailedInvalidTarget");
+        SendMessage(player, Messages.SelectingTaxChestFailedInvalidTarget);
         return false;
       }
 
@@ -99,12 +99,12 @@
       if (faction == null)
       {
         // This covers the unlikely case the player is removed from the faction before they finish selecting.
-        SendMessage(player, "CannotSelectTaxChestNotMemberOfFaction");
+        SendMessage(player, Messages.CannotSelectTaxChestNotMemberOfFaction);
         return false;
       }
 
       TaxPolicies.SetTaxChest(faction.Id, container);
-      SendMessage(player, "SelectingTaxChestSucceeded", faction.Id);
+      SendMessage(player, Messages.SelectingTaxChestSucceeded, faction.Id);
       TaxChests[container.net.ID] = container;
 
       Puts($"Tax chest for {faction.Id} set to {container.net.ID}");

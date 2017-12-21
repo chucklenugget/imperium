@@ -9,13 +9,19 @@
     {
       if (!Options.EnableBadlands)
       {
-        SendMessage(player, "BadlandsDisabled");
+        SendMessage(player, Messages.BadlandsDisabled);
         return;
       }
 
       if (args.Length == 0)
       {
-        SendMessage(player, "BadlandsList", FormatList(Badlands.GetAll()), Options.BadlandsGatherBonus);
+        SendMessage(player, Messages.BadlandsList, FormatList(Badlands.GetAll()), Options.BadlandsGatherBonus);
+        return;
+      }
+
+      if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_BADLANDS))
+      {
+        SendMessage(player, Messages.CannotSetBadlandsNoPermission);
         return;
       }
 
@@ -24,39 +30,31 @@
       switch (args[0].ToLower())
       {
         case "add":
-          if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_BADLANDS))
-            SendMessage(player, "CannotSetBadlandsNoPermission");
-          else if (args.Length < 2)
-            SendMessage(player, "CannotSetBadlandsWrongUsage");
+          if (args.Length < 2)
+            SendMessage(player, Messages.CannotSetBadlandsWrongUsage);
           else
             AddBadlands(player, areaIds);
           break;
         case "remove":
-          if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_BADLANDS))
-            SendMessage(player, "CannotSetBadlandsNoPermission");
-          else if (args.Length < 2)
-            SendMessage(player, "CannotSetBadlandsWrongUsage");
+          if (args.Length < 2)
+            SendMessage(player, Messages.CannotSetBadlandsWrongUsage);
           else
             RemoveBadlands(player, areaIds);
           break;
         case "set":
-          if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_BADLANDS))
-            SendMessage(player, "CannotSetBadlandsNoPermission");
-          else if (args.Length < 2)
-            SendMessage(player, "CannotSetBadlandsWrongUsage");
+          if (args.Length < 2)
+            SendMessage(player, Messages.CannotSetBadlandsWrongUsage);
           else
             SetBadlands(player, areaIds);
           break;
         case "clear":
-          if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_BADLANDS))
-            SendMessage(player, "CannotSetBadlandsNoPermission");
-          else if (args.Length != 1)
-            SendMessage(player, "CannotSetBadlandsWrongUsage");
+          if (args.Length != 1)
+            SendMessage(player, Messages.CannotSetBadlandsWrongUsage);
           else
             SetBadlands(player, new string[0]);
           break;
         default:
-          SendMessage(player, "CannotSetBadlandsWrongUsage");
+          SendMessage(player, Messages.CannotSetBadlandsWrongUsage);
           break;
       }
     }
@@ -68,25 +66,25 @@
         Claim claim = Claims.Get(areaId);
         if (claim != null)
         {
-          SendMessage(player, "CannotSetBadlandsAreaClaimed", claim.AreaId, claim.FactionId);
+          SendMessage(player, Messages.CannotSetBadlandsAreaClaimed, claim.AreaId, claim.FactionId);
           return;
         }
       }
 
       Badlands.Add(areaIds);
-      SendMessage(player, "BadlandsAdded", FormatList(areaIds), FormatList(Badlands.GetAll()));
+      SendMessage(player, Messages.BadlandsAdded, FormatList(areaIds), FormatList(Badlands.GetAll()));
     }
 
     void RemoveBadlands(BasePlayer player, string[] areaIds)
     {
       Badlands.Remove(areaIds);
-      SendMessage(player, "BadlandsRemoved", FormatList(areaIds), FormatList(Badlands.GetAll()));
+      SendMessage(player, Messages.BadlandsRemoved, FormatList(areaIds), FormatList(Badlands.GetAll()));
     }
 
     void SetBadlands(BasePlayer player, string[] areaIds)
     {
       Badlands.Set(areaIds);
-      SendMessage(player, "BadlandsSet", FormatList(Badlands.GetAll()));
+      SendMessage(player, Messages.BadlandsSet, FormatList(Badlands.GetAll()));
     }
     
     void AwardBadlandsBonusIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)

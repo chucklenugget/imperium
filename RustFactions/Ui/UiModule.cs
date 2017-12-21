@@ -64,8 +64,7 @@
           text = $"{area.Id}: {faction.Id}";
       }
 
-      var label = new CuiLabel
-      {
+      var label = new CuiLabel {
         Text = {
           Align = TextAnchor.MiddleLeft,
           Color = "0.85 0.85 0.85 0.5",
@@ -80,8 +79,7 @@
         }
       };
 
-      var panel = new CuiPanel
-      {
+      var panel = new CuiPanel {
         Image = { Color = backgroundColor },
         RectTransform = {
           AnchorMin = "0 0",
@@ -168,8 +166,7 @@
       var container = new CuiElementContainer();
       container.Add(panel, "Hud", UI_MAP_PANEL);
 
-      container.Add(new CuiElement
-      {
+      container.Add(new CuiElement {
         Name = UI_MAP_BACKGROUND_IMAGE,
         Parent = UI_MAP_PANEL,
         Components = {
@@ -178,8 +175,7 @@
         }
       });
 
-      container.Add(new CuiElement
-      {
+      container.Add(new CuiElement {
         Name = UI_MAP_OVERLAY_IMAGE,
         Parent = UI_MAP_PANEL,
         Components = {
@@ -188,8 +184,7 @@
         }
       });
 
-      container.Add(new CuiButton
-      {
+      container.Add(new CuiButton {
         Button = { Color = "0 0 0 1", Command = "rustfactions.map.toggle", FadeIn = 0 },
         RectTransform = { AnchorMin = "0.95 0.961", AnchorMax = "0.999 0.999" },
         Text = { Text = "X", FontSize = 14, Align = TextAnchor.MiddleCenter }
