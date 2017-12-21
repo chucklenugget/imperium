@@ -1,11 +1,13 @@
 ﻿namespace Oxide.Plugins
 {
   using System;
+  using System.Linq;
+  using System.Text;
 
   public partial class RustFactions
   {
-    [ChatCommand("taxchest")]
-    void OnTaxChestCommand(BasePlayer player, string command, string[] args)
+    [ChatCommand("tax")]
+    void OnTaxCommand(BasePlayer player, string command, string[] args)
     {
       if (!Options.EnableTaxation)
       {
@@ -13,6 +15,31 @@
         return;
       };
 
+      if (args.Length == 0)
+      {
+        OnTaxHelpCommand(player);
+        return;
+      }
+
+      var restArguments = args.Skip(1).ToArray();
+
+      switch (args[0].ToLower())
+      {
+        case "chest":
+          OnTaxChestCommand(player);
+          break;
+        case "set":
+          OnTaxSetCommand(player, restArguments);
+          break;
+        case "help":
+        default:
+          OnTaxHelpCommand(player);
+          break;
+      }
+    }
+
+    void OnTaxChestCommand(BasePlayer player)
+    {
       PlayerInteractionState playerState = PlayerInteractionStates.Get(player);
       Faction faction = GetFactionForPlayer(player);
 
@@ -28,27 +55,12 @@
         return;
       }
 
-      if (playerState == PlayerInteractionState.SelectingTaxChest)
-      {
-        SendMessage(player, Messages.SelectingTaxChestCanceled);
-        PlayerInteractionStates.Reset(player);
-      }
-      else
-      {
-        SendMessage(player, Messages.SelectTaxChest);
-        PlayerInteractionStates.Set(player, PlayerInteractionState.SelectingTaxChest);
-      }
+      SendMessage(player, Messages.SelectTaxChest);
+      PlayerInteractionStates.Set(player, PlayerInteractionState.SelectingTaxChest);
     }
 
-    [ChatCommand("taxrate")]
-    void OnTaxRateCommand(BasePlayer player, string command, string[] args)
+    void OnTaxSetCommand(BasePlayer player, string[] args)
     {
-      if (!Options.EnableTaxation)
-      {
-        SendMessage(player, Messages.TaxationDisabled);
-        return;
-      };
-
       Faction faction = GetFactionForPlayer(player);
 
       if (faction == null)
@@ -84,6 +96,18 @@
       SendMessage(player, Messages.SetTaxRateSuccessful, faction.Id, taxRate);
     }
 
+    void OnTaxHelpCommand(BasePlayer player)
+    {
+      var sb = new StringBuilder();
+
+      sb.AppendLine("Available commands:");
+      sb.AppendLine("  <color=#ffd479>/tax set NN</color>: Set the tax rate for your faction");
+      sb.AppendLine("  <color=#ffd479>/tax container</color>: Select a container to receive the taxed resources");
+      sb.AppendLine("  <color=#ffd479>/tax help</color>: Prints this message");
+
+      SendMessage(player, sb);
+    }
+
     bool TrySetTaxChest(BasePlayer player, HitInfo hit)
     {
       var container = hit.HitEntity as StorageContainer;
@@ -103,8 +127,8 @@
         return false;
       }
 
-      TaxPolicies.SetTaxChest(faction.Id, container);
-      SendMessage(player, Messages.SelectingTaxChestSucceeded, faction.Id);
+      TaxPolicy policy = TaxPolicies.SetTaxChest(faction.Id, container);
+      SendMessage(player, Messages.SelectingTaxChestSucceeded, policy.TaxRate, faction.Id);
       TaxChests[container.net.ID] = container;
 
       Puts($"Tax chest for {faction.Id} set to {container.net.ID}");

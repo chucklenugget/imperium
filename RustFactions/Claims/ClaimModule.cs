@@ -18,18 +18,7 @@
 
       if (args.Length == 0)
       {
-        PlayerInteractionState playerState = PlayerInteractionStates.Get(player);
-
-        if (playerState == PlayerInteractionState.AddingClaim || playerState == PlayerInteractionState.RemovingClaim)
-        {
-          SendMessage(player, Messages.SelectingClaimCupboardCanceled);
-          PlayerInteractionStates.Reset(player);
-        }
-        else
-        {
-          OnClaimAddCommand(player);
-        }
-
+        OnClaimAddCommand(player);
         return;
       }
 
@@ -46,6 +35,9 @@
         case "hq":
           OnClaimHeadquartersCommand(player);
           break;
+        case "cost":
+          OnClaimCostCommand(player, restArguments);
+          break;
         case "show":
           OnClaimShowCommand(player, restArguments);
           break;
@@ -60,34 +52,78 @@
           OnClaimHelpCommand(player);
           break;
       }
-
     }
 
     void OnClaimAddCommand(BasePlayer player)
     {
-      if (CanChangeFactionClaims(player))
-      {
-        SendMessage(player, Messages.SelectClaimCupboardToAdd);
-        PlayerInteractionStates.Set(player, PlayerInteractionState.AddingClaim);
-      }
+      if (!EnsureCanChangeFactionClaims(player))
+        return;
+
+      SendMessage(player, Messages.SelectClaimCupboardToAdd);
+      PlayerInteractionStates.Set(player, PlayerInteractionState.AddingClaim);
     }
 
     void OnClaimRemoveCommand(BasePlayer player)
     {
-      if (CanChangeFactionClaims(player))
-      {
-        SendMessage(player, Messages.SelectClaimCupboardToRemove);
-        PlayerInteractionStates.Set(player, PlayerInteractionState.RemovingClaim);
-      }
+      if (!EnsureCanChangeFactionClaims(player))
+        return;
+
+      SendMessage(player, Messages.SelectClaimCupboardToRemove);
+      PlayerInteractionStates.Set(player, PlayerInteractionState.RemovingClaim);
     }
 
     void OnClaimHeadquartersCommand(BasePlayer player)
     {
-      if (CanChangeFactionClaims(player))
+      if (!EnsureCanChangeFactionClaims(player))
+        return;
+
+      SendMessage(player, Messages.SelectClaimCupboardForHeadquarters);
+      PlayerInteractionStates.Set(player, PlayerInteractionState.SelectingHeadquarters);
+    }
+
+    void OnClaimCostCommand(BasePlayer player, string[] args)
+    {
+      Faction faction = GetFactionForPlayer(player);
+
+      if (faction == null)
       {
-        SendMessage(player, Messages.SelectClaimCupboardForHeadquarters);
-        PlayerInteractionStates.Set(player, PlayerInteractionState.SelectingHeadquarters);
+        SendMessage(player, Messages.CannotClaimAreaNotMemberOfFaction);
+        return;
       }
+
+      if (faction.MemberSteamIds.Count < Options.MinFactionMembers)
+      {
+        SendMessage(player, Messages.CannotClaimAreaFactionTooSmall, Options.MinFactionMembers);
+        return;
+      }
+
+      if (args.Length > 1)
+      {
+        SendMessage(player, Messages.CannotShowClaimCostBadUsage);
+        return;
+      }
+
+      Area area;
+      if (args.Length == 0)
+        PlayersInAreas.TryGetValue(player.userID, out area);
+      else
+        Areas.TryGetValue(args[0].Trim().ToUpper(), out area);
+
+      if (area == null)
+      {
+        SendMessage(player, Messages.CannotShowClaimCostBadUsage);
+        return;
+      }
+
+      Claim claim = Claims.Get(area);
+      if (claim != null)
+      {
+        SendMessage(player, Messages.CannotShowClaimCostAlreadyOwned, area.Id, claim.FactionId);
+        return;
+      }
+
+      int cost = GetCostToClaimArea(player, faction, area);
+      SendMessage(player, Messages.ClaimCost, area.Id, faction.Id, cost);
     }
 
     void OnClaimShowCommand(BasePlayer player, string[] args)
@@ -161,8 +197,10 @@
       sb.AppendLine("  <color=#ffd479>/claim</color>: Add a claim for your faction");
       sb.AppendLine("  <color=#ffd479>/claim hq</color>: Select your faction's headquarters");
       sb.AppendLine("  <color=#ffd479>/claim remove</color>: Remove a claim for your faction (no undo!)");
-      sb.AppendLine("  <color=#ffd479>/claim show XY</color>: See which faction owns the specified area");
+      sb.AppendLine("  <color=#ffd479>/claim show XY</color>: Show who owns an area");
       sb.AppendLine("  <color=#ffd479>/claim list FACTION</color>: List all areas claimed for a faction");
+      sb.AppendLine("  <color=#ffd479>/claim cost [XY]</color>: Show the cost for your faction to claim an area");
+      sb.AppendLine("  <color=#ffd479>/claim help</color>: Prints this message");
 
       if (permission.UserHasPermission(player.UserIDString, PERM_CHANGE_CLAIMS))
       {
@@ -217,7 +255,7 @@
       Faction faction = GetFactionForPlayer(player);
       var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-      if (!CanChangeFactionClaims(player) || !CanUseCupboardAsClaim(player, cupboard))
+      if (!EnsureCanChangeFactionClaims(player) || !EnsureCanUseCupboardAsClaim(player, cupboard))
         return false;
 
       Area area;
@@ -260,6 +298,9 @@
       }
       else
       {
+        if (!TryCollectClaimCost(player, faction, area, newClaim))
+          return false;
+
         SendMessage(player, Messages.ClaimAdded, area.Id);
         if (isHeadquarters)
           PrintToChat("<color=#00ff00ff>AREA CLAIMED:</color> [{0}] claims {1} as their headquarters!", faction.Id, area.Id);
@@ -278,7 +319,7 @@
       Faction faction = GetFactionForPlayer(player);
       var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-      if (!CanChangeFactionClaims(player) || !CanUseCupboardAsClaim(player, cupboard))
+      if (!EnsureCanChangeFactionClaims(player) || !EnsureCanUseCupboardAsClaim(player, cupboard))
         return false;
 
       Claim claim = Claims.GetByCupboard(cupboard.net.ID);
@@ -300,7 +341,7 @@
       Faction faction = GetFactionForPlayer(player);
       var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-      if (!CanChangeFactionClaims(player) || !CanUseCupboardAsClaim(player, cupboard))
+      if (!EnsureCanChangeFactionClaims(player) || !EnsureCanUseCupboardAsClaim(player, cupboard))
         return false;
 
       Claim headquartersClaim = Claims.GetByCupboard(cupboard);
@@ -319,7 +360,32 @@
       return true;
     }
 
-    bool CanChangeFactionClaims(BasePlayer player)
+    int GetCostToClaimArea(BasePlayer player, Faction faction, Area area)
+    {
+      // TODO: Add multipliers for scaling the claim cost value.
+      return Options.BaseClaimCost;
+    }
+
+    bool TryCollectClaimCost(BasePlayer player, Faction faction, Area area, Claim claim)
+    {
+      int cost = GetCostToClaimArea(player, faction, area);
+      if (cost == 0) return true;
+
+      Item scrap = player.inventory.FindItemID("scrap");
+
+      if (scrap == null || scrap.amount < cost)
+      {
+        SendMessage(player, Messages.CannotClaimAreaCannotAfford, cost);
+        return false;
+      }
+
+      scrap.amount -= cost;
+      scrap.MarkDirty();
+
+      return true;
+    }
+
+    bool EnsureCanChangeFactionClaims(BasePlayer player)
     {
       Faction faction = GetFactionForPlayer(player);
 
@@ -344,7 +410,7 @@
       return true;
     }
 
-    bool CanUseCupboardAsClaim(BasePlayer player, BuildingPrivlidge cupboard)
+    bool EnsureCanUseCupboardAsClaim(BasePlayer player, BuildingPrivlidge cupboard)
     {
       if (cupboard == null)
       {

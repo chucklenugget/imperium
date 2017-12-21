@@ -7,29 +7,31 @@
   {
     class RustFactionsOptions
     {
-      public string MapImageUrl;
-      public int MapImageSize;
+      public bool EnableAreaClaims;
+      public bool EnableTaxation;
+      public bool EnableBadlands;
       public int MinFactionMembers;
       public int DefaultTaxRate;
       public int MaxTaxRate;
       public int BadlandsGatherBonus;
-      public bool EnableAreaClaims;
-      public bool EnableTaxation;
-      public bool EnableBadlands;
+      public int BaseClaimCost;
+      public string MapImageUrl;
+      public int MapImageSize;
     }
 
     RustFactionsOptions LoadOptions(DynamicConfigFile file)
     {
       return new RustFactionsOptions {
-        MapImageUrl = Convert.ToString(file["MapImageUrl"]),
-        MapImageSize = Convert.ToInt32(file["MapImageSize"]),
+        EnableAreaClaims = Convert.ToBoolean(file["EnableAreaClaims"]),
+        EnableTaxation = Convert.ToBoolean(file["EnableTaxation"]),
+        EnableBadlands = Convert.ToBoolean(file["EnableBadlands"]),
         MinFactionMembers = Convert.ToInt32(file["MinFactionMembers"]),
         DefaultTaxRate = Convert.ToInt32(file["DefaultTaxRate"]),
         MaxTaxRate = Convert.ToInt32(file["MaxTaxRate"]),
         BadlandsGatherBonus = Convert.ToInt32(file["BadlandsGatherBonus"]),
-        EnableAreaClaims = Convert.ToBoolean(file["EnableAreaClaims"]),
-        EnableTaxation = Convert.ToBoolean(file["EnableTaxation"]),
-        EnableBadlands = Convert.ToBoolean(file["EnableBadlands"])
+        BaseClaimCost = Convert.ToInt32(file["BaseClaimCost"]),
+        MapImageUrl = Convert.ToString(file["MapImageUrl"]),
+        MapImageSize = Convert.ToInt32(file["MapImageSize"])
       };
     }
 
@@ -37,15 +39,16 @@
     {
       PrintWarning("Loading default configuration.");
       Config.Clear();
-      Config["MapImageUrl"] = "";
-      Config["MapImageSize"] = 1024;
+      Config["EnableAreaClaims"] = true;
+      Config["EnableTaxation"] = true;
+      Config["EnableBadlands"] = true;
       Config["MinFactionMembers"] = 3;
       Config["DefaultTaxRate"] = 10;
       Config["MaxTaxRate"] = 20;
       Config["BadlandsGatherBonus"] = 10;
-      Config["EnableAreaClaims"] = true;
-      Config["EnableTaxation"] = true;
-      Config["EnableBadlands"] = true;
+      Config["BaseClaimCost"] = 100;
+      Config["MapImageUrl"] = "";
+      Config["MapImageSize"] = 1024;
       SaveConfig();
     }
   }

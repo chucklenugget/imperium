@@ -12,15 +12,17 @@
       public const string AreaClaimsDisabled = "Area claims are currently disabled.";
       public const string TaxationDisabled = "Taxation is currently disabled.";
       public const string BadlandsDisabled = "Badlands are currently disabled.";
+      public const string InteractionCanceled = "Command canceled.";
+      public const string NoInteractionInProgress = "You aren't currently executing any commands.";
 
       public const string CannotClaimAreaNotMemberOfFaction = "You cannot claim an area without being a member of a faction!";
       public const string CannotClaimAreaFactionTooSmall = "You cannot claim an area because your faction does not have at least {0} members.";
       public const string CannotClaimAreaNotFactionLeader = "You cannot change area claims because you aren't an owner or a moderator of your faction.";
       public const string CannotClaimAreaBadlands = "You cannot claim this area because it is part of the badlands.";
-      public const string SelectClaimCupboardToAdd = "Use the hammer to select a tool cupboard to represent the claim. Say /claim again to cancel.";
-      public const string SelectClaimCupboardToRemove = "Use the hammer to select the tool cupboard representing the claim you want to remove. Say /claim again to cancel.";
-      public const string SelectClaimCupboardForHeadquarters = "Use the hammer to select the tool cupboard to represent your faction's headquarters. Say /claim again to cancel.";
-      public const string SelectingClaimCupboardCanceled = "Claim command canceled.";
+      public const string CannotClaimAreaCannotAfford = "Claiming this area costs {0} scrap. Add this amount to your inventory and try again.";
+      public const string SelectClaimCupboardToAdd = "Use the hammer to select a tool cupboard to represent the claim. Say /cancel to cancel.";
+      public const string SelectClaimCupboardToRemove = "Use the hammer to select the tool cupboard representing the claim you want to remove. Say /cancel to cancel.";
+      public const string SelectClaimCupboardForHeadquarters = "Use the hammer to select the tool cupboard to represent your faction's headquarters. Say /cancel to cancel.";
       public const string SelectingClaimCupboardFailedInvalidTarget = "You must select a tool cupboard to make a claim.";
       public const string SelectingClaimCupboardFailedNeedAuth = "You must be authorized on the tool cupboard in order to use it to claim an area.";
       public const string SelectingClaimCupboardFailedNotClaimCupboard = "That tool cabinet doesn't represent an area claim!";
@@ -41,16 +43,19 @@
       public const string AreaIsUnclaimed = "{0} has not been claimed by a faction.";
       public const string ClaimsList = "[{0}] has claimed: {1}";
 
+      public const string CannotShowClaimCostBadUsage = "Usage: /claim cost [XY] (If grid cell is omitted, it will show the cost of your current location.)";
+      public const string CannotShowClaimCostAlreadyOwned = "{0} has already been claimed by [{1}]!";
+      public const string ClaimCost = "{0} can be claimed by [{1}] for {2} scrap.";
+
       public const string CannotDeleteClaimsBadUsage = "Usage: /claims delete XY [XY XY...]";
       public const string CannotDeleteClaimsNoPermission = "You don't have permission to delete claims you don't own. Did you mean /claim remove?";
       public const string CannotDeleteClaimsAreaNotClaimed = "{0} has not been claimed by a faction.";
 
       public const string CannotSelectTaxChestNotMemberOfFaction = "You cannot select a tax chest without being a member of a faction!";
       public const string CannotSelectTaxChestNotFactionLeader = "You cannot select a tax chest because you aren't an owner or a moderator of your faction.";
-      public const string SelectTaxChest = "Use the hammer to select the container to receive your faction's tribute. Say /taxchest again to cancel.";
-      public const string SelectingTaxChestCanceled = "Tax chest selection canceled.";
+      public const string SelectTaxChest = "Use the hammer to select the container to receive your faction's tribute. Say /cancel to cancel.";
       public const string SelectingTaxChestFailedInvalidTarget = "That can't be used as a tax chest.";
-      public const string SelectingTaxChestSucceeded = "You have selected a new tax chest that will receive {0}% of the materials harvested within land owned by [{1}]. To change the tax rate, say /taxrate PERCENT.";
+      public const string SelectingTaxChestSucceeded = "You have selected a new tax chest that will receive {0}% of the materials harvested within land owned by [{1}]. To change the tax rate, say /tax rate PERCENT.";
 
       public const string CannotSetTaxRateNotMemberOfFaction = "You cannot set a tax rate without being a member of a faction!";
       public const string CannotSetTaxRateNotFactionLeader = "You cannot set a tax rate because you aren't an owner or a moderator of your faction.";

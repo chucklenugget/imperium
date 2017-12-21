@@ -100,6 +100,21 @@ namespace Oxide.Plugins
 
     // Game Event Hooks ------------------------------------------------------------------------------------
 
+    [ChatCommand("cancel")]
+    void OnCancelCommand(BasePlayer player, string command, string[] args)
+    {
+      PlayerInteractionState playerState = PlayerInteractionStates.Get(player);
+
+      if (playerState == PlayerInteractionState.None)
+      {
+        SendMessage(player, Messages.NoInteractionInProgress);
+        return;
+      }
+
+      SendMessage(player, Messages.InteractionCanceled);
+      PlayerInteractionStates.Set(player, PlayerInteractionState.None);
+    }
+
     void OnHammerHit(BasePlayer player, HitInfo hit)
     {
       PlayerInteractionState playerState = PlayerInteractionStates.Get(player);

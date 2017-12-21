@@ -25,28 +25,30 @@
         TaxPolicies = policies.ToDictionary(p => p.FactionId);
       }
 
-      public void SetTaxChest(string factionId, StorageContainer container)
+      public TaxPolicy SetTaxChest(string factionId, StorageContainer container)
       {
         TaxPolicy policy = Get(factionId);
 
         if (policy != null)
           policy.TaxChestId = container.net.ID;
         else
-          TaxPolicies[factionId] = new TaxPolicy(factionId, Plugin.Options.DefaultTaxRate, container.net.ID);
+          policy = TaxPolicies[factionId] = new TaxPolicy(factionId, Plugin.Options.DefaultTaxRate, container.net.ID);
 
         Plugin.OnTaxPoliciesChanged();
+        return policy;
       }
 
-      public void SetTaxRate(string factionId, int taxRate)
+      public TaxPolicy SetTaxRate(string factionId, int taxRate)
       {
         TaxPolicy policy = Get(factionId);
 
         if (policy != null)
           policy.TaxRate = taxRate;
         else
-          TaxPolicies[factionId] = new TaxPolicy(factionId, taxRate, null);
+          policy = TaxPolicies[factionId] = new TaxPolicy(factionId, taxRate, null);
 
         Plugin.OnTaxPoliciesChanged();
+        return policy;
       }
 
       public void Remove(TaxPolicy policy)
