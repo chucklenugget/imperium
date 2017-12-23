@@ -17,9 +17,9 @@
       try
       {
         var data = file.ReadObject<RustFactionsData>();
-        if (data.Claims != null) Claims = new ClaimCollection(plugin, data.Claims);
-        if (data.TaxPolicies != null) TaxPolicies = new TaxPolicyCollection(plugin, data.TaxPolicies);
-        if (data.BadlandsAreas != null) Badlands = new BadlandsCollection(plugin, data.BadlandsAreas);
+        if (data.Claims != null) Claims = new ClaimManager(plugin, data.Claims);
+        if (data.TaxPolicies != null) Taxes = new TaxManager(plugin, data.TaxPolicies);
+        if (data.BadlandsAreas != null) Badlands = new BadlandsManager(plugin, data.BadlandsAreas);
       }
       catch (Exception err)
       {
@@ -32,7 +32,7 @@
     {
       var serialized = new RustFactionsData {
         Claims = Claims.Serialize(),
-        TaxPolicies = TaxPolicies.Serialize(),
+        TaxPolicies = Taxes.Serialize(),
         BadlandsAreas = Badlands.Serialize()
       };
 

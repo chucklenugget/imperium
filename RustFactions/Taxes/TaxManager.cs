@@ -5,7 +5,7 @@
 
   public partial class RustFactions
   {
-    public class TaxPolicyCollection : RustFactionsComponent
+    public class TaxManager : RustFactionsManager
     {
       Dictionary<string, TaxPolicy> TaxPolicies = new Dictionary<string, TaxPolicy>();
 
@@ -14,12 +14,12 @@
         get { return TaxPolicies.Values.Count; }
       }
 
-      public TaxPolicyCollection(RustFactions plugin)
+      public TaxManager(RustFactions plugin)
         : base(plugin)
       {
       }
 
-      public TaxPolicyCollection(RustFactions plugin, IEnumerable<TaxPolicy> policies)
+      public TaxManager(RustFactions plugin, IEnumerable<TaxPolicy> policies)
         : this(plugin)
       {
         TaxPolicies = policies.ToDictionary(p => p.FactionId);

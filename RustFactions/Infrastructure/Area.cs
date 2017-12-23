@@ -19,7 +19,7 @@
         Players = new HashSet<BasePlayer>();
       }
 
-      public void Setup(RustFactions plugin, string id, Vector3 location, Vector3 size)
+      public void Init(RustFactions plugin, string id, Vector3 location, Vector3 size)
       {
         Plugin = plugin;
         Id = id;

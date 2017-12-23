@@ -2,7 +2,7 @@
 {
   public partial class RustFactions
   {
-    enum PlayerInteractionState
+    enum Interaction
     {
       None,
       AddingClaim,

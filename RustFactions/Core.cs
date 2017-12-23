@@ -20,15 +20,12 @@ namespace Oxide.Plugins
     DynamicConfigFile DataFile;
     RustFactionsOptions Options;
 
-    ClaimCollection Claims;
-    TaxPolicyCollection TaxPolicies;
-    BadlandsCollection Badlands;
+    UserManager Users;
+    AreaManager Areas;
+    ClaimManager Claims;
+    TaxManager Taxes;
+    BadlandsManager Badlands;
 
-    PlayerStateCollection<PlayerInteractionState> PlayerInteractionStates = new PlayerStateCollection<PlayerInteractionState>();
-    PlayerStateCollection<PlayerMapState> PlayerMapStates = new PlayerStateCollection<PlayerMapState>();
-
-    Dictionary<string, Area> Areas = new Dictionary<string, Area>();
-    Dictionary<ulong, Area> PlayersInAreas = new Dictionary<ulong, Area>();
     Dictionary<uint, StorageContainer> TaxChests = new Dictionary<uint, StorageContainer>();
 
     const string PERM_CHANGE_CLAIMS = "rustfactions.claims";
@@ -40,9 +37,11 @@ namespace Oxide.Plugins
     {
       PrintToChat($"{this.Title} {this.Version} initialized.");
 
-      Claims = new ClaimCollection(this);
-      TaxPolicies = new TaxPolicyCollection(this);
-      Badlands = new BadlandsCollection(this);
+      Users = new UserManager(this);
+      Areas = new AreaManager(this);
+      Claims = new ClaimManager(this);
+      Taxes = new TaxManager(this);
+      Badlands = new BadlandsManager(this);
     }
 
     void Loaded()
@@ -58,26 +57,16 @@ namespace Oxide.Plugins
 
       LoadData(this, DataFile);
       Puts($"Loaded {Claims.Count} area claims.");
-      Puts($"Loaded {TaxPolicies.Count} area claims.");
+      Puts($"Loaded {Taxes.Count} area claims.");
       Puts($"Loaded {Badlands.Count} badlands areas.");
 
       GenerateMapOverlayImage();
-      RebuildMapUi();
     }
 
     void Unload()
     {
-      var objects = Resources.FindObjectsOfTypeAll<Area>();
-      Puts($"Unloading {objects.Length} areas.");
-
-      foreach (var area in objects)
-      {
-        var collider = area.GetComponent<BoxCollider>();
-        if (collider != null)
-          UnityEngine.Object.Destroy(collider);
-        UnityEngine.Object.Destroy(area);
-      }
-
+      Users.Destroy();
+      Areas.Destroy();
       RemoveInfoPanelForAllPlayers();
     }
 
@@ -86,7 +75,8 @@ namespace Oxide.Plugins
       if (Clans == null)
         PrintWarning("RustFactions requires the Rust:IO Clans plugin, but it was not found!");
 
-      CreateLandClaimAreas();
+      Areas.Init();
+      Users.Init();
       CacheTaxChests();
 
       permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
@@ -98,44 +88,62 @@ namespace Oxide.Plugins
       SaveData(DataFile);
     }
 
+    void OnPlayerInit(BasePlayer player)
+    {
+      if (player == null) return;
+      if (player.HasPlayerFlag(BasePlayer.PlayerFlags.ReceivingSnapshot) || player.IsSleeping())
+      {
+        timer.In(2, () => OnPlayerInit(player));
+        return;
+      }
+
+      Users.Add(player);
+    }
+
+    void OnPlayerDisconnected(BasePlayer player)
+    {
+      if (player != null)
+        Users.Remove(player);
+    }
+
     // Game Event Hooks ------------------------------------------------------------------------------------
 
     [ChatCommand("cancel")]
     void OnCancelCommand(BasePlayer player, string command, string[] args)
     {
-      PlayerInteractionState playerState = PlayerInteractionStates.Get(player);
+      User user = Users.Get(player);
 
-      if (playerState == PlayerInteractionState.None)
+      if (user.PendingInteraction == Interaction.None)
       {
         SendMessage(player, Messages.NoInteractionInProgress);
         return;
       }
 
       SendMessage(player, Messages.InteractionCanceled);
-      PlayerInteractionStates.Set(player, PlayerInteractionState.None);
+      user.PendingInteraction = Interaction.None;
     }
 
     void OnHammerHit(BasePlayer player, HitInfo hit)
     {
-      PlayerInteractionState playerState = PlayerInteractionStates.Get(player);
+      User user = Users.Get(player);
 
-      switch (playerState)
+      switch (user.PendingInteraction)
       {
-        case PlayerInteractionState.AddingClaim:
+        case Interaction.AddingClaim:
           if (TryAddClaim(player, hit))
-            PlayerInteractionStates.Reset(player);
+            user.PendingInteraction = Interaction.None;
           break;
-        case PlayerInteractionState.RemovingClaim:
+        case Interaction.RemovingClaim:
           if (TryRemoveClaim(player, hit))
-            PlayerInteractionStates.Reset(player);
+            user.PendingInteraction = Interaction.None;
           break;
-        case PlayerInteractionState.SelectingHeadquarters:
+        case Interaction.SelectingHeadquarters:
           if (TrySetHeadquarters(player, hit))
-            PlayerInteractionStates.Reset(player);
+            user.PendingInteraction = Interaction.None;
           break;
-        case PlayerInteractionState.SelectingTaxChest:
+        case Interaction.SelectingTaxChest:
           if (TrySetTaxChest(player, hit))
-            PlayerInteractionStates.Reset(player);
+            user.PendingInteraction = Interaction.None;
           break;
         default:
           break;
@@ -148,11 +156,11 @@ namespace Oxide.Plugins
       var player = entity as BasePlayer;
       if (player != null)
       {
-        Area area;
-        if (PlayersInAreas.TryGetValue(player.userID, out area))
+        User user = Users.Get(player);
+        if (user.CurrentArea != null)
         {
-          area.Players.Remove(player);
-          PlayersInAreas.Remove(player.userID);
+          user.CurrentArea.Players.Remove(player);
+          user.CurrentArea = null;
         }
       }
 
@@ -174,11 +182,11 @@ namespace Oxide.Plugins
         var container = entity as StorageContainer;
         if (container != null)
         {
-          var policy = TaxPolicies.Get(container);
+          var policy = Taxes.Get(container);
           if (policy != null)
           {
             Puts($"[{policy.FactionId}] has lost their ability to tax because their tax chest was destroyed.");
-            TaxPolicies.RemoveTaxChest(policy);
+            Taxes.RemoveTaxChest(policy);
             TaxChests.Remove(entity.net.ID);
           }
         }
@@ -199,35 +207,37 @@ namespace Oxide.Plugins
 
     void OnPlayerEnterArea(Area area, BasePlayer player)
     {
-      Area previousArea;
+      User user = Users.Get(player);
+
+      Area previousArea = user.CurrentArea;
       Claim previousClaim = null;
-      if (PlayersInAreas.TryGetValue(player.userID, out previousArea))
+      if (previousArea != null)
         previousClaim = Claims.Get(previousArea);
 
-      Claim claim = Claims.Get(area);
+      Claim currentClaim = Claims.Get(area);
 
-      PlayersInAreas[player.userID] = area;
-      UpdateInfoPanel(player, area, claim);
+      user.CurrentArea = area;
+      UpdateInfoPanel(player, area, currentClaim);
 
       if (Badlands.Contains(area.Id) && (previousArea == null || !Badlands.Contains(previousArea)))
       {
         // The player has crossed into the badlands.
         SendMessage(player, Messages.EnteredBadlands);
       }
-      else if (claim == null && previousClaim != null)
+      else if (currentClaim == null && previousClaim != null)
       {
         // The player has crossed a border between the land of a faction and unclaimed land.
         SendMessage(player, Messages.EnteredUnclaimedArea);
       }
-      else if (claim != null && previousClaim == null)
+      else if (currentClaim != null && previousClaim == null)
       {
         // The player has crosed a border between unclaimed land and the land of a faction.
-        SendMessage(player, Messages.EnteredClaimedArea, claim.FactionId);
+        SendMessage(player, Messages.EnteredClaimedArea, currentClaim.FactionId);
       }
-      else if ((claim != null && previousClaim != null) && (claim.FactionId != previousClaim.FactionId))
+      else if ((currentClaim != null && previousClaim != null) && (currentClaim.FactionId != previousClaim.FactionId))
       {
         // The player has crossed a border between two factions.
-        SendMessage(player, Messages.EnteredClaimedArea, claim.FactionId);
+        SendMessage(player, Messages.EnteredClaimedArea, currentClaim.FactionId);
       }
     }
 
@@ -248,7 +258,7 @@ namespace Oxide.Plugins
       }
 
       if (Options.EnableTaxation)
-        TaxPolicies.Remove(factionId);
+        Taxes.Remove(factionId);
     }
 
     void OnTaxPoliciesChanged()
@@ -259,74 +269,15 @@ namespace Oxide.Plugins
     void OnClaimsChanged()
     {
       GenerateMapOverlayImage();
-      RebuildMapUi();
       UpdateInfoPanelForAllPlayers();
     }
 
     void OnBadlandsChanged()
     {
       GenerateMapOverlayImage();
-      RebuildMapUi();
       UpdateInfoPanelForAllPlayers();
     }
     
-    // Set Up Functions ------------------------------------------------------------------------------------
-
-    /*
-     * The (X, Z) coordinate system works like this (on a map of size 3000):
-     *
-     * (-3000, 3000) +-------+ (3000, 3000)
-     *               |       |
-     *               |   +--------- (0,0)
-     *               |       |
-     * (-3000, 3000) +-------+ (3000, -3000)
-     *
-     * No matter the map size, grid cells are always 150 x 150.
-     */
-
-    void CreateLandClaimAreas()
-    {
-      var worldSize = ConVar.Server.worldsize;
-      const int step = 150;
-      var offset = worldSize / 2;
-
-      var prefix = "";
-      char letter = 'A';
-
-      Puts("Creating land claim areas...");
-
-      for (var z = (offset - step); z > -(offset + step); z -= step)
-      {
-        var number = 0;
-        for (var x = -offset; x < offset; x += step)
-        {
-          var area = new GameObject().AddComponent<Area>();
-
-          var gridCell = $"{prefix}{letter}{number}";
-          var location = new Vector3(x + (step / 2), 0, z + (step / 2));
-          var size = new Vector3(step, 500, step); // TODO: Chose an arbitrary height. Is something else better?
-
-          area.Setup(this, gridCell, location, size);
-
-          Areas[gridCell] = area;
-
-          number++;
-        }
-
-        if (letter == 'Z')
-        {
-          letter = 'A';
-          prefix = "A";
-        }
-        else
-        {
-          letter++;
-        }
-      }
-
-      Puts($"Created {Areas.Values.Count} land claim areas.");
-    }
-
     void CacheTaxChests()
     {
       if (!Options.EnableTaxation) return;
@@ -334,7 +285,7 @@ namespace Oxide.Plugins
       // Find and cache references to the StorageContainers that act as tax chests.
       Puts("Caching references to tax chests...");
 
-      foreach (var policy in TaxPolicies.GetAllActiveTaxPolicies())
+      foreach (var policy in Taxes.GetAllActiveTaxPolicies())
       {
         var containerId = (uint)policy.TaxChestId;
         var container = BaseNetworkable.serverEntities.Find(containerId) as StorageContainer;

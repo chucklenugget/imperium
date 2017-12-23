@@ -146,6 +146,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data.cs" />
+    <Compile Include="Infrastructure\AreaManager.cs" />
+    <Compile Include="Infrastructure\MapMarker.cs" />
+    <Compile Include="Infrastructure\User.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Infrastructure\Area.cs" />
     <Compile Include="Lang.cs" />
@@ -154,18 +157,18 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="Taxes\TaxModule.cs" />
+    <Compile Include="Ui\MapUi.cs" />
     <Compile Include="Ui\UiModule.cs" />
     <Compile Include="Claims\Claim.cs" />
-    <Compile Include="Claims\ClaimCollection.cs" />
-    <Compile Include="Badlands\BadlandsCollection.cs" />
+    <Compile Include="Claims\ClaimManager.cs" />
+    <Compile Include="Badlands\BadlandsManager.cs" />
     <Compile Include="Infrastructure\MapGrid.cs" />
-    <Compile Include="Infrastructure\PlayerInteractionState.cs" />
-    <Compile Include="Infrastructure\PlayerMapState.cs" />
-    <Compile Include="Infrastructure\RustFactionsComponent.cs" />
+    <Compile Include="Infrastructure\Interaction.cs" />
+    <Compile Include="Infrastructure\RustFactionsManager.cs" />
     <Compile Include="Taxes\TaxPolicy.cs" />
     <Compile Include="Infrastructure\Faction.cs" />
-    <Compile Include="Infrastructure\PlayerStateCollection.cs" />
-    <Compile Include="Taxes\TaxPolicyCollection.cs" />
+    <Compile Include="Infrastructure\UserManager.cs" />
+    <Compile Include="Taxes\TaxManager.cs" />
     <Compile Include="Util.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -40,7 +40,7 @@
 
     void OnTaxChestCommand(BasePlayer player)
     {
-      PlayerInteractionState playerState = PlayerInteractionStates.Get(player);
+      User user = Users.Get(player);
       Faction faction = GetFactionForPlayer(player);
 
       if (faction == null)
@@ -56,7 +56,7 @@
       }
 
       SendMessage(player, Messages.SelectTaxChest);
-      PlayerInteractionStates.Set(player, PlayerInteractionState.SelectingTaxChest);
+      user.PendingInteraction = Interaction.SelectingTaxChest;
     }
 
     void OnTaxSetCommand(BasePlayer player, string[] args)
@@ -92,7 +92,7 @@
         return;
       }
 
-      TaxPolicies.SetTaxRate(faction.Id, taxRate);
+      Taxes.SetTaxRate(faction.Id, taxRate);
       SendMessage(player, Messages.SetTaxRateSuccessful, faction.Id, taxRate);
     }
 
@@ -127,7 +127,7 @@
         return false;
       }
 
-      TaxPolicy policy = TaxPolicies.SetTaxChest(faction.Id, container);
+      TaxPolicy policy = Taxes.SetTaxChest(faction.Id, container);
       SendMessage(player, Messages.SelectingTaxChestSucceeded, policy.TaxRate, faction.Id);
       TaxChests[container.net.ID] = container;
 
@@ -143,17 +143,18 @@
       var player = entity as BasePlayer;
       if (player == null) return;
 
-      Area area;
-      if (!PlayersInAreas.TryGetValue(player.userID, out area))
+      User user = Users.Get(player);
+
+      if (user.CurrentArea == null)
       {
         PrintWarning("Player gathered outside of a defined area. This shouldn't happen.");
         return;
       }
 
-      Claim claim = Claims.Get(area);
+      Claim claim = Claims.Get(user.CurrentArea);
       if (claim == null) return;
 
-      TaxPolicy policy = TaxPolicies.Get(claim);
+      TaxPolicy policy = Taxes.Get(claim);
       if (policy != null && policy.TaxChestId != null && policy.TaxRate > 0)
       {
         StorageContainer container;

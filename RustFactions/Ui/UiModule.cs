@@ -1,33 +1,51 @@
 ﻿namespace Oxide.Plugins
 {
-  using Oxide.Game.Rust.Cui;
+  using System;
   using System.Collections.Generic;
   using System.Drawing;
+  using Oxide.Game.Rust.Cui;
   using UnityEngine;
   using Color = System.Drawing.Color;
   using Graphics = System.Drawing.Graphics;
   using Font = System.Drawing.Font;
   using FontStyle = System.Drawing.FontStyle;
+  using System.Drawing.Drawing2D;
 
   public partial class RustFactions
   {
-    CuiElementContainer MapUi;
-    uint CurrentMapOverlayImageId;
-
-    const string UI_CLAIM_PANEL = "RustFactionsClaimPanel";
-    const string UI_CLAIM_PANEL_TEXT = "RustFactionsClaimPanelText";
     const string UI_CLAIM_PANEL_BGCOLOR_NORMAL = "1 0.95 0.875 0.025";
     const string UI_CLAIM_PANEL_BGCOLOR_RED = "0.77 0.25 0.17 1";
-    const string UI_MAP_PANEL = "RustFactionsMapPanel";
-    const string UI_MAP_CLOSE_BUTTON = "RustFactionsMapCloseButton";
-    const string UI_MAP_BACKGROUND_IMAGE = "RustFactionsMapImage";
-    const string UI_MAP_OVERLAY_IMAGE = "RustFactionsMapOverlay";
     const string UI_TRANSPARENT_TEXTURE = "assets/content/textures/generic/fulltransparent.tga";
+    const string UI_IMAGE_BASE_URL = "http://images.rustfactions.io.s3.amazonaws.com/";
+
+    uint CurrentMapOverlayImageId;
+
+    public static class UiElements
+    {
+      public const string Hud = "Hud";
+      public const string AreaInfoPanel = "RustFactions.AreaInfoPanel";
+      public const string AreaInfoPanelText = "RustFactions.AreaInfoPanel.Text";
+      public const string Map = "RustFactions.Map";
+      public const string MapCloseButton = "RustFactions.Map.CloseButton";
+      public const string MapBackgroundImage = "RustFactions.Map.BackgroundImage";
+      public const string MapClaimsImage = "RustFactions.Map.ClaimsImage";
+      public const string MapOverlay = "RustFactions.Map.Overlay";
+      public const string MapIcon = "RustFactions.Map.Icon";
+      public const string MapLabel = "RustFactions.Map.Label";
+    }
 
     [ChatCommand("map")]
     void OnMapCommand(BasePlayer player, string command, string[] args)
     {
-      ToggleMap(player);
+      User user = Users.Get(player);
+
+      if (user == null)
+      {
+        PrintWarning("Player tried to toggle map but couldn't find their user object. This shouldn't happen.");
+        return;
+      }
+
+      user.Map.Toggle();
     }
 
     [ConsoleCommand("rustfactions.map.toggle")]
@@ -35,7 +53,15 @@
     {
       var player = arg.Connection.player as BasePlayer;
       if (player == null) return;
-      ToggleMap(player);
+
+      User user = Users.Get(player);
+      if (user == null)
+      {
+        PrintWarning("Player tried to toggle map but couldn't find their user object. This shouldn't happen.");
+        return;
+      }
+
+      user.Map.Toggle();
     }
 
     void UpdateInfoPanel(BasePlayer player, Area area, Claim claim)
@@ -57,7 +83,7 @@
       else
       {
         Faction faction = GetFaction(claim.FactionId);
-        TaxPolicy policy = TaxPolicies.Get(claim);
+        TaxPolicy policy = Taxes.Get(claim);
         if (policy != null)
           text = $"{area.Id}: {faction.Id} ({policy.TaxRate}% tax)";
         else
@@ -90,107 +116,33 @@
       };
 
       var container = new CuiElementContainer();
-      container.Add(panel, "Hud", UI_CLAIM_PANEL);
-      container.Add(label, UI_CLAIM_PANEL, UI_CLAIM_PANEL_TEXT);
+      container.Add(panel, UiElements.Hud, UiElements.AreaInfoPanel);
+      container.Add(label, UiElements.AreaInfoPanel, UiElements.AreaInfoPanelText);
 
       CuiHelper.AddUi(player, container);
     }
 
     void UpdateInfoPanelForAllPlayers()
     {
-      foreach (var player in BasePlayer.activePlayerList)
+      foreach (User user in Users.GetAll())
       {
-        Area area;
-        if (!PlayersInAreas.TryGetValue(player.userID, out area))
+        if (user.CurrentArea != null)
         {
-          Puts($"Couldn't update info panel for player because they were outside of a known area. This shouldn't happen.");
-          continue;
+          Claim claim = Claims.Get(user.CurrentArea);
+          UpdateInfoPanel(user.Player, user.CurrentArea, claim);
         }
-        Claim claim = Claims.Get(area);
-        UpdateInfoPanel(player, area, claim);
       }
     }
 
     void RemoveInfoPanel(BasePlayer player)
     {
-      CuiHelper.DestroyUi(player, UI_CLAIM_PANEL);
+      CuiHelper.DestroyUi(player, UiElements.AreaInfoPanel);
     }
 
     void RemoveInfoPanelForAllPlayers()
     {
       foreach (var player in BasePlayer.activePlayerList)
         RemoveInfoPanel(player);
-    }
-
-    void ShowMapPanel(BasePlayer player)
-    {
-      CuiHelper.AddUi(player, MapUi);
-    }
-
-    void RemoveMapPanel(BasePlayer player)
-    {
-      CuiHelper.DestroyUi(player, UI_MAP_PANEL);
-    }
-
-    void RemoveMapPanelForAllPlayers()
-    {
-      foreach (var player in BasePlayer.activePlayerList)
-        RemoveInfoPanel(player);
-    }
-
-    void ToggleMap(BasePlayer player)
-    {
-      PlayerMapState mapState = PlayerMapStates.Get(player);
-
-      if (mapState == PlayerMapState.Hidden)
-      {
-        ShowMapPanel(player);
-        PlayerMapStates.Set(player, PlayerMapState.Visible);
-      }
-      else
-      {
-        RemoveMapPanel(player);
-        PlayerMapStates.Set(player, PlayerMapState.Hidden);
-      }
-    }
-
-    void RebuildMapUi()
-    {
-      var panel = new CuiPanel
-      {
-        Image = { Color = "0 0 0 1" },
-        RectTransform = { AnchorMin = "0.2271875 0.015", AnchorMax = "0.7728125 0.985" },
-        CursorEnabled = true
-      };
-
-      var container = new CuiElementContainer();
-      container.Add(panel, "Hud", UI_MAP_PANEL);
-
-      container.Add(new CuiElement {
-        Name = UI_MAP_BACKGROUND_IMAGE,
-        Parent = UI_MAP_PANEL,
-        Components = {
-          new CuiRawImageComponent { Url = Options.MapImageUrl, Sprite = UI_TRANSPARENT_TEXTURE },
-          new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
-        }
-      });
-
-      container.Add(new CuiElement {
-        Name = UI_MAP_OVERLAY_IMAGE,
-        Parent = UI_MAP_PANEL,
-        Components = {
-          new CuiRawImageComponent { Png = CurrentMapOverlayImageId.ToString(), Sprite = UI_TRANSPARENT_TEXTURE },
-          new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
-        }
-      });
-
-      container.Add(new CuiButton {
-        Button = { Color = "0 0 0 1", Command = "rustfactions.map.toggle", FadeIn = 0 },
-        RectTransform = { AnchorMin = "0.95 0.961", AnchorMax = "0.999 0.999" },
-        Text = { Text = "X", FontSize = 14, Align = TextAnchor.MiddleCenter }
-      }, UI_MAP_PANEL, UI_MAP_CLOSE_BUTTON);
-
-      MapUi = container;
     }
 
     void GenerateMapOverlayImage()
@@ -205,7 +157,6 @@
         var grid = new MapGrid(mapSize);
 
         var colorPicker = new FactionColorPicker();
-        var headquarters = new List<HeadquartersLocation>();
         var textBrush = new SolidBrush(Color.FromArgb(255, 255, 255, 255));
 
         for (int row = 0; row < grid.Width; row++)
@@ -220,7 +171,7 @@
             if (Badlands.Contains(areaId))
             {
               // If the tile is badlands, color it in black.
-              var brush = new SolidBrush(Color.FromArgb(192, 0, 0, 0));
+              var brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.FromArgb(32, 0, 0, 0), Color.FromArgb(255, 0, 0, 0));
               graphics.FillRectangle(brush, rect);
             }
             else
@@ -231,9 +182,6 @@
               {
                 var brush = new SolidBrush(colorPicker.GetColorForFaction(claim.FactionId));
                 graphics.FillRectangle(brush, rect);
-
-                if (claim.IsHeadquarters)
-                  headquarters.Add(new HeadquartersLocation(claim.FactionId, row, col));
               }
             }
           }
@@ -253,20 +201,6 @@
         {
           graphics.DrawLine(gridLinePen, (col * tileSize), 0, (col * tileSize), (grid.Width * tileSize));
           graphics.DrawString(grid.GetColumnId(col), gridLabelFont, textBrush, (col * tileSize) + gridLabelOffset, gridLabelOffset);
-        }
-
-        var hqFont = new Font("Arial", 18, FontStyle.Bold);
-        foreach (var hq in headquarters)
-        {
-          var x = (hq.Col == 0 ? 0 : hq.Col - 1) * tileSize;
-          var y = (hq.Row == 0 ? 0 : hq.Row - 1) * tileSize;
-          var textBoundary = new Rectangle(x, y, tileSize * 3, tileSize * 3);
-          var centerTextFormat = new StringFormat
-          {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center
-          };
-          graphics.DrawString(hq.FactionId, hqFont, textBrush, textBoundary, centerTextFormat);
         }
 
         var converter = new ImageConverter();

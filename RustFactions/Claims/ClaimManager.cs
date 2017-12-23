@@ -5,7 +5,7 @@
 
   public partial class RustFactions
   {
-    public class ClaimCollection : RustFactionsComponent
+    public class ClaimManager : RustFactionsManager
     {
       Dictionary<string, Claim> Claims = new Dictionary<string, Claim>();
 
@@ -14,12 +14,12 @@
         get { return Claims.Values.Count; }
       }
 
-      public ClaimCollection(RustFactions plugin)
+      public ClaimManager(RustFactions plugin)
         : base(plugin)
       {
       }
 
-      public ClaimCollection(RustFactions plugin, IEnumerable<Claim> claims)
+      public ClaimManager(RustFactions plugin, IEnumerable<Claim> claims)
         : this(plugin)
       {
         Claims = claims.ToDictionary(c => c.AreaId);
@@ -80,6 +80,16 @@
       public Claim GetByCupboard(uint cupboardId)
       {
         return Claims.Values.FirstOrDefault(c => c.CupboardId == cupboardId);
+      }
+
+      public Claim[] GetAll()
+      {
+        return Claims.Values.ToArray();
+      }
+
+      public Claim[] GetAllHeadquarters()
+      {
+        return Claims.Values.Where(claim => claim.IsHeadquarters).ToArray();
       }
 
       public Claim[] GetAllClaimsForFaction(Faction faction)

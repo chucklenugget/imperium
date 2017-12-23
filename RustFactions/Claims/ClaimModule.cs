@@ -56,33 +56,40 @@
 
     void OnClaimAddCommand(BasePlayer player)
     {
+      User user = Users.Get(player);
+
       if (!EnsureCanChangeFactionClaims(player))
         return;
 
       SendMessage(player, Messages.SelectClaimCupboardToAdd);
-      PlayerInteractionStates.Set(player, PlayerInteractionState.AddingClaim);
+      user.PendingInteraction = Interaction.AddingClaim;
     }
 
     void OnClaimRemoveCommand(BasePlayer player)
     {
+      User user = Users.Get(player);
+
       if (!EnsureCanChangeFactionClaims(player))
         return;
 
       SendMessage(player, Messages.SelectClaimCupboardToRemove);
-      PlayerInteractionStates.Set(player, PlayerInteractionState.RemovingClaim);
+      user.PendingInteraction = Interaction.RemovingClaim;
     }
 
     void OnClaimHeadquartersCommand(BasePlayer player)
     {
+      User user = Users.Get(player);
+
       if (!EnsureCanChangeFactionClaims(player))
         return;
 
       SendMessage(player, Messages.SelectClaimCupboardForHeadquarters);
-      PlayerInteractionStates.Set(player, PlayerInteractionState.SelectingHeadquarters);
+      user.PendingInteraction = Interaction.SelectingHeadquarters;
     }
 
     void OnClaimCostCommand(BasePlayer player, string[] args)
     {
+      User user = Users.Get(player);
       Faction faction = GetFactionForPlayer(player);
 
       if (faction == null)
@@ -105,9 +112,9 @@
 
       Area area;
       if (args.Length == 0)
-        PlayersInAreas.TryGetValue(player.userID, out area);
+        area = user.CurrentArea;
       else
-        Areas.TryGetValue(args[0].Trim().ToUpper(), out area);
+        area = Areas.Get(args[0].Trim().ToUpper());
 
       if (area == null)
       {
@@ -180,7 +187,7 @@
       }
       else
       {
-        float percentageOfMap = (claims.Length / (float)Areas.Values.Count) * 100;
+        float percentageOfMap = (claims.Length / (float)Areas.Count) * 100;
         sb.AppendLine(String.Format("<color=#ffd479>[{0}] owns {1} tiles ({2:F2}% of the known world)</color>", faction.Id, claims.Length, percentageOfMap));
         sb.AppendLine(String.Format("Headquarters: {0}", (headquarters == null) ? "Unknown" : headquarters.AreaId));
         sb.AppendLine(String.Format("Areas claimed: {0}", FormatList(claims.Select(c => c.AreaId))));
@@ -252,14 +259,15 @@
 
     bool TryAddClaim(BasePlayer player, HitInfo hit)
     {
+      User user = Users.Get(player);
       Faction faction = GetFactionForPlayer(player);
       var cupboard = hit.HitEntity as BuildingPrivlidge;
 
       if (!EnsureCanChangeFactionClaims(player) || !EnsureCanUseCupboardAsClaim(player, cupboard))
         return false;
 
-      Area area;
-      if (!PlayersInAreas.TryGetValue(player.userID, out area))
+      Area area = user.CurrentArea;
+      if (area == null)
       {
         PrintWarning("Player attempted to add claim but wasn't in an area. This shouldn't happen.");
         return false;

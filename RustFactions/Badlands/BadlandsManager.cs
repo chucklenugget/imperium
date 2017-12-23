@@ -5,7 +5,7 @@
 
   public partial class RustFactions
   {
-    public class BadlandsCollection : RustFactionsComponent
+    public class BadlandsManager : RustFactionsManager
     {
       HashSet<string> AreaIds = new HashSet<string>();
 
@@ -14,12 +14,12 @@
         get { return AreaIds.Count; }
       }
 
-      public BadlandsCollection(RustFactions plugin)
+      public BadlandsManager(RustFactions plugin)
         : base(plugin)
       {
       }
 
-      public BadlandsCollection(RustFactions plugin, IEnumerable<string> areaIds)
+      public BadlandsManager(RustFactions plugin, IEnumerable<string> areaIds)
         : this(plugin)
       {
         AreaIds = new HashSet<string>(areaIds);

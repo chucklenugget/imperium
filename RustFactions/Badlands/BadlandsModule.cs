@@ -94,14 +94,15 @@
       var player = entity as BasePlayer;
       if (player == null) return;
 
-      Area area;
-      if (!PlayersInAreas.TryGetValue(player.userID, out area))
+      User user = Users.Get(player);
+
+      if (user.CurrentArea == null)
       {
         PrintWarning("Player gathered outside of a defined area. This shouldn't happen.");
         return;
       }
 
-      if (Badlands.Contains(area.Id))
+      if (Badlands.Contains(user.CurrentArea))
       {
         var bonus = (int)(item.amount * (Options.BadlandsGatherBonus / 100f));
         item.amount += bonus;
