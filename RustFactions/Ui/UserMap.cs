@@ -6,14 +6,14 @@
 
   public partial class RustFactions
   {
-    class MapUi
+    class UserMap
     {
       public bool IsVisible { get; private set; }
 
       RustFactions Plugin;
       User User;
 
-      public MapUi(RustFactions plugin, User user)
+      public UserMap(RustFactions plugin, User user)
       {
         Plugin = plugin;
         User = user;
@@ -37,6 +37,15 @@
           Hide();
         else
           Show();
+      }
+
+      public void Refresh()
+      {
+        if (IsVisible)
+        {
+          CuiHelper.DestroyUi(User.Player, UiElements.Map);
+          CuiHelper.AddUi(User.Player, Build());
+        }
       }
 
       CuiElementContainer Build()

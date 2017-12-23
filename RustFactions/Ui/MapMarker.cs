@@ -6,11 +6,11 @@
   {
     static class MapMarkerIcon
     {
-      public const string Headquarters = UI_IMAGE_BASE_URL + "icons/headquarters.png";
-      public const string Monument = UI_IMAGE_BASE_URL + "icons/monument.png";
-      public const string Player = UI_IMAGE_BASE_URL + "icons/player.png";
-      public const string Shop = UI_IMAGE_BASE_URL + "icons/shop.png";
-      public const string Town = UI_IMAGE_BASE_URL + "icons/town.png";
+      public const string Headquarters = UI_IMAGE_BASE_URL + "icons/unknown.png";
+      public const string Monument = UI_IMAGE_BASE_URL + "icons/unknown.png";
+      public const string Player = UI_IMAGE_BASE_URL + "icons/marker.png";
+      public const string Shop = UI_IMAGE_BASE_URL + "icons/unknown.png";
+      public const string Town = UI_IMAGE_BASE_URL + "icons/unknown.png";
     }
 
     class MapMarker

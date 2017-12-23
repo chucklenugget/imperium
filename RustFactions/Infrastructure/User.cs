@@ -1,7 +1,5 @@
 ﻿namespace Oxide.Plugins
 {
-  using Oxide.Game.Rust.Cui;
-  using System;
   using UnityEngine;
 
   public partial class RustFactions
@@ -10,7 +8,8 @@
     {
       public RustFactions Plugin { get; private set; }
       public BasePlayer Player { get; private set; }
-      public MapUi Map { get; private set; }
+      public UserMap Map { get; private set; }
+      public UserLocationPanel LocationPanel { get; private set; }
 
       public Area CurrentArea { get; set; }
       public Interaction PendingInteraction { get; set; }
@@ -19,7 +18,8 @@
       {
         Plugin = plugin;
         Player = player;
-        Map = new MapUi(plugin, this);
+        Map = new UserMap(plugin, this);
+        LocationPanel = new UserLocationPanel(plugin, this);
       }
 
       void Awake()
@@ -29,6 +29,7 @@
       void OnDestroy()
       {
         Map.Hide();
+        LocationPanel.Hide();
       }
     }
   }

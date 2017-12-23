@@ -27,6 +27,7 @@ namespace Oxide.Plugins
     BadlandsManager Badlands;
 
     Dictionary<uint, StorageContainer> TaxChests = new Dictionary<uint, StorageContainer>();
+    uint CurrentMapOverlayImageId;
 
     const string PERM_CHANGE_CLAIMS = "rustfactions.claims";
     const string PERM_CHANGE_BADLANDS = "rustfactions.badlands";
@@ -59,15 +60,12 @@ namespace Oxide.Plugins
       Puts($"Loaded {Claims.Count} area claims.");
       Puts($"Loaded {Taxes.Count} area claims.");
       Puts($"Loaded {Badlands.Count} badlands areas.");
-
-      GenerateMapOverlayImage();
     }
 
     void Unload()
     {
       Users.Destroy();
       Areas.Destroy();
-      RemoveInfoPanelForAllPlayers();
     }
 
     void OnServerInitialized()
@@ -78,6 +76,7 @@ namespace Oxide.Plugins
       Areas.Init();
       Users.Init();
       CacheTaxChests();
+      GenerateMapOverlayImage();
 
       permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
       permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
@@ -217,7 +216,7 @@ namespace Oxide.Plugins
       Claim currentClaim = Claims.Get(area);
 
       user.CurrentArea = area;
-      UpdateInfoPanel(player, area, currentClaim);
+      user.LocationPanel.Refresh();
 
       if (Badlands.Contains(area.Id) && (previousArea == null || !Badlands.Contains(previousArea)))
       {
@@ -263,19 +262,19 @@ namespace Oxide.Plugins
 
     void OnTaxPoliciesChanged()
     {
-      UpdateInfoPanelForAllPlayers();
+      RefreshUiForAllPlayers();
     }
 
     void OnClaimsChanged()
     {
       GenerateMapOverlayImage();
-      UpdateInfoPanelForAllPlayers();
+      RefreshUiForAllPlayers();
     }
 
     void OnBadlandsChanged()
     {
       GenerateMapOverlayImage();
-      UpdateInfoPanelForAllPlayers();
+      RefreshUiForAllPlayers();
     }
     
     void CacheTaxChests()
