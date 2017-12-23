@@ -76,7 +76,9 @@
           }
         });
 
-        AddMarker(container, new MapMarker(User.Player, "You"));
+        var monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
+        foreach (MonumentInfo monument in monuments)
+          AddMarker(container, new MapMarker(monument));
 
         foreach (Claim claim in Plugin.Claims.GetAllHeadquarters())
         {
@@ -85,6 +87,8 @@
           if (cupboard != null)
             AddMarker(container, new MapMarker(faction, claim, cupboard));
         }
+
+        AddMarker(container, new MapMarker(User.Player));
 
         container.Add(new CuiButton {
           Text = { Text = "X", FontSize = 14, Align = TextAnchor.MiddleCenter },
@@ -95,7 +99,7 @@
         return container;
       }
 
-      void AddMarker(CuiElementContainer container, MapMarker marker, float iconSize = 0.01f)
+      void AddMarker(CuiElementContainer container, MapMarker marker, float iconSize = 0.0075f)
       {
         container.Add(new CuiElement {
           Name = UiElements.MapIcon + Guid.NewGuid().ToString(),
