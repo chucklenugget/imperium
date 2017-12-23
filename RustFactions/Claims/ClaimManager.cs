@@ -19,8 +19,7 @@
       {
       }
 
-      public ClaimManager(RustFactions plugin, IEnumerable<Claim> claims)
-        : this(plugin)
+      public void Load(IEnumerable<Claim> claims)
       {
         Claims = claims.ToDictionary(c => c.AreaId);
       }

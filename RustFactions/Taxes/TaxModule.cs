@@ -56,7 +56,7 @@
       }
 
       SendMessage(player, Messages.SelectTaxChest);
-      user.PendingInteraction = Interaction.SelectingTaxChest;
+      user.PendingInteraction = new SelectingTaxChestInteraction();
     }
 
     void OnTaxSetCommand(BasePlayer player, string[] args)

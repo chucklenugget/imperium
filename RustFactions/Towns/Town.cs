@@ -2,23 +2,21 @@
 {
   public partial class RustFactions
   {
-    public class Claim
+    public class Town
     {
       public string AreaId;
-      public string FactionId;
-      public ulong ClaimantId;
+      public string Name;
+      public ulong MayorId;
       public uint CupboardId;
-      public bool IsHeadquarters;
 
-      public Claim() { }
+      public Town() { }
 
-      public Claim(string areaId, string factionId, ulong claimantId, uint cupboardId, bool isHeadquarters)
+      public Town(string areaId, string name, ulong mayorId, uint cupboardId)
       {
         AreaId = areaId;
-        FactionId = factionId;
-        ClaimantId = claimantId;
+        Name = name;
+        MayorId = mayorId;
         CupboardId = cupboardId;
-        IsHeadquarters = isHeadquarters;
       }
 
       public BuildingPrivlidge GetCupboardEntity()

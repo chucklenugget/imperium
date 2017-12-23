@@ -52,6 +52,14 @@
         Z = TranslatePosition(cupboard.transform.position.z);
       }
 
+      public MapMarker(Town town, BuildingPrivlidge cupboard)
+      {
+        IconUrl = MapMarkerIcon.Town;
+        Label = town.Name.RemoveSpecialCharacters();
+        X = TranslatePosition(cupboard.transform.position.x);
+        Z = TranslatePosition(cupboard.transform.position.z);
+      }
+
       public MapMarker(MonumentInfo monument)
       {
         IconUrl = GetIconForMonument(monument);

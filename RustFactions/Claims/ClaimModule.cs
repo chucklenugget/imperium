@@ -62,7 +62,7 @@
         return;
 
       SendMessage(player, Messages.SelectClaimCupboardToAdd);
-      user.PendingInteraction = Interaction.AddingClaim;
+      user.PendingInteraction = new AddingClaimInteraction();
     }
 
     void OnClaimRemoveCommand(BasePlayer player)
@@ -73,7 +73,7 @@
         return;
 
       SendMessage(player, Messages.SelectClaimCupboardToRemove);
-      user.PendingInteraction = Interaction.RemovingClaim;
+      user.PendingInteraction = new RemovingClaimInteraction();
     }
 
     void OnClaimHeadquartersCommand(BasePlayer player)
@@ -84,7 +84,7 @@
         return;
 
       SendMessage(player, Messages.SelectClaimCupboardForHeadquarters);
-      user.PendingInteraction = Interaction.SelectingHeadquarters;
+      user.PendingInteraction = new SelectingHeadquartersInteraction();
     }
 
     void OnClaimCostCommand(BasePlayer player, string[] args)
@@ -422,13 +422,13 @@
     {
       if (cupboard == null)
       {
-        SendMessage(player, Messages.SelectingClaimCupboardFailedInvalidTarget);
+        SendMessage(player, Messages.SelectingCupboardFailedInvalidTarget);
         return false;
       }
 
       if (!cupboard.IsAuthed(player))
       {
-        SendMessage(player, Messages.SelectingClaimCupboardFailedNeedAuth);
+        SendMessage(player, Messages.SelectingCupboardFailedNotAuthorized);
         return false;
       }
 

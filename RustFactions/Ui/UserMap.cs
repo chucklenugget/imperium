@@ -82,10 +82,25 @@
 
         foreach (Claim claim in Plugin.Claims.GetAllHeadquarters())
         {
+          var cupboard = claim.GetCupboardEntity();
+          if (cupboard == null)
+          {
+            Plugin.PrintWarning("Couldn't find entity for tool cupboard representing claim for area {0}!", claim.AreaId);
+            continue;
+          }
           var faction = Plugin.GetFaction(claim.FactionId);
-          var cupboard = BaseNetworkable.serverEntities.Find(claim.CupboardId) as BuildingPrivlidge;
-          if (cupboard != null)
-            AddMarker(container, new MapMarker(faction, claim, cupboard));
+          AddMarker(container, new MapMarker(faction, claim, cupboard));
+        }
+
+        foreach (Town town in Plugin.Towns.GetAll())
+        {
+          var cupboard = town.GetCupboardEntity();
+          if (cupboard == null)
+          {
+            Plugin.PrintWarning("Couldn't find entity for tool cupboard representing town {0}!", town.Name);
+            continue;
+          }
+          AddMarker(container, new MapMarker(town, cupboard));
         }
 
         AddMarker(container, new MapMarker(User.Player));

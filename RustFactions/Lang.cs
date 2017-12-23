@@ -12,8 +12,12 @@
       public const string AreaClaimsDisabled = "Area claims are currently disabled.";
       public const string TaxationDisabled = "Taxation is currently disabled.";
       public const string BadlandsDisabled = "Badlands are currently disabled.";
+      public const string TownsDisabled = "Towns are currently disabled.";
       public const string InteractionCanceled = "Command canceled.";
       public const string NoInteractionInProgress = "You aren't currently executing any commands.";
+
+      public const string SelectingCupboardFailedInvalidTarget = "You must select a tool cupboard.";
+      public const string SelectingCupboardFailedNotAuthorized = "You must be authorized on the tool cupboard.";
 
       public const string CannotClaimAreaNotMemberOfFaction = "You cannot claim an area without being a member of a faction!";
       public const string CannotClaimAreaFactionTooSmall = "You cannot claim an area because your faction does not have at least {0} members.";
@@ -23,8 +27,6 @@
       public const string SelectClaimCupboardToAdd = "Use the hammer to select a tool cupboard to represent the claim. Say /cancel to cancel.";
       public const string SelectClaimCupboardToRemove = "Use the hammer to select the tool cupboard representing the claim you want to remove. Say /cancel to cancel.";
       public const string SelectClaimCupboardForHeadquarters = "Use the hammer to select the tool cupboard to represent your faction's headquarters. Say /cancel to cancel.";
-      public const string SelectingClaimCupboardFailedInvalidTarget = "You must select a tool cupboard to make a claim.";
-      public const string SelectingClaimCupboardFailedNeedAuth = "You must be authorized on the tool cupboard in order to use it to claim an area.";
       public const string SelectingClaimCupboardFailedNotClaimCupboard = "That tool cabinet doesn't represent an area claim!";
 
       public const string ClaimCupboardMoved = "You have moved the claim on area {0} to a new tool cupboard.";
@@ -69,6 +71,18 @@
       public const string BadlandsRemoved = "Removed {0} from badlands. Badlands areas are now: {1}";
       public const string BadlandsSet = "Badlands areas are now: {0}";
       public const string BadlandsList = "Badlands areas are: {0}. Gather bonus is {1}%.";
+
+      public const string CannotManageTownsNoPermission = "You don't have permission to manage towns.";
+      public const string CannotCreateTownWrongUsage = "Usage: /town create NAME";
+      public const string CannotCreateTownAlreadyMayor = "You cannot create a new town, because you are already the mayor of {0}.";
+      public const string CannotCreateTownAreaIsBadlands = "You cannot create a new town in the badlands!";
+      public const string CannotCreateTownOneAlreadyExists = "You cannot create a town in {0}, because it is already the location of {1}.";
+      public const string SelectTownCupboardToAdd = "Use the hammer to select a tool cupboard to represent {0}. Say /cancel to cancel.";
+      public const string SelectTownCupboardToRemove = "Use the hammer to select the tool cupboard representing the town you want to remove. Say /cancel to cancel.";
+      public const string SelectingTownCupboardFailedNotTownCupboard = "That tool cupboard doesn't represent a town!";
+      public const string SelectingTownCupboardFailedNotMayor = "That tool cupboard represents {0}, which you are not the mayor of!";
+      public const string TownCreated = "You have founded the town {0}!";
+      public const string TownRemoved = "You have disbanded the town {0}!";
 
       public const string EnteredBadlands = "<color=#ff0000>BORDER:</color> You have entered the badlands! Player violence is allowed here.";
       public const string EnteredUnclaimedArea = "<color=#ffd479>BORDER:</color> You have entered unclaimed land.";

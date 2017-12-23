@@ -19,8 +19,7 @@
       {
       }
 
-      public BadlandsManager(RustFactions plugin, IEnumerable<string> areaIds)
-        : this(plugin)
+      public void Load(IEnumerable<string> areaIds)
       {
         AreaIds = new HashSet<string>(areaIds);
       }

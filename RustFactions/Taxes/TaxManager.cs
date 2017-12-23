@@ -19,8 +19,7 @@
       {
       }
 
-      public TaxManager(RustFactions plugin, IEnumerable<TaxPolicy> policies)
-        : this(plugin)
+      public void Load(IEnumerable<TaxPolicy> policies)
       {
         TaxPolicies = policies.ToDictionary(p => p.FactionId);
       }

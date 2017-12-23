@@ -25,12 +25,14 @@ namespace Oxide.Plugins
     ClaimManager Claims;
     TaxManager Taxes;
     BadlandsManager Badlands;
+    TownManager Towns;
 
     Dictionary<uint, StorageContainer> TaxChests = new Dictionary<uint, StorageContainer>();
     uint CurrentMapOverlayImageId;
 
     const string PERM_CHANGE_CLAIMS = "rustfactions.claims";
     const string PERM_CHANGE_BADLANDS = "rustfactions.badlands";
+    const string PERM_CHANGE_TOWNS = "rustfactions.towns";
 
     // Lifecycle Hooks -------------------------------------------------------------------------------------
 
@@ -43,6 +45,7 @@ namespace Oxide.Plugins
       Claims = new ClaimManager(this);
       Taxes = new TaxManager(this);
       Badlands = new BadlandsManager(this);
+      Towns = new TownManager(this);
     }
 
     void Loaded()
@@ -55,11 +58,13 @@ namespace Oxide.Plugins
       Puts("Area Claims are " + (Options.EnableAreaClaims ? "enabled" : "disabled"));
       Puts("Taxation is " + (Options.EnableTaxation ? "enabled" : "disabled"));
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
+      Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
 
       LoadData(this, DataFile);
       Puts($"Loaded {Claims.Count} area claims.");
-      Puts($"Loaded {Taxes.Count} area claims.");
+      Puts($"Loaded {Taxes.Count} tax policies.");
       Puts($"Loaded {Badlands.Count} badlands areas.");
+      Puts($"Loaded {Towns.Count} towns.");
     }
 
     void Unload()
@@ -80,6 +85,7 @@ namespace Oxide.Plugins
 
       permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
       permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
+      permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
     }
 
     void OnServerSave()
@@ -112,40 +118,53 @@ namespace Oxide.Plugins
     {
       User user = Users.Get(player);
 
-      if (user.PendingInteraction == Interaction.None)
+      if (user.PendingInteraction == null)
       {
         SendMessage(player, Messages.NoInteractionInProgress);
         return;
       }
 
       SendMessage(player, Messages.InteractionCanceled);
-      user.PendingInteraction = Interaction.None;
+      user.PendingInteraction = null;
     }
 
     void OnHammerHit(BasePlayer player, HitInfo hit)
     {
       User user = Users.Get(player);
 
-      switch (user.PendingInteraction)
+      if (user.PendingInteraction == null)
+        return;
+
+      // TODO: Switch to command or visitor pattern
+      if (user.PendingInteraction is AddingClaimInteraction)
       {
-        case Interaction.AddingClaim:
-          if (TryAddClaim(player, hit))
-            user.PendingInteraction = Interaction.None;
-          break;
-        case Interaction.RemovingClaim:
-          if (TryRemoveClaim(player, hit))
-            user.PendingInteraction = Interaction.None;
-          break;
-        case Interaction.SelectingHeadquarters:
-          if (TrySetHeadquarters(player, hit))
-            user.PendingInteraction = Interaction.None;
-          break;
-        case Interaction.SelectingTaxChest:
-          if (TrySetTaxChest(player, hit))
-            user.PendingInteraction = Interaction.None;
-          break;
-        default:
-          break;
+        if (TryAddClaim(player, hit))
+          user.PendingInteraction = null;
+      }
+      else if (user.PendingInteraction is RemovingClaimInteraction)
+      {
+        if (TryRemoveClaim(player, hit))
+          user.PendingInteraction = null;
+      }
+      else if (user.PendingInteraction is SelectingHeadquartersInteraction)
+      {
+        if (TrySetHeadquarters(player, hit))
+          user.PendingInteraction = null;
+      }
+      else if (user.PendingInteraction is SelectingTaxChestInteraction)
+      {
+        if (TrySetTaxChest(player, hit))
+          user.PendingInteraction = null;
+      }
+      else if (user.PendingInteraction is CreatingTownInteraction)
+      {
+        if (TryCreateTown((CreatingTownInteraction)user.PendingInteraction, player, hit))
+          user.PendingInteraction = null;
+      }
+      else if (user.PendingInteraction is RemovingTownInteraction)
+      {
+        if (TryRemoveTown(player, hit))
+          user.PendingInteraction = null;
       }
     }
 
@@ -276,7 +295,13 @@ namespace Oxide.Plugins
       GenerateMapOverlayImage();
       RefreshUiForAllPlayers();
     }
-    
+
+    void OnTownsChanged()
+    {
+      GenerateMapOverlayImage();
+      RefreshUiForAllPlayers();
+    }
+
     void CacheTaxChests()
     {
       if (!Options.EnableTaxation) return;

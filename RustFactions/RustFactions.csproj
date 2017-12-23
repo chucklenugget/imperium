@@ -147,6 +147,9 @@
   <ItemGroup>
     <Compile Include="Data.cs" />
     <Compile Include="Infrastructure\AreaManager.cs" />
+    <Compile Include="Towns\Town.cs" />
+    <Compile Include="Towns\TownManager.cs" />
+    <Compile Include="Towns\TownModule.cs" />
     <Compile Include="Ui\MapImageGenerator.cs" />
     <Compile Include="Ui\MapMarker.cs" />
     <Compile Include="Infrastructure\User.cs" />
@@ -176,6 +179,6 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd $(ProjectDir)
-copy Core.cs +Data.cs + Options.cs + Lang.cs + Util.cs + Badlands\*.cs + Claims\*.cs + Infrastructure\*.cs + Taxes\*.cs + Ui\*.cs C:\rustserver\oxide\plugins\RustFactions.cs /y /b</PostBuildEvent>
+copy Core.cs +Data.cs + Options.cs + Lang.cs + Util.cs + Badlands\*.cs + Claims\*.cs + Infrastructure\*.cs + Taxes\*.cs + Towns\*.cs + Ui\*.cs C:\rustserver\oxide\plugins\RustFactions.cs /y /b</PostBuildEvent>
   </PropertyGroup>
 </Project>

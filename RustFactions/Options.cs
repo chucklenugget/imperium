@@ -10,6 +10,7 @@
       public bool EnableAreaClaims;
       public bool EnableTaxation;
       public bool EnableBadlands;
+      public bool EnableTowns;
       public int MinFactionMembers;
       public int DefaultTaxRate;
       public int MaxTaxRate;
@@ -26,6 +27,7 @@
         EnableAreaClaims = Convert.ToBoolean(file["EnableAreaClaims"]),
         EnableTaxation = Convert.ToBoolean(file["EnableTaxation"]),
         EnableBadlands = Convert.ToBoolean(file["EnableBadlands"]),
+        EnableTowns = Convert.ToBoolean(file["EnableTowns"]),
         MinFactionMembers = Convert.ToInt32(file["MinFactionMembers"]),
         DefaultTaxRate = Convert.ToInt32(file["DefaultTaxRate"]),
         MaxTaxRate = Convert.ToInt32(file["MaxTaxRate"]),
@@ -44,6 +46,7 @@
       Config["EnableAreaClaims"] = true;
       Config["EnableTaxation"] = true;
       Config["EnableBadlands"] = true;
+      Config["EnableTowns"] = true;
       Config["MinFactionMembers"] = 3;
       Config["DefaultTaxRate"] = 10;
       Config["MaxTaxRate"] = 20;
