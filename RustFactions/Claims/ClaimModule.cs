@@ -94,13 +94,13 @@
 
       if (faction == null)
       {
-        SendMessage(player, Messages.CannotClaimAreaNotMemberOfFaction);
+        SendMessage(player, Messages.InteractionFailedNotMemberOfFaction);
         return;
       }
 
       if (faction.MemberSteamIds.Count < Options.MinFactionMembers)
       {
-        SendMessage(player, Messages.CannotClaimAreaFactionTooSmall, Options.MinFactionMembers);
+        SendMessage(player, Messages.InteractionFailedFactionTooSmall, Options.MinFactionMembers);
         return;
       }
 
@@ -397,21 +397,15 @@
     {
       Faction faction = GetFactionForPlayer(player);
 
-      if (faction == null)
+      if (faction == null || !faction.IsLeader(player))
       {
-        SendMessage(player, Messages.CannotClaimAreaNotMemberOfFaction);
+        SendMessage(player, Messages.InteractionFailedNotLeaderOfFaction);
         return false;
       }
 
       if (faction.MemberSteamIds.Count < Options.MinFactionMembers)
       {
-        SendMessage(player, Messages.CannotClaimAreaFactionTooSmall, Options.MinFactionMembers);
-        return false;
-      }
-
-      if (!faction.IsLeader(player))
-      {
-        SendMessage(player, Messages.CannotClaimAreaNotFactionLeader);
+        SendMessage(player, Messages.InteractionFailedFactionTooSmall, Options.MinFactionMembers);
         return false;
       }
 

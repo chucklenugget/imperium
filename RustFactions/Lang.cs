@@ -19,9 +19,10 @@
       public const string SelectingCupboardFailedInvalidTarget = "You must select a tool cupboard.";
       public const string SelectingCupboardFailedNotAuthorized = "You must be authorized on the tool cupboard.";
 
-      public const string CannotClaimAreaNotMemberOfFaction = "You cannot claim an area without being a member of a faction!";
-      public const string CannotClaimAreaFactionTooSmall = "You cannot claim an area because your faction does not have at least {0} members.";
-      public const string CannotClaimAreaNotFactionLeader = "You cannot change area claims because you aren't an owner or a moderator of your faction.";
+      public const string InteractionFailedNotMemberOfFaction = "You must be a member of a faction.";
+      public const string InteractionFailedNotLeaderOfFaction = "You must be an owner or a moderator of a faction.";
+      public const string InteractionFailedFactionTooSmall = "Your faction must have least {0} members.";
+
       public const string CannotClaimAreaBadlands = "You cannot claim this area because it is part of the badlands.";
       public const string CannotClaimAreaCannotAfford = "Claiming this area costs {0} scrap. Add this amount to your inventory and try again.";
       public const string SelectClaimCupboardToAdd = "Use the hammer to select a tool cupboard to represent the claim. Say /cancel to cancel.";
@@ -76,6 +77,7 @@
       public const string CannotCreateTownWrongUsage = "Usage: /town create NAME";
       public const string CannotCreateTownAlreadyMayor = "You cannot create a new town, because you are already the mayor of {0}.";
       public const string CannotCreateTownAreaIsBadlands = "You cannot create a new town in the badlands!";
+      public const string CannotCreateTownAreaIsClaimed = "You cannot create a new town in {0}, because it has already been claimed by a faction.";
       public const string CannotCreateTownOneAlreadyExists = "You cannot create a town in {0}, because it is already the location of {1}.";
       public const string SelectTownCupboardToAdd = "Use the hammer to select a tool cupboard to represent {0}. Say /cancel to cancel.";
       public const string SelectTownCupboardToRemove = "Use the hammer to select the tool cupboard representing the town you want to remove. Say /cancel to cancel.";

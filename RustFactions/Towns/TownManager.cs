@@ -41,6 +41,16 @@
         Plugin.OnTownsChanged();
       }
 
+      public bool Contains(Area area)
+      {
+        return Contains(area.Id);
+      }
+
+      public bool Contains(string areaId)
+      {
+        return Towns.ContainsKey(areaId);
+      }
+
       public Town Get(Area area)
       {
         return Get(area.Id);

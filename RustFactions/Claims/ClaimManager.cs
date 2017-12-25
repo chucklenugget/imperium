@@ -57,6 +57,16 @@
         Plugin.OnClaimsChanged();
       }
 
+      public bool Contains(Area area)
+      {
+        return Contains(area.Id);
+      }
+
+      public bool Contains(string areaId)
+      {
+        return Claims.ContainsKey(areaId);
+      }
+
       public Claim Get(Area area)
       {
         return Get(area.Id);

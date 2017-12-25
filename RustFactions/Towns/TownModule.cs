@@ -125,8 +125,9 @@
     bool TryCreateTown(CreatingTownInteraction interaction, BasePlayer player, HitInfo hit)
     {
       User user = Users.Get(player);
-      var cupboard = hit.HitEntity as BuildingPrivlidge;
+      Faction faction = GetFactionForPlayer(player);
 
+      var cupboard = hit.HitEntity as BuildingPrivlidge;
       if (!EnsureCanManageTowns(player) || !EnsureCanUseCupboardAsClaim(player, cupboard))
         return false;
 
@@ -143,6 +144,13 @@
         return false;
       }
 
+      Claim existingClaim = Claims.Get(area);
+      if (existingClaim != null)
+      {
+        SendMessage(player, Messages.CannotCreateTownAreaIsClaimed, area.Id);
+        return false;
+      }
+
       Town existingTown = Towns.Get(area);
       if (existingTown != null)
       {
@@ -150,9 +158,9 @@
         return false;
       }
 
-      Town town = new Town(area.Id, interaction.Name, player.userID, cupboard.net.ID);
+      Town town = new Town(area.Id, interaction.Name, faction.Id, player.userID, cupboard.net.ID);
       SendMessage(player, Messages.TownCreated, town.Name);
-      PrintToChat("<color=#00ff00ff>TOWN FOUNDED:</color> The town of {0} has been founded in {1}.", town.Name, area.Id);
+      PrintToChat("<color=#00ff00ff>TOWN FOUNDED:</color> {0} has founded the town of {1} in {1}.", faction.Id, town.Name, area.Id);
 
       Towns.Add(town);
 
@@ -192,6 +200,20 @@
       if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_TOWNS))
       {
         SendMessage(player, Messages.CannotManageTownsNoPermission);
+        return false;
+      }
+
+      Faction faction = GetFactionForPlayer(player);
+
+      if (faction == null || !faction.IsLeader(player))
+      {
+        SendMessage(player, Messages.InteractionFailedNotLeaderOfFaction);
+        return false;
+      }
+
+      if (faction.MemberSteamIds.Count < Options.MinFactionMembers)
+      {
+        SendMessage(player, Messages.InteractionFailedFactionTooSmall, Options.MinFactionMembers);
         return false;
       }
 

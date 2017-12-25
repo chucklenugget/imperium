@@ -8,7 +8,8 @@
     static class UserLocationPanelColor
     {
       public const string BackgroundNormal = "1 0.95 0.875 0.025";
-      public const string BackgroundWarning = "0.77 0.25 0.17 1";
+      public const string BackgroundDanger = "0.77 0.25 0.17 1";
+      public const string BackgroundSafe = "0.31 0.37 0.20 1";
       public const string Text = "0.85 0.85 0.85 0.5";
     }
 
@@ -64,35 +65,39 @@
 
       string GetLabelText(Area area)
       {
-        if (Plugin.Options.EnableBadlands && Plugin.Badlands.Contains(area))
-        {
+        if (Plugin.Badlands.Contains(area))
           return $"{area.Id}: Badlands (+{Plugin.Options.BadlandsGatherBonus}% bonus)";
-        }
-        else
+
+        Town town = Plugin.Towns.Get(area);
+        if (town != null)
         {
-          Claim claim = Plugin.Claims.Get(area);
-          if (claim == null)
-          {
-            return $"{User.CurrentArea.Id}: Unclaimed";
-          }
-          else
-          {
-            Faction faction = Plugin.GetFaction(claim.FactionId);
-            TaxPolicy policy = Plugin.Taxes.Get(claim);
-            if (policy != null)
-              return $"{area.Id}: {faction.Id} ({policy.TaxRate}% tax)";
-            else
-              return $"{area.Id}: {faction.Id}";
-          }
+          Faction faction = Plugin.GetFaction(town.FactionId);
+          return $"{area.Id}: {town.Name} ({faction.Id})";
         }
+
+        Claim claim = Plugin.Claims.Get(area);
+        if (claim != null)
+        {
+          Faction faction = Plugin.GetFaction(claim.FactionId);
+          TaxPolicy policy = Plugin.Taxes.Get(claim);
+          if (policy != null)
+            return $"{area.Id}: {faction.Id} ({policy.TaxRate}% tax)";
+          else
+            return $"{area.Id}: {faction.Id}";
+        }
+
+        return $"{area.Id}: Unclaimed";
       }
 
       string GetBackgroundColor(Area area)
       {
-        if (Plugin.Options.EnableBadlands && Plugin.Badlands.Contains(area))
-          return UserLocationPanelColor.BackgroundWarning;
-        else
-          return UserLocationPanelColor.BackgroundNormal;
+        if (Plugin.Badlands.Contains(area))
+          return UserLocationPanelColor.BackgroundDanger;
+
+        if (Plugin.Towns.Contains(area))
+          return UserLocationPanelColor.BackgroundSafe;
+
+        return UserLocationPanelColor.BackgroundNormal;
       }
 
     }

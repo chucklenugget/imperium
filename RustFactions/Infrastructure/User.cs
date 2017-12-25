@@ -6,7 +6,8 @@
   {
     class User : MonoBehaviour
     {
-      public RustFactions Plugin { get; private set; }
+      RustFactions Plugin;
+
       public BasePlayer Player { get; private set; }
       public UserMap Map { get; private set; }
       public UserLocationPanel LocationPanel { get; private set; }

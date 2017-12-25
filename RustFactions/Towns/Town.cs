@@ -6,15 +6,17 @@
     {
       public string AreaId;
       public string Name;
+      public string FactionId;
       public ulong MayorId;
       public uint CupboardId;
 
       public Town() { }
 
-      public Town(string areaId, string name, ulong mayorId, uint cupboardId)
+      public Town(string areaId, string name, string factionId, ulong mayorId, uint cupboardId)
       {
         AreaId = areaId;
         Name = name;
+        FactionId = factionId;
         MayorId = mayorId;
         CupboardId = cupboardId;
       }

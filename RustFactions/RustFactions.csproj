@@ -150,7 +150,7 @@
     <Compile Include="Towns\Town.cs" />
     <Compile Include="Towns\TownManager.cs" />
     <Compile Include="Towns\TownModule.cs" />
-    <Compile Include="Ui\MapImageGenerator.cs" />
+    <Compile Include="Ui\MapOverlayImageGenerator.cs" />
     <Compile Include="Ui\MapMarker.cs" />
     <Compile Include="Infrastructure\User.cs" />
     <Compile Include="Options.cs" />
