@@ -6,20 +6,6 @@
   using System.Linq;
   using System.Text;
 
-  public static class ExtensionMethods
-  {
-    public static string RemoveSpecialCharacters(this string str)
-    {
-      StringBuilder sb = new StringBuilder(str.Length);
-      foreach (char c in str)
-      {
-        if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= 'А' && c <= 'Я') || (c >= 'а' && c <= 'я') || c == ' ' || c == '.' || c == '_')
-          sb.Append(c);
-      }
-      return sb.ToString();
-    }
-  }
-
   public partial class RustFactions
   {
     string FormatList(IEnumerable<string> items)
@@ -27,28 +13,29 @@
       return String.Join(", ", items.ToArray());
     }
 
-    Faction GetFactionForPlayer(BasePlayer player)
+    public static string RemoveSpecialCharacters(string str)
     {
-      var name = Clans?.Call<string>("GetClanOf", player.userID);
+      if (String.IsNullOrEmpty(str))
+        return String.Empty;
 
-      if (String.IsNullOrEmpty(name))
-        return null;
+      StringBuilder sb = new StringBuilder(str.Length);
+      foreach (char c in str)
+      {
+        if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= 'А' && c <= 'Я') || (c >= 'а' && c <= 'я') || c == ' ' || c == '.' || c == '_')
+          sb.Append(c);
+      }
 
-      return GetFaction(name);
-    }
-
-    Faction GetFaction(string name)
-    {
-      var clanData = Clans?.Call<JObject>("GetClan", name);
-      if (clanData == null)
-        return null;
-      else
-        return new Faction(clanData);
+      return sb.ToString();
     }
 
     string NormalizeAreaId(string input)
     {
       return input.ToUpper().Trim();
+    }
+
+    string NormalizeName(string input)
+    {
+      return RemoveSpecialCharacters(input.Trim());
     }
 
     string NormalizeFactionId(string input)

@@ -1,42 +1,90 @@
 ﻿namespace Oxide.Plugins
 {
   using System;
+  using Newtonsoft.Json;
   using Oxide.Core.Configuration;
+  using Newtonsoft.Json.Converters;
 
   public partial class RustFactions : RustPlugin
   {
-    class RustFactionsData
+    public enum AreaType
     {
-      public Claim[] Claims;
-      public TaxPolicy[] TaxPolicies;
-      public string[] BadlandsAreas;
-      public Town[] Towns;
+      Unclaimed,
+      Claimed,
+      Headquarters,
+      Town,
+      Badlands
     }
 
-    void LoadData(RustFactions plugin, DynamicConfigFile file)
+    public class AreaInfo
     {
+      [JsonProperty("areaId")]
+      public string AreaId;
+
+      [JsonProperty("name")]
+      public string Name;
+
+      [JsonProperty("type"), JsonConverter(typeof(StringEnumConverter))]
+      public AreaType Type;
+
+      [JsonProperty("factionId")]
+      public string FactionId;
+
+      [JsonProperty("claimantId")]
+      public ulong? ClaimantId;
+
+      [JsonProperty("cupboardId")]
+      public uint? CupboardId;
+    }
+
+    class FactionInfo
+    {
+      [JsonProperty("factionId")]
+      public string FactionId;
+
+      [JsonProperty("taxRate")]
+      public int TaxRate;
+
+      [JsonProperty("taxChestId")]
+      public uint? TaxChestId;
+    }
+
+    class RustFactionsData
+    {
+      [JsonProperty("areas")]
+      public AreaInfo[] Areas;
+
+      [JsonProperty("factions")]
+      public FactionInfo[] Factions;
+    }
+
+    RustFactionsData LoadData(RustFactions core, DynamicConfigFile file)
+    {
+      RustFactionsData data;
+
       try
       {
-        var data = file.ReadObject<RustFactionsData>();
-        if (data.Claims != null) Claims.Load(data.Claims);
-        if (data.TaxPolicies != null) Taxes.Load(data.TaxPolicies);
-        if (data.BadlandsAreas != null) Badlands.Load(data.BadlandsAreas);
-        if (data.Towns != null) Towns.Load(data.Towns);
+        data = file.ReadObject<RustFactionsData>();
       }
       catch (Exception err)
       {
         Puts(err.ToString());
         PrintWarning("Couldn't load serialized data, defaulting to an empty map.");
+
+        data = new RustFactionsData {
+          Areas = new AreaInfo[0],
+          Factions = new FactionInfo[0]
+        };
       }
+
+      return data;
     }
 
     void SaveData(DynamicConfigFile file)
     {
       var serialized = new RustFactionsData {
-        Claims = Claims.Serialize(),
-        TaxPolicies = Taxes.Serialize(),
-        BadlandsAreas = Badlands.Serialize(),
-        Towns = Towns.Serialize()
+        Areas = Areas.SerializeState(),
+        Factions = Factions.SerializeState()
       };
 
       file.WriteObject(serialized, true);

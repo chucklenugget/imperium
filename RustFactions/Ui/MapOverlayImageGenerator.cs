@@ -21,30 +21,26 @@
         var colorPicker = new FactionColorPicker();
         var textBrush = new SolidBrush(Color.FromArgb(255, 255, 255, 255));
 
-        for (int row = 0; row < grid.Width; row++)
+        for (int row = 0; row < grid.NumberOfCells; row++)
         {
-          for (int col = 0; col < grid.Width; col++)
+          for (int col = 0; col < grid.NumberOfCells; col++)
           {
+            Area area = Areas.Get(grid.GetAreaId(row, col));
             var x = (col * tileSize);
             var y = (row * tileSize);
-            var areaId = grid.GetAreaId(row, col);
             var rect = new Rectangle(x, y, tileSize, tileSize);
 
-            if (Badlands.Contains(areaId))
+            if (area.Type == AreaType.Badlands)
             {
               // If the tile is badlands, color it in black.
               var brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.FromArgb(32, 0, 0, 0), Color.FromArgb(255, 0, 0, 0));
               graphics.FillRectangle(brush, rect);
             }
-            else
+            else if (area.Type != AreaType.Unclaimed)
             {
               // If the tile is claimed, fill it with a color indicating the faction.
-              Claim claim = Claims.Get(areaId);
-              if (claim != null)
-              {
-                var brush = new SolidBrush(colorPicker.GetColorForFaction(claim.FactionId));
-                graphics.FillRectangle(brush, rect);
-              }
+              var brush = new SolidBrush(colorPicker.GetColorForFaction(area.FactionId));
+              graphics.FillRectangle(brush, rect);
             }
           }
         }
@@ -53,15 +49,15 @@
         var gridLabelOffset = 5;
         var gridLinePen = new Pen(Color.FromArgb(192, 0, 0, 0), 2);
 
-        for (int row = 0; row < grid.Width; row++)
+        for (int row = 0; row < grid.NumberOfCells; row++)
         {
-          graphics.DrawLine(gridLinePen, 0, (row * tileSize), (grid.Width * tileSize), (row * tileSize));
+          graphics.DrawLine(gridLinePen, 0, (row * tileSize), (grid.NumberOfCells * tileSize), (row * tileSize));
           graphics.DrawString(grid.GetRowId(row), gridLabelFont, textBrush, gridLabelOffset, (row * tileSize) + gridLabelOffset);
         }
 
-        for (int col = 1; col < grid.Width; col++)
+        for (int col = 1; col < grid.NumberOfCells; col++)
         {
-          graphics.DrawLine(gridLinePen, (col * tileSize), 0, (col * tileSize), (grid.Width * tileSize));
+          graphics.DrawLine(gridLinePen, (col * tileSize), 0, (col * tileSize), (grid.NumberOfCells * tileSize));
           graphics.DrawString(grid.GetColumnId(col), gridLabelFont, textBrush, (col * tileSize) + gridLabelOffset, gridLabelOffset);
         }
 

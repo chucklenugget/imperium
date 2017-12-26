@@ -8,14 +8,14 @@
   {
     class UserMap
     {
-      public bool IsVisible { get; private set; }
-
-      RustFactions Plugin;
+      RustFactions Core;
       User User;
 
-      public UserMap(RustFactions plugin, User user)
+      public bool IsVisible { get; private set; }
+
+      public UserMap(RustFactions core, User user)
       {
-        Plugin = plugin;
+        Core = core;
         User = user;
       }
 
@@ -62,7 +62,7 @@
           Name = UiElements.MapBackgroundImage,
           Parent = UiElements.Map,
           Components = {
-            new CuiRawImageComponent { Url = Plugin.Options.MapImageUrl, Sprite = UI_TRANSPARENT_TEXTURE },
+            new CuiRawImageComponent { Url = Core.Options.MapImageUrl, Sprite = UI_TRANSPARENT_TEXTURE },
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
@@ -71,39 +71,25 @@
           Name = UiElements.MapClaimsImage,
           Parent = UiElements.Map,
           Components = {
-            new CuiRawImageComponent { Png = Plugin.CurrentMapOverlayImageId.ToString(), Sprite = UI_TRANSPARENT_TEXTURE },
+            new CuiRawImageComponent { Png = Core.CurrentMapOverlayImageId.ToString(), Sprite = UI_TRANSPARENT_TEXTURE },
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
 
         var monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
         foreach (MonumentInfo monument in monuments)
-          AddMarker(container, new MapMarker(monument));
+          AddMarker(container, MapMarker.ForMonument(monument));
 
-        foreach (Claim claim in Plugin.Claims.GetAllHeadquarters())
+        foreach (Area area in Core.Areas.GetAllByType(AreaType.Headquarters))
         {
-          var cupboard = claim.GetCupboardEntity();
-          if (cupboard == null)
-          {
-            Plugin.PrintWarning("Couldn't find entity for tool cupboard representing claim for area {0}!", claim.AreaId);
-            continue;
-          }
-          var faction = Plugin.GetFaction(claim.FactionId);
-          AddMarker(container, new MapMarker(faction, claim, cupboard));
+          var faction = Core.Factions.Get(area.FactionId);
+          AddMarker(container, MapMarker.ForHeadquarters(area, faction));
         }
 
-        foreach (Town town in Plugin.Towns.GetAll())
-        {
-          var cupboard = town.GetCupboardEntity();
-          if (cupboard == null)
-          {
-            Plugin.PrintWarning("Couldn't find entity for tool cupboard representing town {0}!", town.Name);
-            continue;
-          }
-          AddMarker(container, new MapMarker(town, cupboard));
-        }
+        foreach (Area area in Core.Areas.GetAllByType(AreaType.Town))
+          AddMarker(container, MapMarker.ForTown(area));
 
-        AddMarker(container, new MapMarker(User.Player));
+        AddMarker(container, MapMarker.ForUser(User));
 
         container.Add(new CuiButton {
           Text = { Text = "X", FontSize = 14, Align = TextAnchor.MiddleCenter },

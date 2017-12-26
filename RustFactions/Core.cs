@@ -6,70 +6,71 @@ namespace Oxide.Plugins
   using Oxide.Core;
   using Oxide.Core.Configuration;
   using Oxide.Core.Plugins;
-  using System.Collections.Generic;
-  using UnityEngine;
 
-  [Info("RustFactions", "chucklenugget", "0.7.0")]
+  [Info("RustFactions", "chucklenugget", "1.0.0")]
   public partial class RustFactions : RustPlugin
   {
-
-    // Definitions -----------------------------------------------------------------------------------------
-
     [PluginReference] Plugin Clans;
 
     DynamicConfigFile DataFile;
+    DynamicConfigFile HistoryFile;
     RustFactionsOptions Options;
 
-    UserManager Users;
     AreaManager Areas;
-    ClaimManager Claims;
-    TaxManager Taxes;
-    BadlandsManager Badlands;
-    TownManager Towns;
+    FactionManager Factions;
+    UserManager Users;
+    HistoryManager History;
 
-    Dictionary<uint, StorageContainer> TaxChests = new Dictionary<uint, StorageContainer>();
     uint CurrentMapOverlayImageId;
 
     const string PERM_CHANGE_CLAIMS = "rustfactions.claims";
     const string PERM_CHANGE_BADLANDS = "rustfactions.badlands";
     const string PERM_CHANGE_TOWNS = "rustfactions.towns";
 
-    // Lifecycle Hooks -------------------------------------------------------------------------------------
+    const string UI_TRANSPARENT_TEXTURE = "assets/content/textures/generic/fulltransparent.tga";
+    const string UI_IMAGE_BASE_URL = "http://images.rustfactions.io.s3.amazonaws.com/";
+
+    public static class UiElements
+    {
+      public const string Hud = "Hud";
+      public const string LocationPanel = "RustFactions.LocationPanel";
+      public const string LocationPanelText = "RustFactions.LocationPanel.Text";
+      public const string Map = "RustFactions.Map";
+      public const string MapCloseButton = "RustFactions.Map.CloseButton";
+      public const string MapBackgroundImage = "RustFactions.Map.BackgroundImage";
+      public const string MapClaimsImage = "RustFactions.Map.ClaimsImage";
+      public const string MapOverlay = "RustFactions.Map.Overlay";
+      public const string MapIcon = "RustFactions.Map.Icon";
+      public const string MapLabel = "RustFactions.Map.Label";
+    }
 
     void Init()
     {
       PrintToChat($"{this.Title} {this.Version} initialized.");
 
-      Users = new UserManager(this);
+      DataFile = Interface.Oxide.DataFileSystem.GetFile("RustFactions");
+      HistoryFile = Interface.Oxide.DataFileSystem.GetDatafile("RustFactionsHistory");
+
       Areas = new AreaManager(this);
-      Claims = new ClaimManager(this);
-      Taxes = new TaxManager(this);
-      Badlands = new BadlandsManager(this);
-      Towns = new TownManager(this);
+      Factions = new FactionManager(this);
+      Users = new UserManager(this);
+      History = new HistoryManager(this);
     }
 
     void Loaded()
     {
       InitLang();
-
-      DataFile = Interface.Oxide.DataFileSystem.GetFile("RustFactions");
-
       Options = LoadOptions(Config);
       Puts("Area Claims are " + (Options.EnableAreaClaims ? "enabled" : "disabled"));
       Puts("Taxation is " + (Options.EnableTaxation ? "enabled" : "disabled"));
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
       Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
-
-      LoadData(this, DataFile);
-      Puts($"Loaded {Claims.Count} area claims.");
-      Puts($"Loaded {Taxes.Count} tax policies.");
-      Puts($"Loaded {Badlands.Count} badlands areas.");
-      Puts($"Loaded {Towns.Count} towns.");
     }
 
     void Unload()
     {
       Users.Destroy();
+      Factions.Destroy();
       Areas.Destroy();
     }
 
@@ -78,24 +79,30 @@ namespace Oxide.Plugins
       if (Clans == null)
         PrintWarning("RustFactions requires the Rust:IO Clans plugin, but it was not found!");
 
-      Areas.Init();
-      Users.Init();
-      CacheTaxChests();
-      GenerateMapOverlayImage();
-
       permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
       permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
       permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
+
+      RustFactionsData data = LoadData(this, DataFile);
+      History.Load(HistoryFile);
+
+      Areas.Init(data.Areas);
+      Factions.Init(data.Factions);
+      Users.Init();
+      GenerateMapOverlayImage();
     }
 
     void OnServerSave()
     {
       SaveData(DataFile);
+      History.Save(HistoryFile);
     }
 
     void OnPlayerInit(BasePlayer player)
     {
       if (player == null) return;
+
+      // If the player hasn't fully connected yet, try again in 2 seconds.
       if (player.HasPlayerFlag(BasePlayer.PlayerFlags.ReceivingSnapshot) || player.IsSleeping())
       {
         timer.In(2, () => OnPlayerInit(player));
@@ -111,61 +118,42 @@ namespace Oxide.Plugins
         Users.Remove(player);
     }
 
-    // Game Event Hooks ------------------------------------------------------------------------------------
-
     [ChatCommand("cancel")]
     void OnCancelCommand(BasePlayer player, string command, string[] args)
     {
       User user = Users.Get(player);
 
-      if (user.PendingInteraction == null)
+      if (user.CurrentInteraction == null)
       {
-        SendMessage(player, Messages.NoInteractionInProgress);
+        user.SendMessage(Messages.NoInteractionInProgress);
         return;
       }
 
-      SendMessage(player, Messages.InteractionCanceled);
-      user.PendingInteraction = null;
+      user.SendMessage(Messages.InteractionCanceled);
+      user.CancelInteraction();
     }
 
     void OnHammerHit(BasePlayer player, HitInfo hit)
     {
       User user = Users.Get(player);
 
-      if (user.PendingInteraction == null)
-        return;
+      if (user != null && user.CurrentInteraction != null)
+        user.CompleteInteraction(hit);
+    }
 
-      // TODO: Switch to command or visitor pattern
-      if (user.PendingInteraction is AddingClaimInteraction)
-      {
-        if (TryAddClaim(player, hit))
-          user.PendingInteraction = null;
-      }
-      else if (user.PendingInteraction is RemovingClaimInteraction)
-      {
-        if (TryRemoveClaim(player, hit))
-          user.PendingInteraction = null;
-      }
-      else if (user.PendingInteraction is SelectingHeadquartersInteraction)
-      {
-        if (TrySetHeadquarters(player, hit))
-          user.PendingInteraction = null;
-      }
-      else if (user.PendingInteraction is SelectingTaxChestInteraction)
-      {
-        if (TrySetTaxChest(player, hit))
-          user.PendingInteraction = null;
-      }
-      else if (user.PendingInteraction is CreatingTownInteraction)
-      {
-        if (TryCreateTown((CreatingTownInteraction)user.PendingInteraction, player, hit))
-          user.PendingInteraction = null;
-      }
-      else if (user.PendingInteraction is RemovingTownInteraction)
-      {
-        if (TryRemoveTown(player, hit))
-          user.PendingInteraction = null;
-      }
+    object OnEntityTakeDamage(BaseCombatEntity entity, HitInfo hit)
+    {
+      if (!Options.EnableDefensiveBonuses)
+        return null;
+
+      if (entity == null || hit == null)
+        return null;
+
+      User user = Users.Get(hit.InitiatorPlayer);
+      if (user == null)
+        return null;
+
+      return ScaleDamageForDefensiveBonus(entity, hit, user);
     }
 
     void OnEntityKill(BaseNetworkable entity)
@@ -175,38 +163,31 @@ namespace Oxide.Plugins
       if (player != null)
       {
         User user = Users.Get(player);
-        if (user.CurrentArea != null)
-        {
-          user.CurrentArea.Players.Remove(player);
+        if (user != null && user.CurrentArea != null)
           user.CurrentArea = null;
-        }
       }
 
       // If a claim TC is destroyed, remove the claim from the area.
       var cupboard = entity as BuildingPrivlidge;
       if (cupboard != null)
       {
-        var claim = Claims.GetByCupboard(cupboard);
-        if (claim != null)
+        var area = Areas.GetByClaimCupboard(cupboard);
+        if (area != null)
         {
-          PrintToChat("<color=#ff0000ff>AREA CLAIM LOST:</color> [{0}] has lost its claim on {1}, because the tool cupboard was destroyed!", claim.FactionId, claim.AreaId);
-          Claims.Remove(claim);
+          PrintToChat(Messages.AreaClaimLostCupboardDestroyedAnnouncement, area.FactionId, area.Id);
+          Areas.Unclaim(area);
         }
       }
 
-      // If a tax container is destroyed, remove it from the tax policy.
+      // If a tax chest is destroyed, remove it from the faction data.
       if (Options.EnableTaxation)
       {
         var container = entity as StorageContainer;
         if (container != null)
         {
-          var policy = Taxes.Get(container);
-          if (policy != null)
-          {
-            Puts($"[{policy.FactionId}] has lost their ability to tax because their tax chest was destroyed.");
-            Taxes.RemoveTaxChest(policy);
-            TaxChests.Remove(entity.net.ID);
-          }
+          Faction faction = Factions.GetByTaxChest(container);
+          if (faction != null)
+            faction.TaxChest = null;
         }
       }
     }
@@ -223,100 +204,87 @@ namespace Oxide.Plugins
       AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
-    void OnPlayerEnterArea(Area area, BasePlayer player)
+    void OnUserEnterArea(Area area, User user)
     {
-      User user = Users.Get(player);
-
       Area previousArea = user.CurrentArea;
-      Claim previousClaim = null;
-      if (previousArea != null)
-        previousClaim = Claims.Get(previousArea);
-
-      Claim currentClaim = Claims.Get(area);
-
       user.CurrentArea = area;
-      user.LocationPanel.Refresh();
 
-      if (Badlands.Contains(area.Id) && (previousArea == null || !Badlands.Contains(previousArea)))
+      if (previousArea != null)
       {
-        // The player has crossed into the badlands.
-        SendMessage(player, Messages.EnteredBadlands);
+        if (area.Type == AreaType.Badlands && previousArea.Type != AreaType.Badlands)
+        {
+          // The player has crossed into the badlands.
+          user.SendMessage(Messages.EnteredBadlands);
+        }
+        else if (area.Type == AreaType.Unclaimed && previousArea.Type != AreaType.Unclaimed)
+        {
+          // The player has crossed a border between the land of a faction and unclaimed land.
+          user.SendMessage(Messages.EnteredUnclaimedArea);
+        }
+        else if (area.Type != AreaType.Unclaimed && previousArea.Type != AreaType.Unclaimed)
+        {
+          // The player has crosed a border between unclaimed land and the land of a faction.
+          user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
+        }
+        else if (area.Type != AreaType.Unclaimed && previousArea.Type != AreaType.Unclaimed && area.FactionId != previousArea.FactionId)
+        {
+          // The player has crossed a border between two factions.
+          user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
+        }
       }
-      else if (currentClaim == null && previousClaim != null)
-      {
-        // The player has crossed a border between the land of a faction and unclaimed land.
-        SendMessage(player, Messages.EnteredUnclaimedArea);
-      }
-      else if (currentClaim != null && previousClaim == null)
-      {
-        // The player has crosed a border between unclaimed land and the land of a faction.
-        SendMessage(player, Messages.EnteredClaimedArea, currentClaim.FactionId);
-      }
-      else if ((currentClaim != null && previousClaim != null) && (currentClaim.FactionId != previousClaim.FactionId))
-      {
-        // The player has crossed a border between two factions.
-        SendMessage(player, Messages.EnteredClaimedArea, currentClaim.FactionId);
-      }
+
+      user.LocationPanel.Refresh();
     }
 
-    void OnPlayerExitArea(Area area, BasePlayer player)
+    void OnUserExitArea(Area area, User user)
     {
       // TODO: If we don't need this hook, we should remove it.
     }
 
+    void OnClanCreate(string factionId)
+    {
+      Factions.HandleFactionCreated(factionId);
+    }
+
+    void OnClanUpdate(string factionId)
+    {
+      Factions.HandleFactionChanged(factionId);
+    }
+
     void OnClanDestroy(string factionId)
     {
-      var claims = Claims.GetAllClaimsForFaction(factionId);
+      Area[] areas = Areas.GetAllClaimedByFaction(factionId);
 
-      if (claims.Length > 0)
+      if (areas.Length > 0)
       {
-        foreach (var claim in claims)
-          PrintToChat("<color=#ff0000ff>AREA CLAIM LOST:</color> [{0}] has been disbanded, losing its claim on {1}!", claim.FactionId, claim.AreaId);
-        Claims.Remove(claims);
+        foreach (Area area in areas)
+          PrintToChat(Messages.AreaClaimLostFactionDisbandedAnnouncement, area.FactionId, area.Id);
+
+        Areas.Unclaim(areas);
       }
 
-      if (Options.EnableTaxation)
-        Taxes.Remove(factionId);
+      Factions.HandleFactionDestroyed(factionId);
+      OnFactionsChanged();
     }
 
-    void OnTaxPoliciesChanged()
-    {
-      RefreshUiForAllPlayers();
-    }
-
-    void OnClaimsChanged()
+    void OnAreasChanged()
     {
       GenerateMapOverlayImage();
       RefreshUiForAllPlayers();
     }
 
-    void OnBadlandsChanged()
+    void OnFactionsChanged()
     {
-      GenerateMapOverlayImage();
       RefreshUiForAllPlayers();
     }
 
-    void OnTownsChanged()
+    void RefreshUiForAllPlayers()
     {
-      GenerateMapOverlayImage();
-      RefreshUiForAllPlayers();
-    }
-
-    void CacheTaxChests()
-    {
-      if (!Options.EnableTaxation) return;
-
-      // Find and cache references to the StorageContainers that act as tax chests.
-      Puts("Caching references to tax chests...");
-
-      foreach (var policy in Taxes.GetAllActiveTaxPolicies())
+      foreach (User user in Users.GetAll())
       {
-        var containerId = (uint)policy.TaxChestId;
-        var container = BaseNetworkable.serverEntities.Find(containerId) as StorageContainer;
-        TaxChests[containerId] = container;
+        user.LocationPanel.Refresh();
+        user.Map.Refresh();
       }
-
-      Puts($"Cached references to {TaxChests.Values.Count} tax chests.");
     }
 
   }

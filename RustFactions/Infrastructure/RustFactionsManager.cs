@@ -4,16 +4,16 @@
   {
     public abstract class RustFactionsManager
     {
-      public RustFactions Plugin { get; private set; }
+      public RustFactions Core { get; private set; }
 
-      public RustFactionsManager(RustFactions plugin)
+      public RustFactionsManager(RustFactions core)
       {
-        Plugin = plugin;
+        Core = core;
       }
 
       protected void Puts(string format, params object[] args)
       {
-        Plugin.Puts(format, args);
+        Core.Puts(format, args);
       }
     }
   }

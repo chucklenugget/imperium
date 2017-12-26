@@ -15,12 +15,12 @@
 
     class UserLocationPanel
     {
-      RustFactions Plugin;
+      RustFactions Core;
       User User;
 
-      public UserLocationPanel(RustFactions plugin, User user)
+      public UserLocationPanel(RustFactions core, User user)
       {
-        Plugin = plugin;
+        Core = core;
         User = user;
       }
 
@@ -65,39 +65,38 @@
 
       string GetLabelText(Area area)
       {
-        if (Plugin.Badlands.Contains(area))
-          return $"{area.Id}: Badlands (+{Plugin.Options.BadlandsGatherBonus}% bonus)";
-
-        Town town = Plugin.Towns.Get(area);
-        if (town != null)
+        switch (area.Type)
         {
-          Faction faction = Plugin.GetFaction(town.FactionId);
-          return $"{area.Id}: {town.Name} ({faction.Id})";
-        }
+          case AreaType.Badlands:
+            return $"{area.Id}: Badlands (+{Core.Options.BadlandsGatherBonus}% bonus)";
 
-        Claim claim = Plugin.Claims.Get(area);
-        if (claim != null)
-        {
-          Faction faction = Plugin.GetFaction(claim.FactionId);
-          TaxPolicy policy = Plugin.Taxes.Get(claim);
-          if (policy != null)
-            return $"{area.Id}: {faction.Id} ({policy.TaxRate}% tax)";
-          else
-            return $"{area.Id}: {faction.Id}";
-        }
+          case AreaType.Claimed:
+          case AreaType.Headquarters:
+            Faction faction = Core.Factions.Get(area.FactionId);
+            if (faction.CanCollectTaxes)
+              return $"{area.Id}: {faction.Id} ({faction.TaxRate}% tax)";
+            else
+              return $"{area.Id}: {faction.Id}";
 
-        return $"{area.Id}: Unclaimed";
+          case AreaType.Town:
+            return $"{area.Id}: {area.Name} ({area.FactionId})";
+
+          default:
+            return $"{area.Id}: Unclaimed";
+        }
       }
 
       string GetBackgroundColor(Area area)
       {
-        if (Plugin.Badlands.Contains(area))
-          return UserLocationPanelColor.BackgroundDanger;
-
-        if (Plugin.Towns.Contains(area))
-          return UserLocationPanelColor.BackgroundSafe;
-
-        return UserLocationPanelColor.BackgroundNormal;
+        switch (area.Type)
+        {
+          case AreaType.Badlands:
+            return UserLocationPanelColor.BackgroundDanger;
+          case AreaType.Town:
+            return UserLocationPanelColor.BackgroundSafe;
+          default:
+            return UserLocationPanelColor.BackgroundNormal;
+        }
       }
 
     }

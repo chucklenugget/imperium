@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -145,40 +145,46 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Economics.cs" />
+    <Compile Include="Infrastructure\LruCache.cs" />
+    <Compile Include="Infrastructure\Town.cs" />
+    <Compile Include="Interactions\AddingClaimInteraction.cs" />
+    <Compile Include="Interactions\CreatingTownInteraction.cs" />
+    <Compile Include="Interactions\AddingAreaToTownInteraction.cs" />
+    <Compile Include="Interactions\RemovingClaimInteraction.cs" />
     <Compile Include="Data.cs" />
     <Compile Include="Infrastructure\AreaManager.cs" />
-    <Compile Include="Towns\Town.cs" />
-    <Compile Include="Towns\TownManager.cs" />
-    <Compile Include="Towns\TownModule.cs" />
+    <Compile Include="Infrastructure\FactionManager.cs" />
+    <Compile Include="Interactions\RemovingAreaFromTownInteraction.cs" />
+    <Compile Include="Interactions\SelectingHeadquartersInteraction.cs" />
+    <Compile Include="Commands\TownCommands.cs" />
+    <Compile Include="Interactions\SelectingTaxChestInteraction.cs" />
+    <Compile Include="Logistics.cs" />
     <Compile Include="Ui\MapOverlayImageGenerator.cs" />
     <Compile Include="Ui\MapMarker.cs" />
     <Compile Include="Infrastructure\User.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Infrastructure\Area.cs" />
     <Compile Include="Lang.cs" />
-    <Compile Include="Badlands\BadlandsModule.cs" />
-    <Compile Include="Claims\ClaimModule.cs" />
+    <Compile Include="Commands\BadlandsCommands.cs" />
+    <Compile Include="Commands\ClaimCommands.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core.cs" />
-    <Compile Include="Taxes\TaxModule.cs" />
+    <Compile Include="Commands\TaxCommands.cs" />
     <Compile Include="Ui\UserLocationPanel.cs" />
     <Compile Include="Ui\UserMap.cs" />
-    <Compile Include="Ui\UiModule.cs" />
-    <Compile Include="Claims\Claim.cs" />
-    <Compile Include="Claims\ClaimManager.cs" />
-    <Compile Include="Badlands\BadlandsManager.cs" />
+    <Compile Include="Commands\MapCommands.cs" />
     <Compile Include="Ui\MapGrid.cs" />
-    <Compile Include="Infrastructure\Interaction.cs" />
+    <Compile Include="Interactions\Interaction.cs" />
     <Compile Include="Infrastructure\RustFactionsManager.cs" />
-    <Compile Include="Taxes\TaxPolicy.cs" />
     <Compile Include="Infrastructure\Faction.cs" />
     <Compile Include="Infrastructure\UserManager.cs" />
-    <Compile Include="Taxes\TaxManager.cs" />
     <Compile Include="Util.cs" />
+    <Compile Include="History.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd $(ProjectDir)
-copy Core.cs +Data.cs + Options.cs + Lang.cs + Util.cs + Badlands\*.cs + Claims\*.cs + Infrastructure\*.cs + Taxes\*.cs + Towns\*.cs + Ui\*.cs C:\rustserver\oxide\plugins\RustFactions.cs /y /b</PostBuildEvent>
+copy Core.cs +Data.cs + Economics.cs + History.cs +Lang.cs + Logistics.cs + Options.cs + Util.cs + Commands\*.cs + Infrastructure\*.cs + Interactions\*.cs + Ui\*.cs C:\rustserver\oxide\plugins\RustFactions.cs /y /b</PostBuildEvent>
   </PropertyGroup>
 </Project>

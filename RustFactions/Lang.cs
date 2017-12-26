@@ -1,9 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
-  using System;
   using System.Linq;
   using System.Reflection;
-  using System.Text;
 
   public partial class RustFactions : RustPlugin
   {
@@ -18,24 +16,35 @@
 
       public const string SelectingCupboardFailedInvalidTarget = "You must select a tool cupboard.";
       public const string SelectingCupboardFailedNotAuthorized = "You must be authorized on the tool cupboard.";
+      public const string SelectingCupboardFailedNotClaimCupboard = "That tool cupboard doesn't represent an area claim made by your faction.";
 
       public const string InteractionFailedNotMemberOfFaction = "You must be a member of a faction.";
       public const string InteractionFailedNotLeaderOfFaction = "You must be an owner or a moderator of a faction.";
       public const string InteractionFailedFactionTooSmall = "Your faction must have least {0} members.";
+      public const string InteractionFailedNotMayorOfTown = "You are not the mayor of a town. To create one, use /town create NAME.";
 
-      public const string CannotClaimAreaBadlands = "You cannot claim this area because it is part of the badlands.";
+      public const string CannotClaimAreaIsBadlands = "You cannot claim the area {0}, because it is part of the badlands.";
+      public const string CannotClaimAreaIsTown = "You cannot claim the area {0}, because it is already a town owned by [{1}].";
+      public const string CannotClaimAreaIsClaimed = "You cannot claim the area {0}, because it is already claimed by [{1}]!";
       public const string CannotClaimAreaCannotAfford = "Claiming this area costs {0} scrap. Add this amount to your inventory and try again.";
+      public const string CannotClaimAreaAlreadyOwned = "The area {0} is already owned by your faction, and this cupboard represents the claim.";
+
       public const string SelectClaimCupboardToAdd = "Use the hammer to select a tool cupboard to represent the claim. Say /cancel to cancel.";
       public const string SelectClaimCupboardToRemove = "Use the hammer to select the tool cupboard representing the claim you want to remove. Say /cancel to cancel.";
       public const string SelectClaimCupboardForHeadquarters = "Use the hammer to select the tool cupboard to represent your faction's headquarters. Say /cancel to cancel.";
-      public const string SelectingClaimCupboardFailedNotClaimCupboard = "That tool cabinet doesn't represent an area claim!";
 
       public const string ClaimCupboardMoved = "You have moved the claim on area {0} to a new tool cupboard.";
-      public const string HeadquartersSet = "You have declared {0} to be your faction's headquarters.";
+      public const string HeadquartersMoved = "You have declared {0} to be your faction's headquarters.";
       public const string ClaimCaptured = "You have captured the area {0} from [{1}]!";
       public const string ClaimAdded = "You have claimed the area {0} for your faction.";
       public const string ClaimRemoved = "You have removed your faction's claim on {0}.";
-      public const string ClaimFailedAlreadyClaimed = "You cannot claim the area {0}, because it is already claimed by [{1}]!";
+
+      public const string CannotRenameAreaBadUsage = "Usage: /claim rename XY \"NAME\"";
+      public const string CannotRenameAreaBadName = "Cannot rename {0}. The name must be at least {1} characters long.";
+      public const string CannotRenameAreaUnknownAreaId = "Cannot rename {0}. Unknown area ID.";
+      public const string CannotRenameAreaNotClaimedByFaction = "Cannot rename {0}, because it isn't claimed by your faction.";
+      public const string CannotRenameAreaIsTown = "Cannot rename {0}, because it is part of the town {1}.";
+      public const string AreaRenamed = "The area {0} is now known as {1}.";
 
       public const string CannotShowClaimBadUsage = "Usage: /claim show XY";
       public const string CannotListClaimsBadUsage = "Usage: /claim list FACTION";
@@ -44,15 +53,16 @@
       public const string AreaIsClaimed = "{0} is owned by [{1}].";
       public const string AreaIsHeadquarters = "{0} is the headquarters of [{1}].";
       public const string AreaIsUnclaimed = "{0} has not been claimed by a faction.";
+      public const string AreaIsTown = "{0} is part of the town of {1}, which is managed by [{2}].";
       public const string ClaimsList = "[{0}] has claimed: {1}";
 
       public const string CannotShowClaimCostBadUsage = "Usage: /claim cost [XY] (If grid cell is omitted, it will show the cost of your current location.)";
-      public const string CannotShowClaimCostAlreadyOwned = "{0} has already been claimed by [{1}]!";
       public const string ClaimCost = "{0} can be claimed by [{1}] for {2} scrap.";
 
       public const string CannotDeleteClaimsBadUsage = "Usage: /claims delete XY [XY XY...]";
       public const string CannotDeleteClaimsNoPermission = "You don't have permission to delete claims you don't own. Did you mean /claim remove?";
-      public const string CannotDeleteClaimsAreaNotClaimed = "{0} has not been claimed by a faction.";
+      public const string CannotDeleteClaimsAreaIsBadlands = "You cannot delete the claim on {0}, because it is part of the badlands.";
+      public const string CannotDeleteClaimsAreaIsUnclaimed = "You cannot delete the claim on {0}, because it has not been claimed by a faction.";
 
       public const string CannotSelectTaxChestNotMemberOfFaction = "You cannot select a tax chest without being a member of a faction!";
       public const string CannotSelectTaxChestNotFactionLeader = "You cannot select a tax chest because you aren't an owner or a moderator of your faction.";
@@ -67,28 +77,45 @@
 
       public const string CannotSetBadlandsNoPermission = "You don't have permission to alter badlands.";
       public const string CannotSetBadlandsWrongUsage = "Usage: /badlands <add|remove|set|clear> [XY XY XY...]";
-      public const string CannotSetBadlandsAreaClaimed = "Cannot set {0} as badlands, since it has already been claimed by [{1}].";
-      public const string BadlandsAdded = "Added {0} to badlands. Badlands areas are now: {1}";
-      public const string BadlandsRemoved = "Removed {0} from badlands. Badlands areas are now: {1}";
+      public const string CannotSetBadlandsUnknownArea = "Cannot add {0} to badlands. Unknown area identifier.";
+      public const string CannotSetBadlandsNotUnclaimed = "Cannot add {0} to badlands, since it is not currently unclaimed.";
+      public const string CannotSetBadlandsNotBadlands = "Cannot remove {0} from badlands, since it is not currently badlands.";
+
       public const string BadlandsSet = "Badlands areas are now: {0}";
       public const string BadlandsList = "Badlands areas are: {0}. Gather bonus is {1}%.";
 
       public const string CannotManageTownsNoPermission = "You don't have permission to manage towns.";
       public const string CannotCreateTownWrongUsage = "Usage: /town create NAME";
-      public const string CannotCreateTownAlreadyMayor = "You cannot create a new town, because you are already the mayor of {0}.";
-      public const string CannotCreateTownAreaIsBadlands = "You cannot create a new town in the badlands!";
-      public const string CannotCreateTownAreaIsClaimed = "You cannot create a new town in {0}, because it has already been claimed by a faction.";
-      public const string CannotCreateTownOneAlreadyExists = "You cannot create a town in {0}, because it is already the location of {1}.";
-      public const string SelectTownCupboardToAdd = "Use the hammer to select a tool cupboard to represent {0}. Say /cancel to cancel.";
+      public const string CannotCreateTownAlreadyMayor = "You cannot create a new town, because you are already the mayor of {0}. To expand the town instead, use /town expand.";
+      public const string CannotCreateTownSameNameAlreadyExists = "You cannot create a new town named {0}, because a town with that name already exists. To expand the town instead, use /town expand.";
+      public const string CannotAddToTownAreaIsHeadquarters = "The area {0} cannot be added to a town, because it is currently your faction's headquarters.";
+      public const string CannotAddToTownOneAlreadyExists = "The area {0} cannot be added to town, because it is already part of the town of {1}.";
+      public const string CannotRemoveFromTownNotPartOfTown = "The area {0} cannot be removed from a town, because it is not part of a town.";
+
+      public const string SelectTownCupboardToCreate = "Use the hammer to select a tool cupboard to represent {0}. Say /cancel to cancel.";
+      public const string SelectTownCupboardToExpand = "Use the hammer to select a tool cupboard to add to {0}. Say /cancel to cancel.";
       public const string SelectTownCupboardToRemove = "Use the hammer to select the tool cupboard representing the town you want to remove. Say /cancel to cancel.";
       public const string SelectingTownCupboardFailedNotTownCupboard = "That tool cupboard doesn't represent a town!";
       public const string SelectingTownCupboardFailedNotMayor = "That tool cupboard represents {0}, which you are not the mayor of!";
-      public const string TownCreated = "You have founded the town {0}!";
-      public const string TownRemoved = "You have disbanded the town {0}!";
+      public const string TownCreated = "You have founded the town of {0}.";
+      public const string AreaAddedToTown = "You have added the area {0} to the town of {1}.";
+      public const string AreaRemovedFromTown = "You have removed the area {0} from the town of {1}.";
+      public const string TownDisbanded = "You have disbanded the town of {0}!";
 
       public const string EnteredBadlands = "<color=#ff0000>BORDER:</color> You have entered the badlands! Player violence is allowed here.";
       public const string EnteredUnclaimedArea = "<color=#ffd479>BORDER:</color> You have entered unclaimed land.";
       public const string EnteredClaimedArea = "<color=#ffd479>BORDER:</color> You have entered land claimed by [{0}].";
+
+      public const string AreaClaimedAnnouncement = "<color=#00ff00>AREA CLAIMED:</color> [{0}] claims {1}!";
+      public const string AreaClaimedAsHeadquartersAnnouncement = "<color=#00ff00>AREA CLAIMED:</color> [{0}] claims {1} as their headquarters!";
+      public const string AreaCapturedAnnouncement = "<color=#ff0000>AREA CAPTURED:</color> [{0}] has captured {1} from [{2}]!";
+      public const string AreaClaimRemovedAnnouncement = "<color=#ff0000>CLAIM REMOVED:</color> [{0}] has relinquished their claim on {1}!";
+      public const string AreaClaimDeletedAnnouncement = "<color=#ff0000>AREA CLAIM REMOVED:</color> [{0}]'s claim on {1} has been removed by an admin.";
+      public const string AreaClaimLostCupboardDestroyedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> [{0}] has lost its claim on {1}, because the tool cupboard was destroyed!";
+      public const string AreaClaimLostFactionDisbandedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> [{0}] has been disbanded, losing its claim on {1}!";
+      public const string HeadquartersChangedAnnouncement = "<color=#00ff00>HQ CHANGED:</color> [{0}] announces that {1} is their headquarters.";
+      public const string TownCreatedAnnouncement = "<color=#00ff00>TOWN FOUNDED:</color> [{0}] has founded the town of {1} in {2}.";
+      public const string TownDisbandedAnnouncement = "<color=#ff0000>TOWN DISBANDED:</color> [{0}] has disbanded the town of {1}.";
     }
 
     void InitLang()
@@ -99,16 +126,5 @@
 
       lang.RegisterMessages(messages, this);
     }
-
-    void SendMessage(BasePlayer player, string message, params object[] args)
-    {
-      SendReply(player, String.Format(lang.GetMessage(message, this, player.UserIDString), args));
-    }
-
-    void SendMessage(BasePlayer player, StringBuilder sb)
-    {
-      SendReply(player, sb.ToString().TrimEnd());
-    }
   }
-
 }

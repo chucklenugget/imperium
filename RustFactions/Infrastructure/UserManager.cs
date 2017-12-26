@@ -9,8 +9,8 @@
     {
       Dictionary<ulong, User> Users = new Dictionary<ulong, User>();
 
-      public UserManager(RustFactions plugin)
-        : base(plugin)
+      public UserManager(RustFactions core)
+        : base(core)
       {
       }
 
@@ -25,10 +25,10 @@
         return Get(player.userID);
       }
 
-      public User Get(ulong playerId)
+      public User Get(ulong userId)
       {
         User user;
-        if (Users.TryGetValue(playerId, out user))
+        if (Users.TryGetValue(userId, out user))
           return user;
         else
           return null;
@@ -39,7 +39,7 @@
         Remove(player);
 
         User user = player.gameObject.AddComponent<User>();
-        user.Init(Plugin, player);
+        user.Init(Core, player);
 
         Users[user.Player.userID] = user;
 
@@ -63,7 +63,7 @@
 
         Puts($"Creating user objects for {players.Count} players...");
 
-        foreach (var player in players)
+        foreach (BasePlayer player in players)
           Add(player);
 
         Puts($"Created {Users.Count} user objects.");

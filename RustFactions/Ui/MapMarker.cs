@@ -37,35 +37,45 @@
       public float X;
       public float Z;
 
-      public MapMarker(BasePlayer player)
+      public static MapMarker ForUser(User user)
       {
-        IconUrl = MapMarkerIcon.Player;
-        X = TranslatePosition(player.transform.position.x);
-        Z = TranslatePosition(player.transform.position.z);
+        return new MapMarker
+        {
+          IconUrl = MapMarkerIcon.Player,
+          X = TranslatePosition(user.Player.transform.position.x),
+          Z = TranslatePosition(user.Player.transform.position.z)
+        };
       }
 
-      public MapMarker(Faction faction, Claim claim, BuildingPrivlidge cupboard)
+      public static MapMarker ForHeadquarters(Area area, Faction faction)
       {
-        IconUrl = MapMarkerIcon.Headquarters;
-        Label = faction.Description.RemoveSpecialCharacters();
-        X = TranslatePosition(cupboard.transform.position.x);
-        Z = TranslatePosition(cupboard.transform.position.z);
+        return new MapMarker {
+          IconUrl = MapMarkerIcon.Headquarters,
+          Label = RemoveSpecialCharacters(faction.Description),
+          X = TranslatePosition(area.ClaimCupboard.transform.position.x),
+          Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
+        };
       }
 
-      public MapMarker(Town town, BuildingPrivlidge cupboard)
+      public static MapMarker ForTown(Area area)
       {
-        IconUrl = MapMarkerIcon.Town;
-        Label = town.Name.RemoveSpecialCharacters();
-        X = TranslatePosition(cupboard.transform.position.x);
-        Z = TranslatePosition(cupboard.transform.position.z);
+        return new MapMarker {
+          IconUrl = MapMarkerIcon.Town,
+          Label = RemoveSpecialCharacters(area.Name),
+          X = TranslatePosition(area.ClaimCupboard.transform.position.x),
+          Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
+        };
       }
 
-      public MapMarker(MonumentInfo monument)
+      public static MapMarker ForMonument(MonumentInfo monument)
       {
-        IconUrl = GetIconForMonument(monument);
-        Label = (IconUrl == MapMarkerIcon.Unknown) ? monument.name : null;
-        X = TranslatePosition(monument.transform.position.x);
-        Z = TranslatePosition(monument.transform.position.z);
+        string iconUrl = GetIconForMonument(monument);
+        return new MapMarker {
+          IconUrl = iconUrl,
+          Label = (iconUrl == MapMarkerIcon.Unknown) ? monument.name : null,
+          X = TranslatePosition(monument.transform.position.x),
+          Z = TranslatePosition(monument.transform.position.z)
+        };
       }
 
       static float TranslatePosition(float pos)
@@ -78,12 +88,7 @@
       {
         return ((int)Math.Round(rot / 10)) * 10;
       }
-
-      static string GetIconUrl(string iconName)
-      {
-        return $"http://images.rustfactions.io.s3.amazonaws.com/icons/{iconName}.png";
-      }
-
+      
       static string GetIconForMonument(MonumentInfo monument)
       {
         if (monument.Type == MonumentType.Cave) return MapMarkerIcon.Cave;
