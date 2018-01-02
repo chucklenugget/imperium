@@ -9,12 +9,9 @@
   {
     class AreaManager : RustFactionsManager
     {
-      const int CACHE_SIZE = 100;
-
       MapGrid Grid;
       Dictionary<string, Area> Areas;
       Area[,] Layout;
-      LruCache<uint, Area> EntityLookupCache;
 
       public int Count
       {
@@ -27,7 +24,6 @@
         Grid = new MapGrid(ConVar.Server.worldsize);
         Areas = new Dictionary<string, Area>();
         Layout = new Area[Grid.NumberOfCells, Grid.NumberOfCells];
-        EntityLookupCache = new LruCache<uint, Area>(CACHE_SIZE);
       }
       
       public Area Get(string areaId)
@@ -115,6 +111,9 @@
 
       public int GetDepthInsideFriendlyTerritory(Area area)
       {
+        if (!area.IsClaimed)
+          return 0;
+
         var depth = new int[4];
 
         for (var row = area.Row; row >= 0; row--)
@@ -195,7 +194,7 @@
       {
         foreach (Area area in areas)
         {
-          area.Type = AreaType.Unclaimed;
+          area.Type = AreaType.Wilderness;
           area.FactionId = null;
           area.ClaimantId = null;
           area.ClaimCupboard = null;
@@ -272,7 +271,6 @@
 
         Areas.Clear();
         Array.Clear(Layout, 0, Layout.Length);
-        EntityLookupCache.Clear();
 
         Puts("Area objects destroyed.");
       }

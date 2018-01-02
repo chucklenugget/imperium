@@ -15,6 +15,7 @@
       public bool EnableDefensiveBonuses;
       public int MinFactionMembers;
       public int MinAreaNameLength;
+      public int MinCassusBelliLength;
       public int DefaultTaxRate;
       public int MaxTaxRate;
       public int BadlandsGatherBonus;
@@ -34,6 +35,7 @@
         EnableDefensiveBonuses = file.Get<bool>("EnableDefensiveBonuses"),
         MinFactionMembers = file.Get<int>("MinFactionMembers"),
         MinAreaNameLength = file.Get<int>("MinAreaNameLength"),
+        MinCassusBelliLength = file.Get<int>("MinCassusBelliLength"),
         DefaultTaxRate = file.Get<int>("DefaultTaxRate"),
         MaxTaxRate = file.Get<int>("MaxTaxRate"),
         BadlandsGatherBonus = file.Get<int>("BadlandsGatherBonus"),
@@ -55,6 +57,7 @@
       Config["EnableDefensiveBonuses"] = true;
       Config["MinFactionMembers"] = 3;
       Config["MinAreaNameLength"] = 3;
+      Config["MinCassusBelliLength"] = 50;
       Config["DefaultTaxRate"] = 10;
       Config["MaxTaxRate"] = 20;
       Config["BadlandsGatherBonus"] = 10;

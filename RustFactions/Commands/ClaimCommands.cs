@@ -177,7 +177,7 @@
         user.SendMessage(Messages.CannotClaimAreaIsBadlands, area.Id);
         return;
       }
-      else if (area.Type != AreaType.Unclaimed)
+      else if (area.Type != AreaType.Wilderness)
       {
         user.SendMessage(Messages.CannotClaimAreaIsClaimed, area.Id, area.FactionId);
         return;
@@ -212,7 +212,7 @@
           user.SendMessage(Messages.AreaIsTown, area.Id, area.Name, area.FactionId);
           return;
         default:
-          user.SendMessage(Messages.AreaIsUnclaimed, area.Id);
+          user.SendMessage(Messages.AreaIsWilderness, area.Id);
           return;
       }
     }
@@ -230,7 +230,7 @@
 
       if (faction == null)
       {
-        user.SendMessage(Messages.CannotListClaimsUnknownFaction, factionId);
+        user.SendMessage(Messages.InteractionFailedUnknownFaction, factionId);
         return;
       }
 
@@ -302,9 +302,9 @@
           return;
         }
 
-        if (area.Type == AreaType.Unclaimed)
+        if (area.Type == AreaType.Wilderness)
         {
-          user.SendMessage(Messages.CannotDeleteClaimsAreaIsUnclaimed, area.Id);
+          user.SendMessage(Messages.CannotDeleteClaimsAreaNotUnclaimed, area.Id);
           return;
         }
 

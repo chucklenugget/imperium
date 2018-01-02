@@ -11,7 +11,7 @@
 
       public BasePlayer Player { get; private set; }
       public UserMap Map { get; private set; }
-      public UserLocationPanel LocationPanel { get; private set; }
+      public UserHudPanel HudPanel { get; private set; }
 
       public Area CurrentArea { get; set; }
       public Interaction CurrentInteraction { get; private set; }
@@ -25,19 +25,21 @@
       {
         Core = core;
         Player = player;
-        Map = new UserMap(core, this);
-        LocationPanel = new UserLocationPanel(core, this);
-      }
 
-      void Awake()
-      {
+        Map = new UserMap(core, this);
+        HudPanel = new UserHudPanel(core, this);
+
+        InvokeRepeating("UpdateHud", 5f, 5f);
         InvokeRepeating("CheckArea", 2f, 2f);
       }
 
       void OnDestroy()
       {
         Map.Hide();
-        LocationPanel.Hide();
+        HudPanel.Hide();
+
+        if (IsInvoking("UpdateHud"))
+          CancelInvoke("UpdateHud");
 
         if (IsInvoking("CheckArea"))
           CancelInvoke("CheckArea");
@@ -77,11 +79,16 @@
         Core.SendReply(Player, sb.ToString().TrimEnd());
       }
 
+      void UpdateHud()
+      {
+        HudPanel.Refresh();
+      }
+
       void CheckArea()
       {
         Area currentArea = CurrentArea;
         Area correctArea = Core.Areas.GetByEntityPosition(Player);
-        if (currentArea.Id != correctArea.Id)
+        if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
           Core.OnUserExitArea(currentArea, this);
           Core.OnUserEnterArea(correctArea, this);

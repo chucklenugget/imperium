@@ -22,9 +22,19 @@
       public ulong? ClaimantId { get; set; }
       public BuildingPrivlidge ClaimCupboard { get; set; }
 
+      public bool IsClaimed
+      {
+        get { return FactionId != null; }
+      }
+
       public bool IsTaxableClaim
       {
         get { return Type == AreaType.Claimed || Type == AreaType.Headquarters; }
+      }
+
+      public bool IsWarzone
+      {
+        get { return GetActiveWars().Length > 0; }
       }
 
       public void Init(RustFactions core, string id, int row, int col, Vector3 position, Vector3 size, AreaInfo info)
@@ -36,7 +46,7 @@
         Position = position;
         Size = size;
 
-        if (info != null && info.Type != AreaType.Unclaimed)
+        if (info != null)
           TryLoadInfo(info);
 
         gameObject.layer = (int)Layer.Reserved1;
@@ -66,12 +76,16 @@
 
       void TryLoadInfo(AreaInfo info)
       {
-        var cupboard = BaseNetworkable.serverEntities.Find((uint)info.CupboardId) as BuildingPrivlidge;
+        BuildingPrivlidge cupboard = null;
 
-        if (cupboard == null)
+        if (info.CupboardId != null)
         {
-          Core.PrintWarning($"Couldn't find cupboard entity {info.CupboardId} for area {info.AreaId}. Treating as unclaimed.");
-          return;
+          cupboard = BaseNetworkable.serverEntities.Find((uint)info.CupboardId) as BuildingPrivlidge;
+          if (cupboard == null)
+          {
+            Core.PrintWarning($"Couldn't find cupboard entity {info.CupboardId} for area {info.AreaId}.");
+            return;
+          }
         }
 
         Name = info.Name;
@@ -116,6 +130,35 @@
         int numberOfAreasOwned = Core.Areas.GetAllClaimedByFaction(faction).Length;
         int index = Mathf.Clamp(numberOfAreasOwned, 0, costs.Count - 1);
         return costs[index];
+      }
+
+      public float GetDefensiveBonus()
+      {
+        var bonuses = Core.Options.DefensiveBonuses;
+        int depth = Core.Areas.GetDepthInsideFriendlyTerritory(this);
+        int index = Mathf.Clamp(depth, 0, bonuses.Count - 1);
+        return bonuses[index];
+      }
+
+      public int GetTaxRate()
+      {
+        if (!IsTaxableClaim)
+          return 0;
+
+        Faction faction = Core.Factions.Get(FactionId);
+
+        if (!faction.CanCollectTaxes)
+          return 0;
+
+        return faction.TaxRate;
+      }
+
+      public War[] GetActiveWars()
+      {
+        if (FactionId == null)
+          return new War[0];
+
+        return Core.Diplomacy.GetAllActiveWarsByFaction(FactionId);
       }
 
       public AreaInfo Serialize()

@@ -22,6 +22,8 @@
       public const string InteractionFailedNotLeaderOfFaction = "You must be an owner or a moderator of a faction.";
       public const string InteractionFailedFactionTooSmall = "Your faction must have least {0} members.";
       public const string InteractionFailedNotMayorOfTown = "You are not the mayor of a town. To create one, use /town create NAME.";
+      public const string InteractionFailedFactionDoesNotOwnLand = "Your faction must own at least one area.";
+      public const string InteractionFailedUnknownFaction = "Unknown faction [{0}].";
 
       public const string CannotClaimAreaIsBadlands = "You cannot claim the area {0}, because it is part of the badlands.";
       public const string CannotClaimAreaIsTown = "You cannot claim the area {0}, because it is already a town owned by [{1}].";
@@ -48,11 +50,10 @@
 
       public const string CannotShowClaimBadUsage = "Usage: /claim show XY";
       public const string CannotListClaimsBadUsage = "Usage: /claim list FACTION";
-      public const string CannotListClaimsUnknownFaction = "Unknown faction [{0}].";
       public const string AreaIsBadlands = "{0} is part of the badlands and cannot be claimed.";
       public const string AreaIsClaimed = "{0} is owned by [{1}].";
       public const string AreaIsHeadquarters = "{0} is the headquarters of [{1}].";
-      public const string AreaIsUnclaimed = "{0} has not been claimed by a faction.";
+      public const string AreaIsWilderness = "{0} has not been claimed by a faction.";
       public const string AreaIsTown = "{0} is part of the town of {1}, which is managed by [{2}].";
       public const string ClaimsList = "[{0}] has claimed: {1}";
 
@@ -62,7 +63,7 @@
       public const string CannotDeleteClaimsBadUsage = "Usage: /claims delete XY [XY XY...]";
       public const string CannotDeleteClaimsNoPermission = "You don't have permission to delete claims you don't own. Did you mean /claim remove?";
       public const string CannotDeleteClaimsAreaIsBadlands = "You cannot delete the claim on {0}, because it is part of the badlands.";
-      public const string CannotDeleteClaimsAreaIsUnclaimed = "You cannot delete the claim on {0}, because it has not been claimed by a faction.";
+      public const string CannotDeleteClaimsAreaNotUnclaimed = "You cannot delete the claim on {0}, because it has not been claimed by a faction.";
 
       public const string CannotSelectTaxChestNotMemberOfFaction = "You cannot select a tax chest without being a member of a faction!";
       public const string CannotSelectTaxChestNotFactionLeader = "You cannot select a tax chest because you aren't an owner or a moderator of your faction.";
@@ -78,7 +79,7 @@
       public const string CannotSetBadlandsNoPermission = "You don't have permission to alter badlands.";
       public const string CannotSetBadlandsWrongUsage = "Usage: /badlands <add|remove|set|clear> [XY XY XY...]";
       public const string CannotSetBadlandsUnknownArea = "Cannot add {0} to badlands. Unknown area identifier.";
-      public const string CannotSetBadlandsNotUnclaimed = "Cannot add {0} to badlands, since it is not currently unclaimed.";
+      public const string CannotSetBadlandsNotWilderness = "Cannot add {0} to badlands, since it is not currently wilderness.";
       public const string CannotSetBadlandsNotBadlands = "Cannot remove {0} from badlands, since it is not currently badlands.";
 
       public const string BadlandsSet = "Badlands areas are now: {0}";
@@ -102,8 +103,16 @@
       public const string AreaRemovedFromTown = "You have removed the area {0} from the town of {1}.";
       public const string TownDisbanded = "You have disbanded the town of {0}!";
 
+      public const string CannotDeclareWarWrongUsage = "Usage: /war declare FACTION REASON";
+      public const string CannotDeclareWarAlreadyAtWar = "You cannot declare war against [{0}], because you are already at war with them!";
+      public const string CannotDeclareWarInvalidCassusBelli = "You cannot declare war against [{0}], because your reason doesn't meet the minimum length.";
+      public const string CannotEndWarNotAtWar = "You are not currently at war with [{0}]!";
+      public const string CannotEndWarDidNotDeclareWar = "You did not declare the war against [{0}]. Only the attacking faction may end the war.";
+      public const string WarDeclared = "You have declared WAR against [{0}]!";
+      public const string WarEnded = "You have ended the war with [{0}].";
+
       public const string EnteredBadlands = "<color=#ff0000>BORDER:</color> You have entered the badlands! Player violence is allowed here.";
-      public const string EnteredUnclaimedArea = "<color=#ffd479>BORDER:</color> You have entered unclaimed land.";
+      public const string EnteredWilderness = "<color=#ffd479>BORDER:</color> You have entered the wilderness.";
       public const string EnteredClaimedArea = "<color=#ffd479>BORDER:</color> You have entered land claimed by [{0}].";
 
       public const string AreaClaimedAnnouncement = "<color=#00ff00>AREA CLAIMED:</color> [{0}] claims {1}!";
@@ -116,6 +125,8 @@
       public const string HeadquartersChangedAnnouncement = "<color=#00ff00>HQ CHANGED:</color> [{0}] announces that {1} is their headquarters.";
       public const string TownCreatedAnnouncement = "<color=#00ff00>TOWN FOUNDED:</color> [{0}] has founded the town of {1} in {2}.";
       public const string TownDisbandedAnnouncement = "<color=#ff0000>TOWN DISBANDED:</color> [{0}] has disbanded the town of {1}.";
+      public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> [{0}] has declared war on [{1}]! Their reason: {2}";
+      public const string WarEndedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between [{0}] and [{1}] has ended.";
     }
 
     void InitLang()

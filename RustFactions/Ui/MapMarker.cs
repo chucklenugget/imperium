@@ -4,32 +4,6 @@
 
   public partial class RustFactions
   {
-    static class MapMarkerIcon
-    {
-      public const string Player = UI_IMAGE_BASE_URL + "icons/marker.png";
-      public const string Headquarters = UI_IMAGE_BASE_URL + "icons/unknown.png";
-      public const string Shop = UI_IMAGE_BASE_URL + "icons/unknown.png";
-      public const string Town = UI_IMAGE_BASE_URL + "icons/unknown.png";
-      public const string Cave = UI_IMAGE_BASE_URL + "icons/cave.png";
-      public const string Airfield = UI_IMAGE_BASE_URL + "icons/airfield.png";
-      public const string SatelliteDish = UI_IMAGE_BASE_URL + "icons/dish.png";
-      public const string GasStation = UI_IMAGE_BASE_URL + "icons/gasstation.png";
-      public const string Harbor = UI_IMAGE_BASE_URL + "icons/harbor.png";
-      public const string LaunchSite = UI_IMAGE_BASE_URL + "icons/launchsite.png";
-      public const string Lighthouse = UI_IMAGE_BASE_URL + "icons/lighthouse.png";
-      public const string MilitaryTunnel = UI_IMAGE_BASE_URL + "icons/militarytunnel.png";
-      public const string Dome = UI_IMAGE_BASE_URL + "icons/spheretank.png";
-      public const string Supermarket = UI_IMAGE_BASE_URL + "icons/supermarket.png";
-      public const string Trainyard = UI_IMAGE_BASE_URL + "icons/trainyard.png";
-      public const string Unknown = UI_IMAGE_BASE_URL + "icons/unknown.png";
-      public const string MiningOutpost = UI_IMAGE_BASE_URL + "icons/warehouse.png";
-      public const string PowerPlant = UI_IMAGE_BASE_URL + "icons/powerplant.png";
-      public const string WaterTreatmentPlant = UI_IMAGE_BASE_URL + "icons/watertreatment.png";
-      public const string SewerBranch = UI_IMAGE_BASE_URL + "icons/sewerbranch.png";
-      public const string Substation = UI_IMAGE_BASE_URL + "icons/powersub.png";
-      public const string Quarry = UI_IMAGE_BASE_URL + "icons/quarry.png";
-    }
-
     class MapMarker
     {
       public string IconUrl;
@@ -41,7 +15,7 @@
       {
         return new MapMarker
         {
-          IconUrl = MapMarkerIcon.Player,
+          IconUrl = UiMapIcon.Player,
           X = TranslatePosition(user.Player.transform.position.x),
           Z = TranslatePosition(user.Player.transform.position.z)
         };
@@ -50,7 +24,7 @@
       public static MapMarker ForHeadquarters(Area area, Faction faction)
       {
         return new MapMarker {
-          IconUrl = MapMarkerIcon.Headquarters,
+          IconUrl = UiMapIcon.Headquarters,
           Label = RemoveSpecialCharacters(faction.Description),
           X = TranslatePosition(area.ClaimCupboard.transform.position.x),
           Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
@@ -60,7 +34,7 @@
       public static MapMarker ForTown(Area area)
       {
         return new MapMarker {
-          IconUrl = MapMarkerIcon.Town,
+          IconUrl = UiMapIcon.Town,
           Label = RemoveSpecialCharacters(area.Name),
           X = TranslatePosition(area.ClaimCupboard.transform.position.x),
           Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
@@ -72,7 +46,7 @@
         string iconUrl = GetIconForMonument(monument);
         return new MapMarker {
           IconUrl = iconUrl,
-          Label = (iconUrl == MapMarkerIcon.Unknown) ? monument.name : null,
+          Label = (iconUrl == UiMapIcon.Unknown) ? monument.name : null,
           X = TranslatePosition(monument.transform.position.x),
           Z = TranslatePosition(monument.transform.position.z)
         };
@@ -91,24 +65,24 @@
       
       static string GetIconForMonument(MonumentInfo monument)
       {
-        if (monument.Type == MonumentType.Cave) return MapMarkerIcon.Cave;
-        if (monument.name.Contains("lighthouse")) return MapMarkerIcon.Lighthouse;
-        if (monument.name.Contains("harbor")) return MapMarkerIcon.Harbor;
-        if (monument.name.Contains("powerplant")) return MapMarkerIcon.PowerPlant;
-        if (monument.name.Contains("military_tunnel")) return MapMarkerIcon.MilitaryTunnel;
-        if (monument.name.Contains("airfield")) return MapMarkerIcon.Airfield;
-        if (monument.name.Contains("trainyard")) return MapMarkerIcon.Trainyard;
-        if (monument.name.Contains("water_treatment_plant")) return MapMarkerIcon.WaterTreatmentPlant;
-        if (monument.name.Contains("warehouse")) return MapMarkerIcon.MiningOutpost;
-        if (monument.name.Contains("satellite_dish")) return MapMarkerIcon.SatelliteDish;
-        if (monument.name.Contains("sphere_tank")) return MapMarkerIcon.Dome;
-        if (monument.name.Contains("launch_site")) return MapMarkerIcon.LaunchSite;
-        if (monument.name.Contains("gas_station")) return MapMarkerIcon.GasStation;
-        if (monument.name.Contains("supermarket")) return MapMarkerIcon.Supermarket;
-        if (monument.name.Contains("power_sub")) return MapMarkerIcon.Substation;
-        if (monument.name.Contains("quarry")) return MapMarkerIcon.Quarry;
-        if (monument.name.Contains("radtown_small_3")) return MapMarkerIcon.SewerBranch;
-        return MapMarkerIcon.Unknown;
+        if (monument.Type == MonumentType.Cave) return UiMapIcon.Cave;
+        if (monument.name.Contains("lighthouse")) return UiMapIcon.Lighthouse;
+        if (monument.name.Contains("harbor")) return UiMapIcon.Harbor;
+        if (monument.name.Contains("powerplant")) return UiMapIcon.PowerPlant;
+        if (monument.name.Contains("military_tunnel")) return UiMapIcon.MilitaryTunnel;
+        if (monument.name.Contains("airfield")) return UiMapIcon.Airfield;
+        if (monument.name.Contains("trainyard")) return UiMapIcon.Trainyard;
+        if (monument.name.Contains("water_treatment_plant")) return UiMapIcon.WaterTreatmentPlant;
+        if (monument.name.Contains("warehouse")) return UiMapIcon.MiningOutpost;
+        if (monument.name.Contains("satellite_dish")) return UiMapIcon.SatelliteDish;
+        if (monument.name.Contains("sphere_tank")) return UiMapIcon.Dome;
+        if (monument.name.Contains("launch_site")) return UiMapIcon.LaunchSite;
+        if (monument.name.Contains("gas_station")) return UiMapIcon.GasStation;
+        if (monument.name.Contains("supermarket")) return UiMapIcon.Supermarket;
+        if (monument.name.Contains("power_sub")) return UiMapIcon.Substation;
+        if (monument.name.Contains("quarry")) return UiMapIcon.Quarry;
+        if (monument.name.Contains("radtown_small_3")) return UiMapIcon.SewerBranch;
+        return UiMapIcon.Unknown;
       }
     }
   }

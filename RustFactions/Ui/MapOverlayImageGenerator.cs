@@ -36,7 +36,7 @@
               var brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.FromArgb(32, 0, 0, 0), Color.FromArgb(255, 0, 0, 0));
               graphics.FillRectangle(brush, rect);
             }
-            else if (area.Type != AreaType.Unclaimed)
+            else if (area.Type != AreaType.Wilderness)
             {
               // If the tile is claimed, fill it with a color indicating the faction.
               var brush = new SolidBrush(colorPicker.GetColorForFaction(area.FactionId));

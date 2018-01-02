@@ -11,13 +11,14 @@
     {
       RustFactions Core;
 
-      public string Id;
-      public string Description;
-      public string OwnerSteamId;
-      public HashSet<string> ModeratorSteamIds;
-      public HashSet<string> MemberSteamIds;
-      public int TaxRate;
-      public StorageContainer TaxChest;
+      public string Id { get; private set; }
+      public string Description { get; private set; }
+      public string OwnerSteamId { get; private set; }
+      public HashSet<string> ModeratorSteamIds { get; private set; }
+      public HashSet<string> MemberSteamIds { get; private set; }
+
+      public int TaxRate { get; set; }
+      public StorageContainer TaxChest { get; set; }
 
       public bool CanCollectTaxes
       {

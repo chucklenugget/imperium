@@ -24,6 +24,10 @@
       if (!ShouldAwardDefensiveBonus(entity))
         return null;
 
+      // If someone is damaging their own entity, don't alter the damage.
+      if (attacker.Id == entity.OwnerID)
+        return null;
+
       Area area = Areas.GetByEntityPosition(entity);
 
       if (area == null)
@@ -32,28 +36,18 @@
         return null;
       }
 
-      Faction attackingFaction = Factions.GetByUser(attacker);
-      Faction defendingFaction = Factions.GetByUser(entity.OwnerID);
+      Faction faction = Factions.GetByUser(attacker);
 
-      if (defendingFaction.Id != area.Id)
+      // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
+      if (faction != null && faction.Id == area.FactionId)
         return null;
 
-      /*
-      if (attackingFaction.Id == defendingFaction.Id)
-        return null;
-       */
-
-      int depth = Areas.GetDepthInsideFriendlyTerritory(area);
-      int index = Mathf.Clamp(depth, 0, Options.DefensiveBonuses.Count - 1);
-      float reduction = Options.DefensiveBonuses[index];
-
-      Puts($"Qualified entity {entity.net.ID} is being attacked in {area.Id}, attacker = {attackingFaction?.Id}, defender = {defendingFaction?.Id}, depth = {depth}, reduction = {reduction}");
+      float reduction = area.GetDefensiveBonus();
 
       if (reduction >= 1)
         return false;
-      else
-        hit.damageTypes.ScaleAll(reduction);
 
+      hit.damageTypes.ScaleAll(reduction);
       return null;
     }
 

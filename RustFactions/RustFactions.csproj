@@ -45,6 +45,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>lib\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>lib\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
     <Reference Include="ConvexHull">
       <HintPath>lib\ConvexHull.dll</HintPath>
     </Reference>
@@ -145,9 +148,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\DiplomacyCommands.cs" />
     <Compile Include="Economics.cs" />
+    <Compile Include="Infrastructure\DiplomacyManager.cs" />
     <Compile Include="Infrastructure\LruCache.cs" />
     <Compile Include="Infrastructure\Town.cs" />
+    <Compile Include="Ui\UiManager.cs" />
+    <Compile Include="Infrastructure\War.cs" />
     <Compile Include="Interactions\AddingClaimInteraction.cs" />
     <Compile Include="Interactions\CreatingTownInteraction.cs" />
     <Compile Include="Interactions\AddingAreaToTownInteraction.cs" />
@@ -160,6 +167,8 @@
     <Compile Include="Commands\TownCommands.cs" />
     <Compile Include="Interactions\SelectingTaxChestInteraction.cs" />
     <Compile Include="Logistics.cs" />
+    <Compile Include="Ui\Image.cs" />
+    <Compile Include="Ui\ImageDownloader.cs" />
     <Compile Include="Ui\MapOverlayImageGenerator.cs" />
     <Compile Include="Ui\MapMarker.cs" />
     <Compile Include="Infrastructure\User.cs" />
@@ -171,7 +180,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="Commands\TaxCommands.cs" />
-    <Compile Include="Ui\UserLocationPanel.cs" />
+    <Compile Include="Ui\UserHudPanel.cs" />
     <Compile Include="Ui\UserMap.cs" />
     <Compile Include="Commands\MapCommands.cs" />
     <Compile Include="Ui\MapGrid.cs" />

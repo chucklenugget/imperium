@@ -78,9 +78,9 @@
           return;
         }
 
-        if (area.Type != AreaType.Unclaimed)
+        if (area.Type != AreaType.Wilderness)
         {
-          user.SendMessage(Messages.CannotSetBadlandsNotUnclaimed, area.Id);
+          user.SendMessage(Messages.CannotSetBadlandsNotWilderness, area.Id);
           return;
         }
 
@@ -136,9 +136,9 @@
           return;
         }
 
-        if (area.Type != AreaType.Unclaimed)
+        if (area.Type != AreaType.Wilderness)
         {
-          user.SendMessage(Messages.CannotSetBadlandsNotUnclaimed, area.Id);
+          user.SendMessage(Messages.CannotSetBadlandsNotWilderness, area.Id);
           return;
         }
 

@@ -27,7 +27,7 @@
 
       public void Hide()
       {
-        CuiHelper.DestroyUi(User.Player, UiElements.Map);
+        CuiHelper.DestroyUi(User.Player, UiElement.Map);
         IsVisible = false;
       }
 
@@ -43,7 +43,7 @@
       {
         if (IsVisible)
         {
-          CuiHelper.DestroyUi(User.Player, UiElements.Map);
+          CuiHelper.DestroyUi(User.Player, UiElement.Map);
           CuiHelper.AddUi(User.Player, Build());
         }
       }
@@ -54,22 +54,22 @@
 
         container.Add(new CuiPanel {
           Image = { Color = "0 0 0 1" },
-          RectTransform = { AnchorMin = "0.2271875 0.015", AnchorMax = "0.7728125 0.985" },
+          RectTransform = { AnchorMin = "0.188 0.037", AnchorMax = "0.813 0.963" },
           CursorEnabled = true
-        }, UiElements.Hud, UiElements.Map);
+        }, UiElement.Hud, UiElement.Map);
 
         container.Add(new CuiElement {
-          Name = UiElements.MapBackgroundImage,
-          Parent = UiElements.Map,
+          Name = UiElement.MapBackgroundImage,
+          Parent = UiElement.Map,
           Components = {
-            new CuiRawImageComponent { Url = Core.Options.MapImageUrl, Sprite = UI_TRANSPARENT_TEXTURE },
+            Core.Ui.CreateImageComponent(Core.Options.MapImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
 
         container.Add(new CuiElement {
-          Name = UiElements.MapClaimsImage,
-          Parent = UiElements.Map,
+          Name = UiElement.MapClaimsImage,
+          Parent = UiElement.Map,
           Components = {
             new CuiRawImageComponent { Png = Core.CurrentMapOverlayImageId.ToString(), Sprite = UI_TRANSPARENT_TEXTURE },
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
@@ -95,18 +95,18 @@
           Text = { Text = "X", FontSize = 14, Align = TextAnchor.MiddleCenter },
           Button = { Color = "0 0 0 1", Command = "rustfactions.map.toggle", FadeIn = 0 },
           RectTransform = { AnchorMin = "0.95 0.961", AnchorMax = "0.999 0.999" }
-        }, UiElements.Map, UiElements.MapCloseButton);
+        }, UiElement.Map, UiElement.MapCloseButton);
 
         return container;
       }
 
-      void AddMarker(CuiElementContainer container, MapMarker marker, float iconSize = 0.0075f)
+      void AddMarker(CuiElementContainer container, MapMarker marker, float iconSize = 0.01f)
       {
         container.Add(new CuiElement {
-          Name = UiElements.MapIcon + Guid.NewGuid().ToString(),
-          Parent = UiElements.Map,
+          Name = UiElement.MapIcon + Guid.NewGuid().ToString(),
+          Parent = UiElement.Map,
           Components = {
-            new CuiRawImageComponent { Url = marker.IconUrl, Sprite = UI_TRANSPARENT_TEXTURE },
+            Core.Ui.CreateImageComponent(marker.IconUrl),
             new CuiRectTransformComponent {
               AnchorMin = $"{marker.X - iconSize} {marker.Z - iconSize}",
               AnchorMax = $"{marker.X + iconSize} {marker.Z + iconSize}"
@@ -122,7 +122,7 @@
               AnchorMin = $"{marker.X - 0.1} {marker.Z - iconSize - 0.025}",
               AnchorMax = $"{marker.X + 0.1} {marker.Z - iconSize}"
             }
-          }, UiElements.Map, UiElements.MapLabel + Guid.NewGuid().ToString());
+          }, UiElement.Map, UiElement.MapLabel + Guid.NewGuid().ToString());
         }
       }
 

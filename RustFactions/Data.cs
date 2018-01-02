@@ -9,7 +9,7 @@
   {
     public enum AreaType
     {
-      Unclaimed,
+      Wilderness,
       Claimed,
       Headquarters,
       Town,
@@ -49,6 +49,27 @@
       public uint? TaxChestId;
     }
 
+    class WarInfo
+    {
+      [JsonProperty("attackerId")]
+      public string AttackerId;
+
+      [JsonProperty("defenderId")]
+      public string DefenderId;
+
+      [JsonProperty("declarerId")]
+      public ulong DeclarerId;
+
+      [JsonProperty("cassusBelli")]
+      public string CassusBelli;
+
+      [JsonProperty("startTime")]
+      public DateTime StartTime;
+
+      [JsonProperty("endTime")]
+      public DateTime? EndTime;
+    }
+
     class RustFactionsData
     {
       [JsonProperty("areas")]
@@ -56,6 +77,16 @@
 
       [JsonProperty("factions")]
       public FactionInfo[] Factions;
+
+      [JsonProperty("wars")]
+      public WarInfo[] Wars;
+
+      public RustFactionsData()
+      {
+        Areas = new AreaInfo[0];
+        Factions = new FactionInfo[0];
+        Wars = new WarInfo[0];
+      }
     }
 
     RustFactionsData LoadData(RustFactions core, DynamicConfigFile file)
@@ -70,11 +101,7 @@
       {
         Puts(err.ToString());
         PrintWarning("Couldn't load serialized data, defaulting to an empty map.");
-
-        data = new RustFactionsData {
-          Areas = new AreaInfo[0],
-          Factions = new FactionInfo[0]
-        };
+        data = new RustFactionsData();
       }
 
       return data;
@@ -84,7 +111,8 @@
     {
       var serialized = new RustFactionsData {
         Areas = Areas.SerializeState(),
-        Factions = Factions.SerializeState()
+        Factions = Factions.SerializeState(),
+        Wars = Diplomacy.SerializeWars()
       };
 
       file.WriteObject(serialized, true);

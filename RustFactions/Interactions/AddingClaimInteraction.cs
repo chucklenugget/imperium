@@ -39,7 +39,7 @@
           return false;
         }
 
-        if (area.Type == AreaType.Unclaimed)
+        if (area.Type == AreaType.Wilderness)
         {
           if (!TryCollectClaimCost(area))
             return false;

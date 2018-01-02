@@ -6,6 +6,7 @@ namespace Oxide.Plugins
   using Oxide.Core;
   using Oxide.Core.Configuration;
   using Oxide.Core.Plugins;
+  using UnityEngine;
 
   [Info("RustFactions", "chucklenugget", "1.0.0")]
   public partial class RustFactions : RustPlugin
@@ -14,12 +15,15 @@ namespace Oxide.Plugins
 
     DynamicConfigFile DataFile;
     DynamicConfigFile HistoryFile;
+    DynamicConfigFile ImagesFile;
     RustFactionsOptions Options;
 
     AreaManager Areas;
     FactionManager Factions;
+    DiplomacyManager Diplomacy;
     UserManager Users;
     HistoryManager History;
+    UiManager Ui;
 
     uint CurrentMapOverlayImageId;
 
@@ -28,48 +32,39 @@ namespace Oxide.Plugins
     const string PERM_CHANGE_TOWNS = "rustfactions.towns";
 
     const string UI_TRANSPARENT_TEXTURE = "assets/content/textures/generic/fulltransparent.tga";
-    const string UI_IMAGE_BASE_URL = "http://images.rustfactions.io.s3.amazonaws.com/";
-
-    public static class UiElements
-    {
-      public const string Hud = "Hud";
-      public const string LocationPanel = "RustFactions.LocationPanel";
-      public const string LocationPanelText = "RustFactions.LocationPanel.Text";
-      public const string Map = "RustFactions.Map";
-      public const string MapCloseButton = "RustFactions.Map.CloseButton";
-      public const string MapBackgroundImage = "RustFactions.Map.BackgroundImage";
-      public const string MapClaimsImage = "RustFactions.Map.ClaimsImage";
-      public const string MapOverlay = "RustFactions.Map.Overlay";
-      public const string MapIcon = "RustFactions.Map.Icon";
-      public const string MapLabel = "RustFactions.Map.Label";
-    }
 
     void Init()
     {
-      PrintToChat($"{this.Title} {this.Version} initialized.");
+      PrintToChat($"{Title} {Version} initialized.");
 
       DataFile = Interface.Oxide.DataFileSystem.GetFile("RustFactions");
       HistoryFile = Interface.Oxide.DataFileSystem.GetDatafile("RustFactionsHistory");
+      ImagesFile = Interface.Oxide.DataFileSystem.GetDatafile("RustFactionsImages");
 
       Areas = new AreaManager(this);
       Factions = new FactionManager(this);
+      Diplomacy = new DiplomacyManager(this);
       Users = new UserManager(this);
       History = new HistoryManager(this);
+      Ui = new UiManager(this);
     }
 
     void Loaded()
     {
       InitLang();
       Options = LoadOptions(Config);
-      Puts("Area Claims are " + (Options.EnableAreaClaims ? "enabled" : "disabled"));
+      Puts("Area claims are " + (Options.EnableAreaClaims ? "enabled" : "disabled"));
       Puts("Taxation is " + (Options.EnableTaxation ? "enabled" : "disabled"));
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
       Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
+      Puts("Defensive bonuses are " + (Options.EnableDefensiveBonuses ? "enabled" : "disabled"));
     }
 
     void Unload()
     {
+      Ui.Destroy();
       Users.Destroy();
+      Diplomacy.Destroy();
       Factions.Destroy();
       Areas.Destroy();
     }
@@ -85,10 +80,13 @@ namespace Oxide.Plugins
 
       RustFactionsData data = LoadData(this, DataFile);
       History.Load(HistoryFile);
+      Ui.Load(ImagesFile);
 
       Areas.Init(data.Areas);
       Factions.Init(data.Factions);
+      Diplomacy.Init(data.Wars);
       Users.Init();
+
       GenerateMapOverlayImage();
     }
 
@@ -96,6 +94,7 @@ namespace Oxide.Plugins
     {
       SaveData(DataFile);
       History.Save(HistoryFile);
+      Ui.Save(ImagesFile);
     }
 
     void OnPlayerInit(BasePlayer player)
@@ -103,7 +102,7 @@ namespace Oxide.Plugins
       if (player == null) return;
 
       // If the player hasn't fully connected yet, try again in 2 seconds.
-      if (player.HasPlayerFlag(BasePlayer.PlayerFlags.ReceivingSnapshot) || player.IsSleeping())
+      if (player.IsReceivingSnapshot)
       {
         timer.In(2, () => OnPlayerInit(player));
         return;
@@ -216,24 +215,24 @@ namespace Oxide.Plugins
           // The player has crossed into the badlands.
           user.SendMessage(Messages.EnteredBadlands);
         }
-        else if (area.Type == AreaType.Unclaimed && previousArea.Type != AreaType.Unclaimed)
+        else if (area.Type == AreaType.Wilderness && previousArea.Type != AreaType.Wilderness)
         {
-          // The player has crossed a border between the land of a faction and unclaimed land.
-          user.SendMessage(Messages.EnteredUnclaimedArea);
+          // The player has crossed a border between the land of a faction and the wilderness.
+          user.SendMessage(Messages.EnteredWilderness);
         }
-        else if (area.Type != AreaType.Unclaimed && previousArea.Type != AreaType.Unclaimed)
+        else if (area.Type != AreaType.Wilderness && previousArea.Type != AreaType.Wilderness)
         {
-          // The player has crosed a border between unclaimed land and the land of a faction.
+          // The player has crosed a border between the wilderness and the land of a faction.
           user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
         }
-        else if (area.Type != AreaType.Unclaimed && previousArea.Type != AreaType.Unclaimed && area.FactionId != previousArea.FactionId)
+        else if (area.Type != AreaType.Wilderness && previousArea.Type != AreaType.Wilderness && area.FactionId != previousArea.FactionId)
         {
           // The player has crossed a border between two factions.
           user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
         }
       }
 
-      user.LocationPanel.Refresh();
+      user.HudPanel.Refresh();
     }
 
     void OnUserExitArea(Area area, User user)
@@ -278,11 +277,16 @@ namespace Oxide.Plugins
       RefreshUiForAllPlayers();
     }
 
+    void OnDiplomacyChanged()
+    {
+      RefreshUiForAllPlayers();
+    }
+
     void RefreshUiForAllPlayers()
     {
       foreach (User user in Users.GetAll())
       {
-        user.LocationPanel.Refresh();
+        user.HudPanel.Refresh();
         user.Map.Refresh();
       }
     }
