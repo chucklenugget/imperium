@@ -1,7 +1,6 @@
 ﻿namespace Oxide.Plugins
 {
   using System.Linq;
-  using UnityEngine;
 
   public partial class RustFactions
   {
@@ -16,7 +15,8 @@
       "wall.frame",
       "shutter",
       "wall.external",
-      "gates.external"
+      "gates.external",
+      "cupboard"
     };
 
     object ScaleDamageForDefensiveBonus(BaseCombatEntity entity, HitInfo hit, User attacker)
@@ -36,6 +36,9 @@
         return null;
       }
 
+      if (!area.IsClaimed)
+        return null;
+
       Faction faction = Factions.GetByUser(attacker);
 
       // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
@@ -53,7 +56,7 @@
 
     bool ShouldAwardDefensiveBonus(BaseEntity entity)
     {
-      if (entity is DecayEntity)
+      if (entity is BuildingBlock)
         return true;
 
       if (ProtectedPrefabs.Any(prefab => entity.ShortPrefabName.Contains(prefab)))
