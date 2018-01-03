@@ -91,11 +91,6 @@
           Core.Areas.Claim(area, type, Faction, User, cupboard);
           Core.History.Record(EventType.AreaCaptured, area, Faction, User);
 
-          // If the previous faction's headquarters was captured, move it to a new area.
-          Area newHeadquarters = Core.Areas.SelectNewHeadquartersIfNecessary(previousFactionId);
-          if (newHeadquarters != null)
-            Core.PrintToChat(Messages.HeadquartersChangedAnnouncement, previousFactionId, newHeadquarters.Id);
-
           return true;
         }
 

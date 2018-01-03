@@ -120,14 +120,18 @@
         RecalculateTerritoryDepth(faction);
 
         if (previousFactionId != null)
+        {
           RecalculateTerritoryDepth(previousFactionId);
+          SelectNewHeadquartersIfNecessary(previousFactionId);
+        }
 
         Core.OnAreasChanged();
       }
 
       public void SetHeadquarters(Area area, Faction faction)
       {
-        foreach (Area otherArea in GetAllClaimedByFaction(faction))
+        // Ensure that no other areas are considered headquarters.
+        foreach (Area otherArea in GetAllClaimedByFaction(faction).Where(a => a.Type == AreaType.Headquarters))
           otherArea.Type = AreaType.Claimed;
 
         area.Type = AreaType.Headquarters;
@@ -155,8 +159,15 @@
         Core.OnAreasChanged();
       }
 
+      public void Unclaim(IEnumerable<Area> areas)
+      {
+        Unclaim(areas.ToArray());
+      }
+
       public void Unclaim(params Area[] areas)
       {
+        string[] factionIds = areas.Select(a => a.FactionId).Distinct().ToArray();
+
         foreach (Area area in areas)
         {
           area.Type = AreaType.Wilderness;
@@ -164,12 +175,11 @@
           area.ClaimantId = null;
           area.ClaimCupboard = null;
         }
-        Core.OnAreasChanged();
-      }
 
-      public void Unclaim(IEnumerable<Area> areas)
-      {
-        Unclaim(areas.ToArray());
+        foreach (string factionId in factionIds)
+          SelectNewHeadquartersIfNecessary(factionId);
+
+        Core.OnAreasChanged();
       }
 
       public void AddBadlands(params Area[] areas)
@@ -196,7 +206,9 @@
 
       public Area SelectNewHeadquartersIfNecessary(string factionId)
       {
-        Area[] areas = GetAllClaimedByFaction(factionId).OrderByDescending(a => a.TerritoryDepth).ToArray();
+        Area[] areas = GetAllClaimedByFaction(factionId)
+          .Where(a => a.Type == AreaType.Claimed)
+          .OrderByDescending(a => a.TerritoryDepth).ToArray();
 
         if (areas.Length == 0 || areas.Any(a => a.Type == AreaType.Headquarters))
           return null;

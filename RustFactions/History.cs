@@ -2,8 +2,8 @@
 {
   using System;
   using System.Collections.Generic;
-  using System.Linq;
   using Newtonsoft.Json;
+  using Newtonsoft.Json.Converters;
   using Oxide.Core.Configuration;
 
   public partial class RustFactions : RustPlugin
@@ -19,7 +19,7 @@
 
     class Event
     {
-      [JsonProperty("type")]
+      [JsonProperty("type"), JsonConverter(typeof(StringEnumConverter))]
       public EventType Type;
 
       [JsonProperty("time")]
