@@ -11,12 +11,26 @@
       public ulong DeclarerId { get; set; }
       public string CassusBelli { get; set; }
 
+      public DateTime? AttackerPeaceOfferingTime { get; set; }
+      public DateTime? DefenderPeaceOfferingTime { get; set; }
+
       public DateTime StartTime { get; private set; }
       public DateTime? EndTime { get; set; }
+      public WarEndReason EndReason { get; set; }
 
       public bool IsActive
       {
         get { return EndTime != null; }
+      }
+
+      public bool IsAttackerOfferingPeace
+      {
+        get { return AttackerPeaceOfferingTime != null; }
+      }
+
+      public bool IsDefenderOfferingPeace
+      {
+        get { return DefenderPeaceOfferingTime != null; }
       }
 
       public War(Faction attacker, Faction defender, User declarer, string cassusBelli)
@@ -38,6 +52,26 @@
         EndTime = info.EndTime;
       }
 
+      public void OfferPeace(Faction faction)
+      {
+        if (AttackerId == faction.Id)
+          AttackerPeaceOfferingTime = DateTime.UtcNow;
+        else if (DefenderId == faction.Id)
+          DefenderPeaceOfferingTime = DateTime.UtcNow;
+        else
+          throw new InvalidOperationException(String.Format("{0} tried to offer peace but the faction wasn't involved in the war!", faction.Id));
+      }
+
+      public bool IsOfferingPeace(Faction faction)
+      {
+        return IsOfferingPeace(faction.Id);
+      }
+
+      public bool IsOfferingPeace(string factionId)
+      {
+        return (factionId == AttackerId && IsAttackerOfferingPeace) || (factionId == DefenderId && IsDefenderOfferingPeace);
+      }
+
       public WarInfo Serialize()
       {
         return new WarInfo {
@@ -45,8 +79,11 @@
           DefenderId = DefenderId,
           DeclarerId = DeclarerId,
           CassusBelli = CassusBelli,
+          AttackerPeaceOfferingTime = AttackerPeaceOfferingTime,
+          DefenderPeaceOfferingTime = DefenderPeaceOfferingTime,
           StartTime = StartTime,
-          EndTime = EndTime
+          EndTime = EndTime,
+          EndReason = EndReason
         };
       }
     }

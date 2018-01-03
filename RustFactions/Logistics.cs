@@ -36,6 +36,7 @@
         return null;
       }
 
+      // If the area isn't owned by a faction, it conveys no defensive bonuses.
       if (!area.IsClaimed)
         return null;
 
@@ -44,6 +45,10 @@
       // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
       if (faction != null && faction.Id == area.FactionId)
         return null;
+
+      // Structures cannot be damaged, except during war.
+      if (!area.IsWarzone)
+        return false;
 
       float reduction = area.GetDefensiveBonus();
 

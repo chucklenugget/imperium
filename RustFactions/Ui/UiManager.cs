@@ -54,6 +54,7 @@
       public const string GasStation = UiImageBaseUrl + "icons/map/gas-station.png";
       public const string Harbor = UiImageBaseUrl + "icons/map/harbor.png";
       public const string Headquarters = UiImageBaseUrl + "icons/map/headquarters.png";
+      public const string Junkyard = UiImageBaseUrl + "icons/map/junkyard.png";
       public const string LaunchSite = UiImageBaseUrl + "icons/map/launch-site.png";
       public const string Lighthouse = UiImageBaseUrl + "icons/map/lighthouse.png";
       public const string MilitaryTunnel = UiImageBaseUrl + "icons/map/military-tunnel.png";

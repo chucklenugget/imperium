@@ -17,6 +17,11 @@
       {
       }
 
+      public Faction[] GetAll()
+      {
+        return Factions.Values.ToArray();
+      }
+
       public Faction Get(string id)
       {
         Faction faction;

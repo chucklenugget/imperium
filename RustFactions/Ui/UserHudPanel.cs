@@ -61,21 +61,20 @@
 
           if (area.IsClaimed)
           {
-            int tax = area.GetTaxRate();
-
             string defensiveBonus = String.Format("{0}%", area.GetDefensiveBonus() * 100);
             AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Defense, UserHudPanelColor.TextNormal, defensiveBonus);
 
+            float tax = area.GetTaxRate();
             if (area.IsTaxableClaim && tax > 0)
             {
-              string taxRate = String.Format("{0}%", tax);
+              string taxRate = String.Format("{0}%", tax * 100);
               AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Taxes, UserHudPanelColor.TextNormal, taxRate, 0.33f);
             }
           }
 
           if (area.Type == AreaType.Badlands)
           {
-            string harvestBonus = String.Format("+{0}% Bonus", Core.Options.BadlandsGatherBonus);
+            string harvestBonus = String.Format("+{0}% Bonus", Core.Options.BadlandsGatherBonus * 100);
             AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Harvest, UserHudPanelColor.TextNormal, harvestBonus);
           }
         }

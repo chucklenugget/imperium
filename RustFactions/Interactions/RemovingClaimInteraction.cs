@@ -31,6 +31,10 @@
         Core.Areas.Unclaim(area);
         Core.History.Record(EventType.AreaClaimRemoved, area, Faction, User);
 
+        Area newHeadquarters = Core.Areas.SelectNewHeadquartersIfNecessary(Faction);
+        if (newHeadquarters != null)
+          Core.PrintToChat(Messages.HeadquartersChangedAnnouncement, Faction.Id, newHeadquarters.Id);
+
         return true;
       }
     }

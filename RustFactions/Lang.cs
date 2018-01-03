@@ -24,6 +24,7 @@
       public const string InteractionFailedNotMayorOfTown = "You are not the mayor of a town. To create one, use /town create NAME.";
       public const string InteractionFailedFactionDoesNotOwnLand = "Your faction must own at least one area.";
       public const string InteractionFailedUnknownFaction = "Unknown faction [{0}].";
+      public const string InteractionFailedNotAtWar = "You are not currently at war with [{0}]!";
 
       public const string CannotClaimAreaIsBadlands = "You cannot claim the area {0}, because it is part of the badlands.";
       public const string CannotClaimAreaIsTown = "You cannot claim the area {0}, because it is already a town owned by [{1}].";
@@ -104,15 +105,17 @@
       public const string TownDisbanded = "You have disbanded the town of {0}!";
 
       public const string CannotDeclareWarWrongUsage = "Usage: /war declare FACTION REASON";
+      public const string CannotDeclareWarAgainstYourself = "You cannot declare war against yourself!";
       public const string CannotDeclareWarAlreadyAtWar = "You cannot declare war against [{0}], because you are already at war with them!";
       public const string CannotDeclareWarInvalidCassusBelli = "You cannot declare war against [{0}], because your reason doesn't meet the minimum length.";
-      public const string CannotEndWarNotAtWar = "You are not currently at war with [{0}]!";
-      public const string CannotEndWarDidNotDeclareWar = "You did not declare the war against [{0}]. Only the attacking faction may end the war.";
+      public const string CannotOfferPeaceAlreadyOfferedPeace = "You have already offered peace to [{0}].";
       public const string WarDeclared = "You have declared WAR against [{0}]!";
-      public const string WarEnded = "You have ended the war with [{0}].";
+      public const string WarEnded = "You have accepted the offer of peace from [{0}], ending the war.";
+      public const string PeaceOffered = "You have offered peace to [{0}]. They must accept it before the war will end.";
 
       public const string EnteredBadlands = "<color=#ff0000>BORDER:</color> You have entered the badlands! Player violence is allowed here.";
       public const string EnteredWilderness = "<color=#ffd479>BORDER:</color> You have entered the wilderness.";
+      public const string EnteredTown = "<color=#ffd479>BORDER:</color> You have entered the town of {0}, controlled by [{1}].";
       public const string EnteredClaimedArea = "<color=#ffd479>BORDER:</color> You have entered land claimed by [{0}].";
 
       public const string AreaClaimedAnnouncement = "<color=#00ff00>AREA CLAIMED:</color> [{0}] claims {1}!";
@@ -122,11 +125,12 @@
       public const string AreaClaimDeletedAnnouncement = "<color=#ff0000>AREA CLAIM REMOVED:</color> [{0}]'s claim on {1} has been removed by an admin.";
       public const string AreaClaimLostCupboardDestroyedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> [{0}] has lost its claim on {1}, because the tool cupboard was destroyed!";
       public const string AreaClaimLostFactionDisbandedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> [{0}] has been disbanded, losing its claim on {1}!";
-      public const string HeadquartersChangedAnnouncement = "<color=#00ff00>HQ CHANGED:</color> [{0}] announces that {1} is their headquarters.";
+      public const string HeadquartersChangedAnnouncement = "<color=#00ff00>HQ CHANGED:</color> The headquarters of [{0}] is now {1}.";
       public const string TownCreatedAnnouncement = "<color=#00ff00>TOWN FOUNDED:</color> [{0}] has founded the town of {1} in {2}.";
       public const string TownDisbandedAnnouncement = "<color=#ff0000>TOWN DISBANDED:</color> [{0}] has disbanded the town of {1}.";
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> [{0}] has declared war on [{1}]! Their reason: {2}";
-      public const string WarEndedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between [{0}] and [{1}] has ended.";
+      public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between [{0}] and [{1}] has ended after both sides have agreed to a treaty.";
+      public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between [{0}] and [{1}] has ended, since [{2}] no longer holds any land.";
     }
 
     void InitLang()

@@ -17,7 +17,7 @@
       public HashSet<string> ModeratorSteamIds { get; private set; }
       public HashSet<string> MemberSteamIds { get; private set; }
 
-      public int TaxRate { get; set; }
+      public float TaxRate { get; set; }
       public StorageContainer TaxChest { get; set; }
 
       public bool CanCollectTaxes

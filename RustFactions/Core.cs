@@ -3,10 +3,11 @@
 
 namespace Oxide.Plugins
 {
+  using System;
+  using System.Text;
   using Oxide.Core;
   using Oxide.Core.Configuration;
   using Oxide.Core.Plugins;
-  using UnityEngine;
 
   [Info("RustFactions", "chucklenugget", "1.0.0")]
   public partial class RustFactions : RustPlugin
@@ -35,7 +36,7 @@ namespace Oxide.Plugins
 
     void Init()
     {
-      PrintToChat($"{Title} {Version} initialized.");
+      PrintToChat($"{Title} v{Version} initialized.");
 
       DataFile = Interface.Oxide.DataFileSystem.GetFile("RustFactions");
       HistoryFile = Interface.Oxide.DataFileSystem.GetDatafile("RustFactionsHistory");
@@ -115,6 +116,46 @@ namespace Oxide.Plugins
     {
       if (player != null)
         Users.Remove(player);
+    }
+
+    [ChatCommand("help")]
+    void OnHelpCommand(BasePlayer player, string command, string[] args)
+    {
+      User user = Users.Get(player);
+      if (user == null) return;
+
+      var sb = new StringBuilder();
+
+      sb.AppendLine("<size=18>Welcome to Rust Factions!</size>");
+      sb.AppendLine(String.Format("v{0} by <color=#ffd479>chucklenugget</color>", Version));
+      sb.AppendLine();
+
+      if (!String.IsNullOrEmpty(Options.RulesUrl))
+      {
+        sb.AppendLine(String.Format("First, please read the rules at <color=#ffd479>{0}</color>!", Options.RulesUrl));
+        sb.AppendLine();
+      }
+
+      sb.Append("The following commands are available. To learn more about each command, do <color=#ffd479>/command help</color>. ");
+      sb.AppendLine("For example, to learn more about how to claim land, do <color=#ffd479>/claim help</color>.");
+      sb.AppendLine();
+
+      sb.AppendLine("<color=#ffd479>/clan</color> Create a faction");
+      sb.AppendLine("<color=#ffd479>/claim</color> Claim areas of land");
+      sb.AppendLine("<color=#ffd479>/tax</color> Manage taxation of your land");
+      sb.AppendLine("<color=#ffd479>/war</color> See active wars, declare war, or offer peace");
+
+      if (user.HasPermission(PERM_CHANGE_TOWNS))
+        sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns, or create one yourself");
+      else
+        sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns");
+
+      if (user.HasPermission(PERM_CHANGE_BADLANDS))
+        sb.AppendLine("<color=#ffd479>/badlands</color> Find or change badlands areas");
+      else
+        sb.AppendLine("<color=#ffd479>/badlands</color> Find badlands (PVP) areas");
+
+      user.SendMessage(sb);
     }
 
     [ChatCommand("cancel")]
@@ -206,33 +247,38 @@ namespace Oxide.Plugins
     void OnUserEnterArea(Area area, User user)
     {
       Area previousArea = user.CurrentArea;
+
       user.CurrentArea = area;
-
-      if (previousArea != null)
-      {
-        if (area.Type == AreaType.Badlands && previousArea.Type != AreaType.Badlands)
-        {
-          // The player has crossed into the badlands.
-          user.SendMessage(Messages.EnteredBadlands);
-        }
-        else if (area.Type == AreaType.Wilderness && previousArea.Type != AreaType.Wilderness)
-        {
-          // The player has crossed a border between the land of a faction and the wilderness.
-          user.SendMessage(Messages.EnteredWilderness);
-        }
-        else if (area.Type != AreaType.Wilderness && previousArea.Type != AreaType.Wilderness)
-        {
-          // The player has crosed a border between the wilderness and the land of a faction.
-          user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
-        }
-        else if (area.Type != AreaType.Wilderness && previousArea.Type != AreaType.Wilderness && area.FactionId != previousArea.FactionId)
-        {
-          // The player has crossed a border between two factions.
-          user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
-        }
-      }
-
       user.HudPanel.Refresh();
+
+      if (previousArea == null)
+        return;
+
+      if (area.Type == AreaType.Badlands && previousArea.Type != AreaType.Badlands)
+      {
+        // The player has entered the badlands.
+        user.SendMessage(Messages.EnteredBadlands);
+      }
+      else if (area.Type == AreaType.Wilderness && previousArea.Type != AreaType.Wilderness)
+      {
+        // The player has entered the wilderness.
+        user.SendMessage(Messages.EnteredWilderness);
+      }
+      else if (area.Type == AreaType.Town && previousArea.Type != AreaType.Town)
+      {
+        // The player has entered a town.
+        user.SendMessage(Messages.EnteredTown, area.Name, area.FactionId);
+      }
+      else if (area.IsClaimed && !previousArea.IsClaimed)
+      {
+        // The player has entered a faction's territory.
+        user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
+      }
+      else if (area.IsClaimed && previousArea.IsClaimed && area.FactionId != previousArea.FactionId)
+      {
+        // The player has crossed a border between the territory of two factions.
+        user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
+      }
     }
 
     void OnUserExitArea(Area area, User user)
@@ -268,6 +314,7 @@ namespace Oxide.Plugins
 
     void OnAreasChanged()
     {
+      Diplomacy.EndAllWarsForEliminatedFactions();
       GenerateMapOverlayImage();
       RefreshUiForAllPlayers();
     }

@@ -57,7 +57,7 @@
           return true;
         }
 
-        if (area.Type == AreaType.Claimed && area.FactionId == Faction.Id)
+        if (area.FactionId == Faction.Id)
         {
           if (area.ClaimCupboard.net.ID == cupboard.net.ID)
           {
@@ -74,23 +74,29 @@
           }
         }
 
-        if (area.Type == AreaType.Claimed && area.FactionId != Faction.Id)
+        if (area.FactionId != Faction.Id)
         {
-          if (area.ClaimCupboard.net.ID == cupboard.net.ID)
-          {
-            // If a new faction claims the claim cabinet for an area, they take control of that area.
-            User.SendMessage(Messages.ClaimCaptured, area.Id, area.FactionId);
-            Core.PrintToChat(Messages.AreaCapturedAnnouncement, Faction.Id, area.Id, area.FactionId);
-            Core.Areas.Claim(area, type, Faction, User, cupboard);
-            Core.History.Record(EventType.AreaCaptured, area, Faction, User);
-            return true;
-          }
-          else
+          if (area.ClaimCupboard.net.ID != cupboard.net.ID)
           {
             // A new faction can't make a claim on a new cabinet within an area that is already claimed by another faction.
             User.SendMessage(Messages.CannotClaimAreaIsClaimed, area.Id, area.FactionId);
             return false;
           }
+
+          string previousFactionId = area.FactionId;
+
+          // If a new faction claims the claim cabinet for an area, they take control of that area.
+          User.SendMessage(Messages.ClaimCaptured, area.Id, area.FactionId);
+          Core.PrintToChat(Messages.AreaCapturedAnnouncement, Faction.Id, area.Id, area.FactionId);
+          Core.Areas.Claim(area, type, Faction, User, cupboard);
+          Core.History.Record(EventType.AreaCaptured, area, Faction, User);
+
+          // If the previous faction's headquarters was captured, move it to a new area.
+          Area newHeadquarters = Core.Areas.SelectNewHeadquartersIfNecessary(previousFactionId);
+          if (newHeadquarters != null)
+            Core.PrintToChat(Messages.HeadquartersChangedAnnouncement, previousFactionId, newHeadquarters.Id);
+
+          return true;
         }
 
         Core.PrintWarning("Area was in an unknown state during completion of AddingClaimInteraction. This shouldn't happen.");

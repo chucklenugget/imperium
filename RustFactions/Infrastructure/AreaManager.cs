@@ -109,54 +109,19 @@
         return Layout[row, col];
       }
 
-      public int GetDepthInsideFriendlyTerritory(Area area)
-      {
-        if (!area.IsClaimed)
-          return 0;
-
-        var depth = new int[4];
-
-        for (var row = area.Row; row >= 0; row--)
-        {
-          if (Layout[row, area.Col].FactionId != area.FactionId)
-            break;
-
-          depth[0]++;
-        }
-
-        for (var row = area.Row; row < Grid.NumberOfCells; row++)
-        {
-          if (Layout[row, area.Col].FactionId != area.FactionId)
-            break;
-
-          depth[1]++;
-        }
-
-        for (var col = area.Col; col >= 0; col--)
-        {
-          if (Layout[area.Row, col].FactionId != area.FactionId)
-            break;
-
-          depth[2]++;
-        }
-
-        for (var col = area.Col; col < Grid.NumberOfCells; col++)
-        {
-          if (Layout[area.Row, col].FactionId != area.FactionId)
-            break;
-
-          depth[3]++;
-        }
-
-        return depth.Min() - 1;
-      }
-
       public void Claim(Area area, AreaType type, Faction faction, User claimant, BuildingPrivlidge cupboard)
       {
+        string previousFactionId = area.FactionId;
+
         area.Type = type;
         area.FactionId = faction.Id;
         area.ClaimantId = claimant.Id;
         area.ClaimCupboard = cupboard;
+        RecalculateTerritoryDepth(faction);
+
+        if (previousFactionId != null)
+          RecalculateTerritoryDepth(previousFactionId);
+
         Core.OnAreasChanged();
       }
 
@@ -222,6 +187,78 @@
       public void AddBadlands(IEnumerable<Area> areas)
       {
         AddBadlands(areas.ToArray());
+      }
+
+      public Area SelectNewHeadquartersIfNecessary(Faction faction)
+      {
+        return SelectNewHeadquartersIfNecessary(faction.Id);
+      }
+
+      public Area SelectNewHeadquartersIfNecessary(string factionId)
+      {
+        Area[] areas = GetAllClaimedByFaction(factionId).OrderByDescending(a => a.TerritoryDepth).ToArray();
+
+        if (areas.Length == 0 || areas.Any(a => a.Type == AreaType.Headquarters))
+          return null;
+
+        // If the faction no longer has a headquarters, move it to an area at the center of their territory.
+        areas[0].Type = AreaType.Headquarters;
+
+        Core.OnAreasChanged();
+        return areas[0];
+      }
+
+      public void RecalculateTerritoryDepth(Faction faction)
+      {
+        RecalculateTerritoryDepth(faction.Id);
+      }
+
+      public void RecalculateTerritoryDepth(string factionId)
+      {
+        foreach (Area area in GetAllClaimedByFaction(factionId))
+          area.TerritoryDepth = GetDepthInsideFriendlyTerritory(area);
+      }
+
+      int GetDepthInsideFriendlyTerritory(Area area)
+      {
+        if (!area.IsClaimed)
+          return 0;
+
+        var depth = new int[4];
+
+        for (var row = area.Row; row >= 0; row--)
+        {
+          if (Layout[row, area.Col].FactionId != area.FactionId)
+            break;
+
+          depth[0]++;
+        }
+
+        for (var row = area.Row; row < Grid.NumberOfCells; row++)
+        {
+          if (Layout[row, area.Col].FactionId != area.FactionId)
+            break;
+
+          depth[1]++;
+        }
+
+        for (var col = area.Col; col >= 0; col--)
+        {
+          if (Layout[area.Row, col].FactionId != area.FactionId)
+            break;
+
+          depth[2]++;
+        }
+
+        for (var col = area.Col; col < Grid.NumberOfCells; col++)
+        {
+          if (Layout[area.Row, col].FactionId != area.FactionId)
+            break;
+
+          depth[3]++;
+        }
+
+        return depth.Min() - 1;
       }
 
       public void Init(AreaInfo[] areaInfos)

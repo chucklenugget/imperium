@@ -16,6 +16,13 @@
       Badlands
     }
 
+    enum WarEndReason
+    {
+      Treaty,
+      AttackerEliminatedDefender,
+      DefenderEliminatedAttacker
+    }
+
     public class AreaInfo
     {
       [JsonProperty("areaId")]
@@ -35,6 +42,9 @@
 
       [JsonProperty("cupboardId")]
       public uint? CupboardId;
+
+      [JsonProperty("territoryDepth")]
+      public int TerritoryDepth;
     }
 
     class FactionInfo
@@ -43,7 +53,7 @@
       public string FactionId;
 
       [JsonProperty("taxRate")]
-      public int TaxRate;
+      public float TaxRate;
 
       [JsonProperty("taxChestId")]
       public uint? TaxChestId;
@@ -63,11 +73,20 @@
       [JsonProperty("cassusBelli")]
       public string CassusBelli;
 
+      [JsonProperty("attackerPeaceOfferingTime")]
+      public DateTime? AttackerPeaceOfferingTime;
+
+      [JsonProperty("defenderPeaceOfferingTime")]
+      public DateTime? DefenderPeaceOfferingTime;
+
       [JsonProperty("startTime")]
       public DateTime StartTime;
 
       [JsonProperty("endTime")]
       public DateTime? EndTime;
+
+      [JsonProperty("endReason"), JsonConverter(typeof(StringEnumConverter))]
+      public WarEndReason EndReason;
     }
 
     class RustFactionsData

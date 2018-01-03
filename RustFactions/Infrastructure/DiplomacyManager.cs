@@ -17,17 +17,17 @@
 
       public War[] GetAllActiveWars()
       {
-        return Wars.Where(war => war.IsActive).ToArray();
+        return Wars.Where(war => war.IsActive).OrderBy(war => war.StartTime).ToArray();
       }
 
       public War[] GetAllActiveWarsByFaction(Faction faction)
       {
-        return GetAllActiveWarsByFaction(faction);
+        return GetAllActiveWarsByFaction(faction.Id);
       }
 
       public War[] GetAllActiveWarsByFaction(string factionId)
       {
-        return Wars.Where(war => war.AttackerId == factionId || war.DefenderId == factionId).ToArray();
+        return Wars.Where(war => war.AttackerId == factionId || war.DefenderId == factionId).OrderBy(war => war.StartTime).ToArray();
       }
 
       public War GetActiveWarBetween(Faction firstFaction, Faction secondFaction)
@@ -52,10 +52,35 @@
         return war;
       }
 
-      public void EndWar(War war)
+      public void EndWar(War war, WarEndReason reason)
       {
         war.EndTime = DateTime.Now;
+        war.EndReason = reason;
         Core.OnDiplomacyChanged();
+      }
+
+      public void EndAllWarsForEliminatedFactions()
+      {
+        bool dirty = false;
+
+        foreach (War war in Wars)
+        {
+          if (Core.Areas.GetAllClaimedByFaction(war.AttackerId).Length == 0)
+          {
+            war.EndTime = DateTime.Now;
+            war.EndReason = WarEndReason.DefenderEliminatedAttacker;
+            dirty = true;
+          }
+          if (Core.Areas.GetAllClaimedByFaction(war.DefenderId).Length == 0)
+          {
+            war.EndTime = DateTime.Now;
+            war.EndReason = WarEndReason.AttackerEliminatedDefender;
+            dirty = true;
+          }
+        }
+
+        if (dirty)
+          Core.OnDiplomacyChanged();
       }
 
       public void Init(WarInfo[] warInfos)

@@ -21,6 +21,7 @@
       public string FactionId { get; set; }
       public ulong? ClaimantId { get; set; }
       public BuildingPrivlidge ClaimCupboard { get; set; }
+      public int TerritoryDepth { get; set; }
 
       public bool IsClaimed
       {
@@ -135,12 +136,11 @@
       public float GetDefensiveBonus()
       {
         var bonuses = Core.Options.DefensiveBonuses;
-        int depth = Core.Areas.GetDepthInsideFriendlyTerritory(this);
-        int index = Mathf.Clamp(depth, 0, bonuses.Count - 1);
+        int index = Mathf.Clamp(TerritoryDepth, 0, bonuses.Count - 1);
         return bonuses[index];
       }
 
-      public int GetTaxRate()
+      public float GetTaxRate()
       {
         if (!IsTaxableClaim)
           return 0;
@@ -169,7 +169,8 @@
           Type = Type,
           FactionId = FactionId,
           ClaimantId = ClaimantId,
-          CupboardId = ClaimCupboard?.net.ID
+          CupboardId = ClaimCupboard?.net.ID,
+          TerritoryDepth = TerritoryDepth
         };
       }
     }

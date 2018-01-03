@@ -30,7 +30,7 @@
         ItemDefinition itemDef = ItemManager.FindItemDefinition(item.info.itemid);
         if (itemDef != null)
         {
-          var tax = (int)(item.amount * (faction.TaxRate / 100f));
+          var tax = (int)(item.amount * faction.TaxRate);
           item.amount -= tax;
           faction.TaxChest.inventory.AddItem(itemDef, tax);
         }
@@ -54,7 +54,7 @@
 
       if (user.CurrentArea.Type == AreaType.Badlands)
       {
-        var bonus = (int)(item.amount * (Options.BadlandsGatherBonus / 100f));
+        var bonus = (int)(item.amount * Options.BadlandsGatherBonus);
         item.amount += bonus;
       }
     }

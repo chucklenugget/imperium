@@ -1,6 +1,5 @@
 ﻿namespace Oxide.Plugins
 {
-  using System;
   using Oxide.Core.Configuration;
   using System.Collections.Generic;
 
@@ -16,13 +15,14 @@
       public int MinFactionMembers;
       public int MinAreaNameLength;
       public int MinCassusBelliLength;
-      public int DefaultTaxRate;
-      public int MaxTaxRate;
-      public int BadlandsGatherBonus;
+      public float DefaultTaxRate;
+      public float MaxTaxRate;
+      public float BadlandsGatherBonus;
       public List<int> ClaimCosts;
       public List<float> DefensiveBonuses;
       public string MapImageUrl;
       public int MapImageSize;
+      public string RulesUrl;
     }
 
     RustFactionsOptions LoadOptions(DynamicConfigFile file)
@@ -36,13 +36,14 @@
         MinFactionMembers = file.Get<int>("MinFactionMembers"),
         MinAreaNameLength = file.Get<int>("MinAreaNameLength"),
         MinCassusBelliLength = file.Get<int>("MinCassusBelliLength"),
-        DefaultTaxRate = file.Get<int>("DefaultTaxRate"),
-        MaxTaxRate = file.Get<int>("MaxTaxRate"),
-        BadlandsGatherBonus = file.Get<int>("BadlandsGatherBonus"),
+        DefaultTaxRate = file.Get<float>("DefaultTaxRate"),
+        MaxTaxRate = file.Get<float>("MaxTaxRate"),
+        BadlandsGatherBonus = file.Get<float>("BadlandsGatherBonus"),
         ClaimCosts = file.Get<List<int>>("ClaimCosts"),
         DefensiveBonuses = file.Get<List<float>>("DefensiveBonuses"),
         MapImageUrl = file.Get<string>("MapImageUrl"),
-        MapImageSize = file.Get<int>("MapImageSize")
+        MapImageSize = file.Get<int>("MapImageSize"),
+        RulesUrl = file.Get<string>("RulesUrl")
       };
     }
 
@@ -58,13 +59,14 @@
       Config["MinFactionMembers"] = 3;
       Config["MinAreaNameLength"] = 3;
       Config["MinCassusBelliLength"] = 50;
-      Config["DefaultTaxRate"] = 10;
-      Config["MaxTaxRate"] = 20;
-      Config["BadlandsGatherBonus"] = 10;
+      Config["DefaultTaxRate"] = 0.1f;
+      Config["MaxTaxRate"] = 0.2f;
+      Config["BadlandsGatherBonus"] = 0.1f;
       Config["ClaimCosts"] = new List<int> { 0, 100, 200, 300, 400, 500 };
-      Config["DefensiveBonuses"] = new List<float> { 0f, 0.5f, 1f };
+      Config["DefensiveBonuses"] = new List<float> { 0, 0.5f, 1f };
       Config["MapImageUrl"] = "";
       Config["MapImageSize"] = 1440;
+      Config["RulesUrl"] = "";
       SaveConfig();
     }
   }
