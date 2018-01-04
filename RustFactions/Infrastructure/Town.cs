@@ -22,7 +22,7 @@
 
       public float GetDistanceFromEntity(BaseEntity entity)
       {
-        return Areas.Min(area => GetDistanceFromEntity(entity));
+        return Areas.Min(area => area.GetDistanceFromEntity(entity));
       }
 
       public int GetPopulation()
