@@ -40,12 +40,17 @@
 
     string NormalizeFactionId(string input)
     {
-      string factionId = input.ToUpper().Trim();
+      string factionId = input.Trim();
 
       if (factionId.StartsWith("[") && factionId.EndsWith("]"))
         factionId = factionId.Substring(1, factionId.Length - 2);
 
       return factionId;
+    }
+
+    int GetUnixTimestamp()
+    {
+      return (int) (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
     }
     
   }

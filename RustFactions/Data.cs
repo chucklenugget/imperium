@@ -73,20 +73,20 @@
       [JsonProperty("cassusBelli")]
       public string CassusBelli;
 
-      [JsonProperty("attackerPeaceOfferingTime")]
+      [JsonProperty("attackerPeaceOfferingTime"), JsonConverter(typeof(IsoDateTimeConverter))]
       public DateTime? AttackerPeaceOfferingTime;
 
-      [JsonProperty("defenderPeaceOfferingTime")]
+      [JsonProperty("defenderPeaceOfferingTime"), JsonConverter(typeof(IsoDateTimeConverter))]
       public DateTime? DefenderPeaceOfferingTime;
 
-      [JsonProperty("startTime")]
+      [JsonProperty("startTime"), JsonConverter(typeof(IsoDateTimeConverter))]
       public DateTime StartTime;
 
-      [JsonProperty("endTime")]
+      [JsonProperty("endTime"), JsonConverter(typeof(IsoDateTimeConverter))]
       public DateTime? EndTime;
 
       [JsonProperty("endReason"), JsonConverter(typeof(StringEnumConverter))]
-      public WarEndReason EndReason;
+      public WarEndReason? EndReason;
     }
 
     class RustFactionsData

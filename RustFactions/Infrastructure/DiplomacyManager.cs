@@ -54,7 +54,7 @@
 
       public void EndWar(War war, WarEndReason reason)
       {
-        war.EndTime = DateTime.Now;
+        war.EndTime = DateTime.UtcNow;
         war.EndReason = reason;
         Core.OnDiplomacyChanged();
       }
@@ -67,13 +67,13 @@
         {
           if (Core.Areas.GetAllClaimedByFaction(war.AttackerId).Length == 0)
           {
-            war.EndTime = DateTime.Now;
+            war.EndTime = DateTime.UtcNow;
             war.EndReason = WarEndReason.DefenderEliminatedAttacker;
             dirty = true;
           }
           if (Core.Areas.GetAllClaimedByFaction(war.DefenderId).Length == 0)
           {
-            war.EndTime = DateTime.Now;
+            war.EndTime = DateTime.UtcNow;
             war.EndReason = WarEndReason.AttackerEliminatedDefender;
             dirty = true;
           }

@@ -22,7 +22,7 @@
       [JsonProperty("type"), JsonConverter(typeof(StringEnumConverter))]
       public EventType Type;
 
-      [JsonProperty("time")]
+      [JsonProperty("time"), JsonConverter(typeof(IsoDateTimeConverter))]
       public DateTime Time;
 
       [JsonProperty("playerId")]
@@ -43,7 +43,7 @@
       public Event(EventType type, Area area, Faction faction, User user)
       {
         Type = type;
-        Time = DateTime.UtcNow;
+        Time = DateTime.Now;
         PlayerId = user?.Player.userID;
         PlayerName = user?.Player.displayName;
         AreaId = area?.Id;

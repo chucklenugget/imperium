@@ -16,11 +16,11 @@
 
       public DateTime StartTime { get; private set; }
       public DateTime? EndTime { get; set; }
-      public WarEndReason EndReason { get; set; }
+      public WarEndReason? EndReason { get; set; }
 
       public bool IsActive
       {
-        get { return EndTime != null; }
+        get { return EndTime == null; }
       }
 
       public bool IsAttackerOfferingPeace
@@ -39,7 +39,7 @@
         DefenderId = defender.Id;
         DeclarerId = declarer.Id;
         CassusBelli = cassusBelli;
-        StartTime = DateTime.UtcNow;
+        StartTime = DateTime.Now;
       }
 
       public War(WarInfo info)
@@ -55,9 +55,9 @@
       public void OfferPeace(Faction faction)
       {
         if (AttackerId == faction.Id)
-          AttackerPeaceOfferingTime = DateTime.UtcNow;
+          AttackerPeaceOfferingTime = DateTime.Now;
         else if (DefenderId == faction.Id)
-          DefenderPeaceOfferingTime = DateTime.UtcNow;
+          DefenderPeaceOfferingTime = DateTime.Now;
         else
           throw new InvalidOperationException(String.Format("{0} tried to offer peace but the faction wasn't involved in the war!", faction.Id));
       }
