@@ -22,7 +22,7 @@
         }
 
         Core.Factions.SetTaxChest(Faction, container);
-        User.SendMessage(Messages.SelectingTaxChestSucceeded, Faction.TaxRate, Faction.Id);
+        User.SendMessage(Messages.SelectingTaxChestSucceeded, Faction.TaxRate * 100, Faction.Id);
 
         return true;
       }

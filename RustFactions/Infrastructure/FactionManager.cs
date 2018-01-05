@@ -56,7 +56,7 @@
         return Factions.Values.SingleOrDefault(f => f.TaxChest != null && f.TaxChest.net.ID == containerId);
       }
 
-      public void SetTaxRate(Faction faction, int taxRate)
+      public void SetTaxRate(Faction faction, float taxRate)
       {
         faction.TaxRate = taxRate;
         Core.OnFactionsChanged();

@@ -77,25 +77,25 @@
         return;
       }
 
-      int taxRate;
+      float taxRate;
       try
       {
-        taxRate = Convert.ToInt32(args[0]);
+        taxRate = Convert.ToInt32(args[0]) / 100f;
       }
       catch
       {
-        user.SendMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate);
+        user.SendMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
         return;
       }
 
       if (taxRate < 0 || taxRate > Options.MaxTaxRate)
       {
-        user.SendMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate);
+        user.SendMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
         return;
       }
 
       Factions.SetTaxRate(faction, taxRate);
-      user.SendMessage(Messages.SetTaxRateSuccessful, faction.Id, taxRate);
+      user.SendMessage(Messages.SetTaxRateSuccessful, faction.Id, taxRate * 100);
     }
 
     void OnTaxHelpCommand(User user)
