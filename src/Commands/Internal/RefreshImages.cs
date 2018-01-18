@@ -2,7 +2,6 @@
 {
   public partial class Imperium
   {
-
     [ConsoleCommand("imperium.images.refresh")]
     void OnRefreshImagesConsoleCommand(ConsoleSystem.Arg arg)
     {
@@ -10,6 +9,5 @@
       arg.ReplyWith("Refreshing images...");
       Ui.RefreshAllImages();
     }
-
   }
 }

@@ -30,16 +30,48 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Commands\BadlandsCommands.cs" />
-    <Compile Include="Commands\ClaimCommands.cs" />
-    <Compile Include="Commands\DiplomacyCommands.cs" />
-    <Compile Include="Commands\InternalCommands.cs" />
-    <Compile Include="Commands\MapCommands.cs" />
-    <Compile Include="Commands\TaxCommands.cs" />
-    <Compile Include="Commands\TownCommands.cs" />
+    <Compile Include="Commands\Badlands\Badlands.cs" />
+    <Compile Include="Commands\Badlands\BadlandsAdd.cs" />
+    <Compile Include="Commands\Badlands\BadlandsRemove.cs" />
+    <Compile Include="Commands\Badlands\BadlandsSet.cs" />
+    <Compile Include="Commands\Cancel.cs" />
+    <Compile Include="Commands\Claim\ClaimAdd.cs" />
+    <Compile Include="Commands\Claim\Claim.cs" />
+    <Compile Include="Commands\Claim\ClaimCost.cs" />
+    <Compile Include="Commands\Claim\ClaimDelete.cs" />
+    <Compile Include="Commands\Claim\ClaimHeadquarters.cs" />
+    <Compile Include="Commands\Claim\ClaimHelp.cs" />
+    <Compile Include="Commands\Claim\ClaimList.cs" />
+    <Compile Include="Commands\Claim\ClaimRemove.cs" />
+    <Compile Include="Commands\Claim\ClaimRename.cs" />
+    <Compile Include="Commands\Claim\ClaimShow.cs" />
+    <Compile Include="Commands\Claim\ClaimUpkeep.cs" />
+    <Compile Include="Commands\Help.cs" />
+    <Compile Include="Commands\Map\MapToggle.cs" />
+    <Compile Include="Commands\Tax\TaxHelp.cs" />
+    <Compile Include="Commands\Tax\TaxChest.cs" />
+    <Compile Include="Commands\Tax\TaxRate.cs" />
+    <Compile Include="Commands\Town\TownCreate.cs" />
+    <Compile Include="Commands\Town\TownDisband.cs" />
+    <Compile Include="Commands\Town\TownExpand.cs" />
+    <Compile Include="Commands\Town\TownHelp.cs" />
+    <Compile Include="Commands\Town\TownList.cs" />
+    <Compile Include="Commands\Town\TownRemove.cs" />
+    <Compile Include="Commands\Town\Towns.cs" />
+    <Compile Include="Commands\War\War.cs" />
+    <Compile Include="Commands\Internal\RefreshImages.cs" />
+    <Compile Include="Commands\Map\Map.cs" />
+    <Compile Include="Commands\Tax\Tax.cs" />
+    <Compile Include="Commands\Town\Town.cs" />
+    <Compile Include="Commands\War\WarDeclare.cs" />
+    <Compile Include="Commands\War\WarEnd.cs" />
+    <Compile Include="Commands\War\WarHelp.cs" />
+    <Compile Include="Commands\War\WarList.cs" />
+    <Compile Include="Commands\War\WarStatus.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="Data.cs" />
     <Compile Include="Economics.cs" />
+    <Compile Include="Hooks.cs" />
     <Compile Include="History.cs" />
     <Compile Include="Infrastructure\Area.cs" />
     <Compile Include="Infrastructure\AreaManager.cs" />
@@ -188,6 +220,6 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd $(ProjectDir)
-copy Core.cs +Data.cs + Economics.cs + History.cs +Lang.cs + Logistics.cs + Options.cs + Util.cs + Commands\*.cs + Infrastructure\*.cs + Interactions\*.cs + Ui\*.cs C:\rustserver\oxide\plugins\Imperium.cs /y /b</PostBuildEvent>
+copy Core.cs +Data.cs + Economics.cs + History.cs + Hooks.cs + Lang.cs + Logistics.cs + Options.cs + Util.cs + Commands\Badlands\*.cs + Commands\Claim\*.cs + Commands\Diplomacy\*.cs + Commands\Internal\*.cs + Commands\Map\*.cs + Commands\Tax\*.cs + Commands\Town\*.cs + Infrastructure\*.cs + Interactions\*.cs + Ui\*.cs C:\rustserver\oxide\plugins\Imperium.cs /y /b</PostBuildEvent>
   </PropertyGroup>
 </Project>

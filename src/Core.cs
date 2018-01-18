@@ -38,9 +38,9 @@ namespace Oxide.Plugins
     {
       PrintToChat($"{Title} v{Version} initialized.");
 
-      DataFile = Interface.Oxide.DataFileSystem.GetFile(Path.Combine(Name, "data"));
-      HistoryFile = Interface.Oxide.DataFileSystem.GetDatafile(Path.Combine(Name, "history"));
-      ImagesFile = Interface.Oxide.DataFileSystem.GetDatafile(Path.Combine(Name, "images"));
+      DataFile = Interface.Oxide.DataFileSystem.GetFile(Name + Path.DirectorySeparatorChar + "data");
+      HistoryFile = Interface.Oxide.DataFileSystem.GetDatafile(Name + Path.DirectorySeparatorChar + "history");
+      ImagesFile = Interface.Oxide.DataFileSystem.GetDatafile(Name + Path.DirectorySeparatorChar + "images");
 
       Factions = new FactionManager(this);
       Areas = new AreaManager(this);
@@ -105,234 +105,95 @@ namespace Oxide.Plugins
       Ui.Save(ImagesFile);
     }
 
-    void OnPlayerInit(BasePlayer player)
+    bool EnsureCanChangeFactionClaims(User user, Faction faction)
     {
-      if (player == null) return;
-
-      // If the player hasn't fully connected yet, try again in 2 seconds.
-      if (player.IsReceivingSnapshot)
+      if (faction == null || !faction.IsLeader(user))
       {
-        timer.In(2, () => OnPlayerInit(player));
-        return;
+        user.SendMessage(Messages.InteractionFailedNotLeaderOfFaction);
+        return false;
       }
 
-      Users.Add(player);
-    }
-
-    void OnPlayerDisconnected(BasePlayer player)
-    {
-      if (player != null)
-        Users.Remove(player);
-    }
-
-    [ChatCommand("help")]
-    void OnHelpCommand(BasePlayer player, string command, string[] args)
-    {
-      User user = Users.Get(player);
-      if (user == null) return;
-
-      var sb = new StringBuilder();
-
-      sb.AppendLine($"<size=18>Welcome to {ConVar.Server.description}!</size>");
-      sb.AppendLine($"Powered by {Name} v{Version} by <color=#ffd479>chucklenugget</color>");
-      sb.AppendLine();
-
-      sb.AppendLine($"Please read the rules at <color=#ffd479>{ConVar.Server.url}</color>!");
-      sb.AppendLine();
-
-      sb.Append("The following commands are available. To learn more about each command, do <color=#ffd479>/command help</color>. ");
-      sb.AppendLine("For example, to learn more about how to claim land, do <color=#ffd479>/claim help</color>.");
-      sb.AppendLine();
-
-      sb.AppendLine("<color=#ffd479>/clan</color> Create a faction");
-      sb.AppendLine("<color=#ffd479>/claim</color> Claim areas of land");
-      sb.AppendLine("<color=#ffd479>/tax</color> Manage taxation of your land");
-      sb.AppendLine("<color=#ffd479>/war</color> See active wars, declare war, or offer peace");
-
-      if (user.HasPermission(PERM_CHANGE_TOWNS))
-        sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns, or create one yourself");
-      else
-        sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns");
-
-      if (user.HasPermission(PERM_CHANGE_BADLANDS))
-        sb.AppendLine("<color=#ffd479>/badlands</color> Find or change badlands areas");
-      else
-        sb.AppendLine("<color=#ffd479>/badlands</color> Find badlands (PVP) areas");
-
-      user.SendMessage(sb);
-    }
-
-    [ChatCommand("cancel")]
-    void OnCancelCommand(BasePlayer player, string command, string[] args)
-    {
-      User user = Users.Get(player);
-
-      if (user.CurrentInteraction == null)
+      if (faction.MemberSteamIds.Count < Options.MinFactionMembers)
       {
-        user.SendMessage(Messages.NoInteractionInProgress);
-        return;
+        user.SendMessage(Messages.InteractionFailedFactionTooSmall, Options.MinFactionMembers);
+        return false;
       }
 
-      user.SendMessage(Messages.InteractionCanceled);
-      user.CancelInteraction();
+      return true;
     }
 
-    void OnHammerHit(BasePlayer player, HitInfo hit)
+    bool EnsureCanUseCupboardAsClaim(User user, BuildingPrivlidge cupboard)
     {
-      User user = Users.Get(player);
-
-      if (user != null && user.CurrentInteraction != null)
-        user.CompleteInteraction(hit);
-    }
-
-    object OnEntityTakeDamage(BaseCombatEntity entity, HitInfo hit)
-    {
-      if (!Options.EnableDefensiveBonuses)
-        return null;
-
-      if (entity == null || hit == null)
-        return null;
-
-      User user = Users.Get(hit.InitiatorPlayer);
-      if (user == null)
-        return null;
-
-      return ScaleDamageForDefensiveBonus(entity, hit, user);
-    }
-
-    void OnEntityKill(BaseNetworkable entity)
-    {
-      // If a player dies in an area, remove them from the area.
-      var player = entity as BasePlayer;
-      if (player != null)
+      if (cupboard == null)
       {
-        User user = Users.Get(player);
-        if (user != null && user.CurrentArea != null)
-          user.CurrentArea = null;
+        user.SendMessage(Messages.SelectingCupboardFailedInvalidTarget);
+        return false;
       }
 
-      // If a claim TC is destroyed, remove the claim from the area.
-      var cupboard = entity as BuildingPrivlidge;
-      if (cupboard != null)
+      if (!cupboard.IsAuthed(user.Player))
       {
-        var area = Areas.GetByClaimCupboard(cupboard);
-        if (area != null)
-        {
-          PrintToChat(Messages.AreaClaimLostCupboardDestroyedAnnouncement, area.FactionId, area.Id);
-          Areas.Unclaim(area);
-        }
+        user.SendMessage(Messages.SelectingCupboardFailedNotAuthorized);
+        return false;
       }
 
-      // If a tax chest is destroyed, remove it from the faction data.
-      if (Options.EnableTaxation)
-      {
-        var container = entity as StorageContainer;
-        if (container != null)
-        {
-          Faction faction = Factions.GetByTaxChest(container);
-          if (faction != null)
-            faction.TaxChest = null;
-        }
-      }
+      return true;
     }
 
-    void OnDispenserGather(ResourceDispenser dispenser, BaseEntity entity, Item item)
+    bool EnsureCanManageTowns(User user, Faction faction)
     {
-      ChargeTaxIfApplicable(dispenser, entity, item);
-      AwardBadlandsBonusIfApplicable(dispenser, entity, item);
-    }
-
-    void OnDispenserBonus(ResourceDispenser dispenser, BaseEntity entity, Item item)
-    {
-      ChargeTaxIfApplicable(dispenser, entity, item);
-      AwardBadlandsBonusIfApplicable(dispenser, entity, item);
-    }
-
-    void OnUserEnterArea(Area area, User user)
-    {
-      Area previousArea = user.CurrentArea;
-
-      user.CurrentArea = area;
-      user.HudPanel.Refresh();
-
-      if (previousArea == null)
-        return;
-
-      if (area.Type == AreaType.Badlands && previousArea.Type != AreaType.Badlands)
+      if (!user.HasPermission(PERM_CHANGE_TOWNS))
       {
-        // The player has entered the badlands.
-        user.SendMessage(Messages.EnteredBadlands);
-      }
-      else if (area.Type == AreaType.Wilderness && previousArea.Type != AreaType.Wilderness)
-      {
-        // The player has entered the wilderness.
-        user.SendMessage(Messages.EnteredWilderness);
-      }
-      else if (area.Type == AreaType.Town && previousArea.Type != AreaType.Town)
-      {
-        // The player has entered a town.
-        user.SendMessage(Messages.EnteredTown, area.Name, area.FactionId);
-      }
-      else if (area.IsClaimed && !previousArea.IsClaimed)
-      {
-        // The player has entered a faction's territory.
-        user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
-      }
-      else if (area.IsClaimed && previousArea.IsClaimed && area.FactionId != previousArea.FactionId)
-      {
-        // The player has crossed a border between the territory of two factions.
-        user.SendMessage(Messages.EnteredClaimedArea, area.FactionId);
-      }
-    }
-
-    void OnUserExitArea(Area area, User user)
-    {
-      // TODO: If we don't need this hook, we should remove it.
-    }
-
-    void OnClanCreate(string factionId)
-    {
-      Factions.HandleFactionCreated(factionId);
-    }
-
-    void OnClanUpdate(string factionId)
-    {
-      Factions.HandleFactionChanged(factionId);
-    }
-
-    void OnClanDestroy(string factionId)
-    {
-      Area[] areas = Areas.GetAllClaimedByFaction(factionId);
-
-      if (areas.Length > 0)
-      {
-        foreach (Area area in areas)
-          PrintToChat(Messages.AreaClaimLostFactionDisbandedAnnouncement, area.FactionId, area.Id);
-
-        Areas.Unclaim(areas);
+        user.SendMessage(Messages.CannotManageTownsNoPermission);
+        return false;
       }
 
-      Diplomacy.EndAllWarsForEliminatedFactions();
-      Factions.HandleFactionDestroyed(factionId);
+      if (faction == null)
+      {
+        user.SendMessage(Messages.InteractionFailedNotMemberOfFaction);
+        return false;
+      }
 
-      OnFactionsChanged();
+      return true;
     }
 
-    void OnAreasChanged()
+    bool EnsureCanUseCupboardAsTown(User user, BuildingPrivlidge cupboard)
     {
-      Diplomacy.EndAllWarsForEliminatedFactions();
-      Ui.GenerateMapOverlayImage();
-      Ui.RefreshUiForAllPlayers();
+      if (cupboard == null)
+      {
+        user.SendMessage(Messages.SelectingCupboardFailedInvalidTarget);
+        return false;
+      }
+
+      if (!cupboard.IsAuthed(user.Player))
+      {
+        user.SendMessage(Messages.SelectingCupboardFailedNotAuthorized);
+        return false;
+      }
+
+      return true;
     }
 
-    void OnFactionsChanged()
+    bool EnsureCanEngageInDiplomacy(User user, Faction faction)
     {
-      Ui.RefreshUiForAllPlayers();
-    }
+      if (faction == null)
+      {
+        user.SendMessage(Messages.InteractionFailedNotMemberOfFaction);
+        return false;
+      }
 
-    void OnDiplomacyChanged()
-    {
-      Ui.RefreshUiForAllPlayers();
+      if (faction.MemberSteamIds.Count < Options.MinFactionMembers)
+      {
+        user.SendMessage(Messages.InteractionFailedFactionTooSmall);
+        return false;
+      }
+
+      if (Areas.GetAllClaimedByFaction(faction).Length == 0)
+      {
+        user.SendMessage(Messages.InteractionFailedFactionDoesNotOwnLand);
+        return false;
+      }
+
+      return true;
     }
 
     bool EnforceCommandCooldown(User user)
