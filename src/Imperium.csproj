@@ -100,6 +100,7 @@
     <Compile Include="Ui\ImageDownloader.cs" />
     <Compile Include="Ui\MapGrid.cs" />
     <Compile Include="Ui\MapMarker.cs" />
+    <Compile Include="Ui\MapOverlayGenerator.cs" />
     <Compile Include="Ui\UiManager.cs" />
     <Compile Include="Ui\UserHudPanel.cs" />
     <Compile Include="Ui\UserMap.cs" />

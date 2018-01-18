@@ -5,7 +5,6 @@ namespace Oxide.Plugins
 {
   using System;
   using System.IO;
-  using System.Text;
   using Oxide.Core;
   using Oxide.Core.Configuration;
   using Oxide.Core.Plugins;

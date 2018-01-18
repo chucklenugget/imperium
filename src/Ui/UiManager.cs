@@ -2,8 +2,6 @@
 {
   using System;
   using System.Collections.Generic;
-  using System.Drawing;
-  using System.Drawing.Drawing2D;
   using System.Linq;
   using System.Reflection;
   using Oxide.Core.Configuration;
@@ -77,14 +75,20 @@
     class UiManager : ImperiumComponent
     {
       Dictionary<string, Image> Images;
-      ImageDownloader Downloader;
+      ImageDownloader ImageDownloader;
+      MapOverlayGenerator MapOverlayGenerator;
 
       public UiManager(Imperium core)
         : base(core)
       {
         Images = new Dictionary<string, Image>();
-        Downloader = new UnityEngine.GameObject().AddComponent<ImageDownloader>();
-        Downloader.Init(core);
+
+        var gameObject = new UnityEngine.GameObject();
+        ImageDownloader = gameObject.AddComponent<ImageDownloader>();
+        ImageDownloader.Init(core);
+
+        MapOverlayGenerator = gameObject.AddComponent<MapOverlayGenerator>();
+        MapOverlayGenerator.Init(core);
       }
 
       public Image RegisterImage(string url, byte[] imageData = null, bool overwrite = false)
@@ -101,7 +105,7 @@
         if (imageData != null)
           image.Save(imageData);
         else
-          Downloader.Download(image);
+          ImageDownloader.Download(image);
 
         return image;
       }
@@ -111,7 +115,7 @@
         foreach (Image image in Images.Values.Where(image => !image.IsGenerated))
         {
           image.Delete();
-          Downloader.Download(image);
+          ImageDownloader.Download(image);
         }
       }
 
@@ -142,64 +146,7 @@
 
       public void GenerateMapOverlayImage()
       {
-        Puts("Generating new map overlay image...");
-
-        using (var bitmap = new Bitmap(Core.Options.MapImageSize, Core.Options.MapImageSize))
-        using (var graphics = Graphics.FromImage(bitmap))
-        {
-          var mapSize = ConVar.Server.worldsize;
-          var tileSize = (int)(Core.Options.MapImageSize / (mapSize / 150f));
-          var grid = new MapGrid(mapSize);
-
-          var colorPicker = new FactionColorPicker();
-          var textBrush = new SolidBrush(Color.FromArgb(255, 255, 255, 255));
-
-          for (int row = 0; row < grid.NumberOfCells; row++)
-          {
-            for (int col = 0; col < grid.NumberOfCells; col++)
-            {
-              Area area = Core.Areas.Get(grid.GetAreaId(row, col));
-              var x = (col * tileSize);
-              var y = (row * tileSize);
-              var rect = new Rectangle(x, y, tileSize, tileSize);
-
-              if (area.Type == AreaType.Badlands)
-              {
-                // If the tile is badlands, color it in black.
-                var brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.FromArgb(32, 0, 0, 0), Color.FromArgb(255, 0, 0, 0));
-                graphics.FillRectangle(brush, rect);
-              }
-              else if (area.Type != AreaType.Wilderness)
-              {
-                // If the tile is claimed, fill it with a color indicating the faction.
-                var brush = new SolidBrush(colorPicker.GetColorForFaction(area.FactionId));
-                graphics.FillRectangle(brush, rect);
-              }
-            }
-          }
-
-          var gridLabelFont = new Font("Consolas", 14, FontStyle.Bold);
-          var gridLabelOffset = 5;
-          var gridLinePen = new Pen(Color.FromArgb(192, 0, 0, 0), 2);
-
-          for (int row = 0; row < grid.NumberOfCells; row++)
-          {
-            graphics.DrawLine(gridLinePen, 0, (row * tileSize), (grid.NumberOfCells * tileSize), (row * tileSize));
-            graphics.DrawString(grid.GetRowId(row), gridLabelFont, textBrush, gridLabelOffset, (row * tileSize) + gridLabelOffset);
-          }
-
-          for (int col = 1; col < grid.NumberOfCells; col++)
-          {
-            graphics.DrawLine(gridLinePen, (col * tileSize), 0, (col * tileSize), (grid.NumberOfCells * tileSize));
-            graphics.DrawString(grid.GetColumnId(col), gridLabelFont, textBrush, (col * tileSize) + gridLabelOffset, gridLabelOffset);
-          }
-
-          var converter = new ImageConverter();
-          var imageData = (byte[]) converter.ConvertTo(bitmap, typeof(byte[]));
-
-          Image image = RegisterImage(UiMapOverlayImageUrl, imageData, true);
-          Puts($"Created new map overlay image {image.Id}.");
-        }
+        MapOverlayGenerator.Generate();
       }
 
       public void Load(DynamicConfigFile file)
@@ -228,7 +175,8 @@
 
       public void Destroy()
       {
-        UnityEngine.Object.DestroyImmediate(Downloader);
+        UnityEngine.Object.DestroyImmediate(ImageDownloader);
+        UnityEngine.Object.DestroyImmediate(MapOverlayGenerator);
       }
 
       void RegisterDefaultImages(Type type)
