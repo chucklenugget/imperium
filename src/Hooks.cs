@@ -38,6 +38,9 @@
       if (entity == null || hit == null)
         return null;
 
+      if (hit.damageTypes.Has(Rust.DamageType.Decay))
+        return ScaleDamageForDecay(entity, hit);
+
       User user = Users.Get(hit.InitiatorPlayer);
       if (user == null)
         return null;
@@ -83,13 +86,13 @@
 
     void OnDispenserGather(ResourceDispenser dispenser, BaseEntity entity, Item item)
     {
-      ChargeTaxIfApplicable(dispenser, entity, item);
+      ProcessTaxesIfApplicable(dispenser, entity, item);
       AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
     void OnDispenserBonus(ResourceDispenser dispenser, BaseEntity entity, Item item)
     {
-      ChargeTaxIfApplicable(dispenser, entity, item);
+      ProcessTaxesIfApplicable(dispenser, entity, item);
       AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
@@ -157,7 +160,7 @@
         Areas.Unclaim(areas);
       }
 
-      Diplomacy.EndAllWarsForEliminatedFactions();
+      Wars.EndAllWarsForEliminatedFactions();
       Factions.HandleFactionDestroyed(factionId);
 
       OnFactionsChanged();
@@ -165,7 +168,7 @@
 
     void OnAreasChanged()
     {
-      Diplomacy.EndAllWarsForEliminatedFactions();
+      Wars.EndAllWarsForEliminatedFactions();
       Ui.GenerateMapOverlayImage();
       Ui.RefreshUiForAllPlayers();
     }

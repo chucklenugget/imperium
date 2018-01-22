@@ -131,7 +131,7 @@
       var serialized = new ImperiumSavedData {
         Areas = Areas.SerializeState(),
         Factions = Factions.SerializeState(),
-        Wars = Diplomacy.SerializeWars()
+        Wars = Wars.SerializeWars()
       };
 
       file.WriteObject(serialized, true);

@@ -12,13 +12,18 @@
       public bool EnableBadlands;
       public bool EnableTowns;
       public bool EnableDefensiveBonuses;
+      public bool EnableDecayReduction;
       public bool EnableUpkeep;
       public int MinFactionMembers;
       public int MinAreaNameLength;
       public int MinCassusBelliLength;
       public float DefaultTaxRate;
       public float MaxTaxRate;
+      public float ClaimedLandGatherBonus;
+      public float TownGatherBonus;
       public float BadlandsGatherBonus;
+      public float ClaimedLandDecayReduction;
+      public float TownDecayReduction;
       public List<int> ClaimCosts;
       public List<int> UpkeepCosts;
       public List<float> DefensiveBonuses;
@@ -38,13 +43,18 @@
         EnableBadlands = file.Get<bool>("EnableBadlands"),
         EnableTowns = file.Get<bool>("EnableTowns"),
         EnableDefensiveBonuses = file.Get<bool>("EnableDefensiveBonuses"),
+        EnableDecayReduction = file.Get<bool>("EnableDecayReduction"),
         EnableUpkeep = file.Get<bool>("EnableUpkeep"),
         MinFactionMembers = file.Get<int>("MinFactionMembers"),
         MinAreaNameLength = file.Get<int>("MinAreaNameLength"),
         MinCassusBelliLength = file.Get<int>("MinCassusBelliLength"),
         DefaultTaxRate = file.Get<float>("DefaultTaxRate"),
         MaxTaxRate = file.Get<float>("MaxTaxRate"),
+        ClaimedLandGatherBonus = file.Get<float>("ClaimedLandGatherBonus"),
+        TownGatherBonus = file.Get<float>("TownGatherBonus"),
         BadlandsGatherBonus = file.Get<float>("BadlandsGatherBonus"),
+        ClaimedLandDecayReduction = file.Get<float>("ClaimedLandDecayReduction"),
+        TownDecayReduction = file.Get<float>("TownDecayReduction"),
         ClaimCosts = file.Get<List<int>>("ClaimCosts"),
         UpkeepCosts = file.Get<List<int>>("UpkeepCosts"),
         UpkeepCheckIntervalMinutes = file.Get<int>("UpkeepCheckIntervalMinutes"),
@@ -66,13 +76,18 @@
       Config["EnableBadlands"] = true;
       Config["EnableTowns"] = true;
       Config["EnableDefensiveBonuses"] = true;
+      Config["EnableDecayReduction"] = true;
       Config["EnableUpkeep"] = true;
       Config["MinFactionMembers"] = 3;
       Config["MinAreaNameLength"] = 3;
       Config["MinCassusBelliLength"] = 50;
       Config["DefaultTaxRate"] = 0.1f;
       Config["MaxTaxRate"] = 0.2f;
+      Config["ClaimedLandGatherBonus"] = 0.1f;
+      Config["TownGatherBonus"] = 0.1f;
       Config["BadlandsGatherBonus"] = 0.1f;
+      Config["ClaimedLandDecayReduction"] = 0.5f;
+      Config["TownDecayReduction"] = 1f;
       Config["ClaimCosts"] = new List<int> { 0, 100, 200, 300, 400, 500 };
       Config["UpkeepCosts"] = new List<int> { 10, 10, 20, 30, 40, 50 };
       Config["UpkeepCheckIntervalMinutes"] = 15;

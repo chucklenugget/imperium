@@ -9,7 +9,7 @@ namespace Oxide.Plugins
   using Oxide.Core.Configuration;
   using Oxide.Core.Plugins;
 
-  [Info("Imperium", "chucklenugget", "1.1.0")]
+  [Info("Imperium", "chucklenugget", "1.2.0")]
   public partial class Imperium : RustPlugin
   {
     [PluginReference] Plugin Clans;
@@ -22,7 +22,7 @@ namespace Oxide.Plugins
 
     AreaManager Areas;
     FactionManager Factions;
-    DiplomacyManager Diplomacy;
+    WarManager Wars;
     UserManager Users;
     HistoryManager History;
     UiManager Ui;
@@ -43,7 +43,7 @@ namespace Oxide.Plugins
 
       Factions = new FactionManager(this);
       Areas = new AreaManager(this);
-      Diplomacy = new DiplomacyManager(this);
+      Wars = new WarManager(this);
       Users = new UserManager(this);
       History = new HistoryManager(this);
       Ui = new UiManager(this);
@@ -58,6 +58,7 @@ namespace Oxide.Plugins
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
       Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
       Puts("Defensive bonuses are " + (Options.EnableDefensiveBonuses ? "enabled" : "disabled"));
+      Puts("Decay reduction is " + (Options.EnableDecayReduction ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.EnableUpkeep ? "enabled" : "disabled"));
     }
 
@@ -65,7 +66,7 @@ namespace Oxide.Plugins
     {
       Ui.Destroy();
       Users.Destroy();
-      Diplomacy.Destroy();
+      Wars.Destroy();
       Areas.Destroy();
       Factions.Destroy();
 
@@ -88,7 +89,7 @@ namespace Oxide.Plugins
 
       Factions.Init(data.Factions);
       Areas.Init(data.Areas);
-      Diplomacy.Init(data.Wars);
+      Wars.Init(data.Wars);
       Users.Init();
 
       Ui.GenerateMapOverlayImage();

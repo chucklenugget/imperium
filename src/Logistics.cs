@@ -19,7 +19,30 @@
       "cupboard"
     };
 
-    object ScaleDamageForDefensiveBonus(BaseCombatEntity entity, HitInfo hit, User attacker)
+    object ScaleDamageForDecay(BaseEntity entity, HitInfo hit)
+    {
+      Area area = Areas.GetByEntityPosition(entity);
+      float reduction = 0;
+
+      if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
+        reduction = Options.ClaimedLandDecayReduction;
+
+      if (area.Type == AreaType.Town)
+        reduction = Options.TownDecayReduction;
+
+      if (reduction >= 1)
+        return false;
+
+      if (reduction > 0)
+      {
+        Puts($"Reducing decay on entity {entity.net.ID} by {reduction*100}%");
+        hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
+      }
+
+      return null;
+    }
+
+    object ScaleDamageForDefensiveBonus(BaseEntity entity, HitInfo hit, User attacker)
     {
       if (!ShouldAwardDefensiveBonus(entity))
         return null;
@@ -63,8 +86,10 @@
 
     bool ShouldAwardDefensiveBonus(BaseEntity entity)
     {
-      if (entity is BuildingBlock)
-        return true;
+      var buildingBlock = entity as BuildingBlock;
+
+      if (buildingBlock != null)
+        return buildingBlock.grade != BuildingGrade.Enum.Twigs;
 
       if (ProtectedPrefabs.Any(prefab => entity.ShortPrefabName.Contains(prefab)))
         return true;

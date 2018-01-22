@@ -8,7 +8,7 @@
     void OnWarListCommand(User user)
     {
       var sb = new StringBuilder();
-      War[] wars = Diplomacy.GetAllActiveWars();
+      War[] wars = Wars.GetAllActiveWars();
 
       if (wars.Length == 0)
       {

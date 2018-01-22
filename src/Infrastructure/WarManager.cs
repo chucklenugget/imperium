@@ -6,11 +6,11 @@
 
   public partial class Imperium
   {
-    class DiplomacyManager : ImperiumComponent
+    class WarManager : ImperiumComponent
     {
       List<War> Wars = new List<War>();
 
-      public DiplomacyManager(Imperium core)
+      public WarManager(Imperium core)
         : base(core)
       {
       }

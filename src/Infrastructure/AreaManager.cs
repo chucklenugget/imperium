@@ -9,9 +9,12 @@
   {
     class AreaManager : ImperiumComponent
     {
+      const int ENTITY_LOCATION_CACHE_SIZE = 50000;
+
       MapGrid Grid;
       Dictionary<string, Area> Areas;
       Area[,] Layout;
+      LruCache<uint, Area> EntityAreas;
 
       public int Count
       {
@@ -24,6 +27,7 @@
         Grid = new MapGrid(ConVar.Server.worldsize);
         Areas = new Dictionary<string, Area>();
         Layout = new Area[Grid.NumberOfCells, Grid.NumberOfCells];
+        EntityAreas = new LruCache<uint, Area>(ENTITY_LOCATION_CACHE_SIZE);
       }
       
       public Area Get(string areaId)
@@ -86,6 +90,11 @@
 
       public Area GetByEntityPosition(BaseEntity entity)
       {
+        Area area;
+
+        if (EntityAreas.TryGetValue(entity.net.ID, out area))
+          return area;
+
         var x = entity.transform.position.x;
         var z = entity.transform.position.z;
         var offset = MapGrid.GridCellSize / 2;
@@ -106,7 +115,10 @@
             break;
         }
 
-        return Layout[row, col];
+        area = Layout[row, col];
+        EntityAreas.Set(entity.net.ID, area);
+
+        return area;
       }
 
       public void Claim(Area area, AreaType type, Faction faction, User claimant, BuildingPrivlidge cupboard)

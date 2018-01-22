@@ -17,7 +17,7 @@
         return;
       }
 
-      War war = Diplomacy.GetActiveWarBetween(faction, enemy);
+      War war = Wars.GetActiveWarBetween(faction, enemy);
 
       if (war == null)
       {
@@ -35,7 +35,7 @@
 
       if (war.IsAttackerOfferingPeace && war.IsDefenderOfferingPeace)
       {
-        Diplomacy.EndWar(war, WarEndReason.Treaty);
+        Wars.EndWar(war, WarEndReason.Treaty);
         user.SendMessage(Messages.WarEnded, enemy.Id);
         PrintToChat(Messages.WarEndedTreatyAcceptedAnnouncement, faction.Id, enemy.Id);
         OnDiplomacyChanged();

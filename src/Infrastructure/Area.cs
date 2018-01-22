@@ -168,7 +168,7 @@
         if (FactionId == null)
           return new War[0];
 
-        return Core.Diplomacy.GetAllActiveWarsByFaction(FactionId);
+        return Core.Wars.GetAllActiveWarsByFaction(FactionId);
       }
 
       public AreaInfo Serialize()

@@ -75,7 +75,8 @@
     <Compile Include="History.cs" />
     <Compile Include="Infrastructure\Area.cs" />
     <Compile Include="Infrastructure\AreaManager.cs" />
-    <Compile Include="Infrastructure\DiplomacyManager.cs" />
+    <Compile Include="Infrastructure\LruCache.cs" />
+    <Compile Include="Infrastructure\WarManager.cs" />
     <Compile Include="Infrastructure\Faction.cs" />
     <Compile Include="Infrastructure\FactionManager.cs" />
     <Compile Include="Infrastructure\ImperiumComponent.cs" />

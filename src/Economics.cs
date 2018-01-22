@@ -55,38 +55,41 @@
       PrintToChat(Messages.AreaClaimLostUpkeepNotPaidAnnouncement, faction.Id, lostArea.Id);
     }
 
-    void ChargeTaxIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)
+    void ProcessTaxesIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)
     {
-      if (!Options.EnableTaxation) return;
+      if (!Options.EnableTaxation)
+        return;
 
       var player = entity as BasePlayer;
-      if (player == null) return;
+      if (player == null)
+        return;
 
       User user = Users.Get(player);
-      if (user == null) return;
+      if (user == null)
+        return;
 
       Area area = user.CurrentArea;
-      if (area == null)
-      {
-        PrintWarning("Player gathered outside of a defined area. This shouldn't happen.");
-        return;
-      }
-
-      if (!area.IsTaxableClaim)
+      if (area == null || !area.IsClaimed)
         return;
 
       Faction faction = Factions.Get(area.FactionId);
+      if (!faction.CanCollectTaxes || faction.TaxChest.inventory.IsFull())
+        return;
 
-      if (faction.CanCollectTaxes && !faction.TaxChest.inventory.IsFull())
-      {
-        ItemDefinition itemDef = ItemManager.FindItemDefinition(item.info.itemid);
-        if (itemDef != null)
-        {
-          var tax = (int)(item.amount * faction.TaxRate);
-          item.amount -= tax;
-          faction.TaxChest.inventory.AddItem(itemDef, tax);
-        }
-      }
+      ItemDefinition itemDef = ItemManager.FindItemDefinition(item.info.itemid);
+      if (itemDef == null)
+        return;
+
+      int bonus;
+      if (area.Type == AreaType.Town)
+        bonus = (int)(item.amount * Options.TownGatherBonus);
+      else
+        bonus = (int)(item.amount * Options.ClaimedLandGatherBonus);
+
+      var tax = (int)(item.amount * faction.TaxRate);
+
+      faction.TaxChest.inventory.AddItem(itemDef, tax + bonus);
+      item.amount -= tax;
     }
 
     void AwardBadlandsBonusIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)

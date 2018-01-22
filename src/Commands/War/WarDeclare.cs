@@ -29,7 +29,7 @@
         return;
       }
 
-      War existingWar = Diplomacy.GetActiveWarBetween(attacker, defender);
+      War existingWar = Wars.GetActiveWarBetween(attacker, defender);
 
       if (existingWar != null)
       {
@@ -45,7 +45,7 @@
         return;
       }
 
-      War war = Diplomacy.DeclareWar(attacker, defender, user, cassusBelli);
+      War war = Wars.DeclareWar(attacker, defender, user, cassusBelli);
 
       user.SendMessage(Messages.WarDeclared, war.DefenderId);
       PrintToChat(Messages.WarDeclaredAnnouncement, war.AttackerId, war.DefenderId, war.CassusBelli);

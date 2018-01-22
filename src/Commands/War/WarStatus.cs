@@ -16,7 +16,7 @@
       }
 
       var sb = new StringBuilder();
-      War[] wars = Diplomacy.GetAllActiveWarsByFaction(faction);
+      War[] wars = Wars.GetAllActiveWarsByFaction(faction);
 
       if (wars.Length == 0)
       {
