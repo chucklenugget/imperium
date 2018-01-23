@@ -7,8 +7,8 @@
     <ProjectGuid>{732DB23B-B7E9-4615-A2E2-C72F7661FB3D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>RustFactions</RootNamespace>
-    <AssemblyName>RustFactions</AssemblyName>
+    <RootNamespace>Imperium</RootNamespace>
+    <AssemblyName>Imperium</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -47,7 +47,8 @@
     <Compile Include="Commands\Claim\ClaimShow.cs" />
     <Compile Include="Commands\Claim\ClaimUpkeep.cs" />
     <Compile Include="Commands\Help.cs" />
-    <Compile Include="Commands\Map\MapToggle.cs" />
+    <Compile Include="Commands\Ui\HudToggle.cs" />
+    <Compile Include="Commands\Ui\MapToggle.cs" />
     <Compile Include="Commands\Tax\TaxHelp.cs" />
     <Compile Include="Commands\Tax\TaxChest.cs" />
     <Compile Include="Commands\Tax\TaxRate.cs" />
@@ -60,7 +61,7 @@
     <Compile Include="Commands\Town\Towns.cs" />
     <Compile Include="Commands\War\War.cs" />
     <Compile Include="Commands\Internal\RefreshImages.cs" />
-    <Compile Include="Commands\Map\Map.cs" />
+    <Compile Include="Commands\Ui\Map.cs" />
     <Compile Include="Commands\Tax\Tax.cs" />
     <Compile Include="Commands\Town\Town.cs" />
     <Compile Include="Commands\War\WarDeclare.cs" />

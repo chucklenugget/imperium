@@ -23,15 +23,16 @@
       Imperium Core;
       User User;
 
+      public bool IsDisabled { get; set; }
+
       public UserHudPanel(Imperium core, User user)
       {
         Core = core;
         User = user;
       }
 
-      public void Refresh()
+      public void Show()
       {
-        Hide();
         if (User.CurrentArea != null)
           CuiHelper.AddUi(User.Player, Build());
       }
@@ -39,6 +40,29 @@
       public void Hide()
       {
         CuiHelper.DestroyUi(User.Player, UiElement.HudPanel);
+      }
+
+      public void Toggle()
+      {
+        if (IsDisabled)
+        {
+          IsDisabled = false;
+          Show();
+        }
+        else
+        {
+          IsDisabled = true;
+          Hide();
+        }
+      }
+
+      public void Refresh()
+      {
+        if (IsDisabled)
+          return;
+
+        Hide();
+        Show();
       }
 
       CuiElementContainer Build()
