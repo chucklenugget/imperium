@@ -24,27 +24,33 @@
 
       public const string InteractionFailedNotMemberOfFaction = "You must be a member of a faction.";
       public const string InteractionFailedNotLeaderOfFaction = "You must be an owner or a moderator of a faction.";
-      public const string InteractionFailedFactionTooSmall = "Your faction must have least {0} members.";
+      public const string InteractionFailedFactionTooSmall = "To claim land, a faction must have least {0} members.";
       public const string InteractionFailedNotMayorOfTown = "You are not the mayor of a town. To create one, use /town create NAME.";
       public const string InteractionFailedFactionDoesNotOwnLand = "Your faction must own at least one area.";
       public const string InteractionFailedUnknownFaction = "Unknown faction [{0}].";
       public const string InteractionFailedNotAtWar = "You are not currently at war with [{0}]!";
 
-      public const string CannotClaimAreaIsBadlands = "You cannot claim the area {0}, because it is part of the badlands.";
-      public const string CannotClaimAreaIsTown = "You cannot claim the area {0}, because it is already a town owned by [{1}].";
-      public const string CannotClaimAreaIsClaimed = "You cannot claim the area {0}, because it is already claimed by [{1}]!";
+      public const string CannotClaimAreaIsBadlands = "The area {0} cannot be claimed, because it is part of the badlands.";
+      public const string CannotClaimAreaIsTown = "The area {0} cannot be claimed, because it is already a town owned by [{1}].";
+      public const string CannotClaimAreaIsClaimed = "The area {0} cannot be claimed, because it is already claimed by [{1}]!";
       public const string CannotClaimAreaCannotAfford = "Claiming this area costs {0} scrap. Add this amount to your inventory and try again.";
       public const string CannotClaimAreaAlreadyOwned = "The area {0} is already owned by your faction, and this cupboard represents the claim.";
 
       public const string SelectClaimCupboardToAdd = "Use the hammer to select a tool cupboard to represent the claim. Say /cancel to cancel.";
       public const string SelectClaimCupboardToRemove = "Use the hammer to select the tool cupboard representing the claim you want to remove. Say /cancel to cancel.";
       public const string SelectClaimCupboardForHeadquarters = "Use the hammer to select the tool cupboard to represent your faction's headquarters. Say /cancel to cancel.";
+      public const string SelectClaimCupboardToAssign = "Use the hammer to select a tool cupboard to represent the claim to assign to [{0}]. Say /cancel to cancel.";
+      public const string SelectClaimCupboardToTransfer = "Use the hammer to select the tool cupboard representing the claim to give to [{0}]. Say /cancel to cancel.";
 
       public const string ClaimCupboardMoved = "You have moved the claim on area {0} to a new tool cupboard.";
       public const string HeadquartersMoved = "You have declared {0} to be your faction's headquarters.";
       public const string ClaimCaptured = "You have captured the area {0} from [{1}]!";
       public const string ClaimAdded = "You have claimed the area {0} for your faction.";
       public const string ClaimRemoved = "You have removed your faction's claim on {0}.";
+      public const string ClaimTransferred = "You have transferred ownership of {0} to [{1}].";
+
+      public const string CannotTransferClaimBadUsage = "Usage: /claim give FACTION";
+      public const string CannotTransferAreaNotOwnedByFaction = "You cannot transfer {0} to [{1}], because it isn't owned by your faction!";
 
       public const string CannotRenameAreaBadUsage = "Usage: /claim rename XY \"NAME\"";
       public const string CannotRenameAreaBadName = "Cannot rename {0}. The name must be at least {1} characters long.";
@@ -67,10 +73,13 @@
       public const string UpkeepCost = "It will cost {0} scrap per day to maintain the {1} areas claimed by [{2}]. Upkeep is due {3} hours from now.";
       public const string UpkeepCostOverdue = "It will cost {0} scrap per day to maintain the {1} areas claimed by [{2}]. Your upkeep is {3} hours overdue! Fill your tax chest with scrap immediately, before your claims begin to fall into ruin.";
 
-      public const string CannotDeleteClaimsBadUsage = "Usage: /claims delete XY [XY XY...]";
+      public const string CannotDeleteClaimsBadUsage = "Usage: /claim delete XY [XY XY...]";
       public const string CannotDeleteClaimsNoPermission = "You don't have permission to delete claims you don't own. Did you mean /claim remove?";
       public const string CannotDeleteClaimsAreaIsBadlands = "You cannot delete the claim on {0}, because it is part of the badlands.";
       public const string CannotDeleteClaimsAreaNotUnclaimed = "You cannot delete the claim on {0}, because it has not been claimed by a faction.";
+
+      public const string CannotAssignClaimBadUsage = "Usage: /claim assign FACTION";
+      public const string CannotAssignClaimNoPermission = "You don't have permission to assign claims to factions.";
 
       public const string CannotSelectTaxChestNotMemberOfFaction = "You cannot select a tax chest without being a member of a faction!";
       public const string CannotSelectTaxChestNotFactionLeader = "You cannot select a tax chest because you aren't an owner or a moderator of your faction.";
@@ -128,6 +137,8 @@
       public const string AreaClaimedAsHeadquartersAnnouncement = "<color=#00ff00>AREA CLAIMED:</color> [{0}] claims {1} as their headquarters!";
       public const string AreaCapturedAnnouncement = "<color=#ff0000>AREA CAPTURED:</color> [{0}] has captured {1} from [{2}]!";
       public const string AreaClaimRemovedAnnouncement = "<color=#ff0000>CLAIM REMOVED:</color> [{0}] has relinquished their claim on {1}!";
+      public const string AreaClaimTransferredAnnouncement = "<color=#ff0000>CLAIM TRANSFERRED:</color> [{0}] has transferred their claim on {1} to [{2}]!";
+      public const string AreaClaimAssignedAnnouncement = "<color=#ff0000>AREA CLAIM ASSIGNED:</color> {0} has been assigned to [{0}] by an admin.";
       public const string AreaClaimDeletedAnnouncement = "<color=#ff0000>AREA CLAIM REMOVED:</color> [{0}]'s claim on {1} has been removed by an admin.";
       public const string AreaClaimLostCupboardDestroyedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> [{0}] has lost its claim on {1}, because the tool cupboard was destroyed!";
       public const string AreaClaimLostFactionDisbandedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> [{0}] has been disbanded, losing its claim on {1}!";

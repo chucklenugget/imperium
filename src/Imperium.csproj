@@ -37,8 +37,10 @@
     <Compile Include="Commands\Cancel.cs" />
     <Compile Include="Commands\Claim\ClaimAdd.cs" />
     <Compile Include="Commands\Claim\Claim.cs" />
+    <Compile Include="Commands\Claim\ClaimAssign.cs" />
     <Compile Include="Commands\Claim\ClaimCost.cs" />
     <Compile Include="Commands\Claim\ClaimDelete.cs" />
+    <Compile Include="Commands\Claim\ClaimGive.cs" />
     <Compile Include="Commands\Claim\ClaimHeadquarters.cs" />
     <Compile Include="Commands\Claim\ClaimHelp.cs" />
     <Compile Include="Commands\Claim\ClaimList.cs" />
@@ -87,7 +89,9 @@
     <Compile Include="Infrastructure\War.cs" />
     <Compile Include="Interactions\AddingAreaToTownInteraction.cs" />
     <Compile Include="Interactions\AddingClaimInteraction.cs" />
+    <Compile Include="Interactions\AssigningClaimInteraction.cs" />
     <Compile Include="Interactions\CreatingTownInteraction.cs" />
+    <Compile Include="Interactions\TransferringClaimInteraction.cs" />
     <Compile Include="Interactions\Interaction.cs" />
     <Compile Include="Interactions\RemovingAreaFromTownInteraction.cs" />
     <Compile Include="Interactions\RemovingClaimInteraction.cs" />

@@ -1,7 +1,5 @@
 ﻿namespace Oxide.Plugins
 {
-  using System;
-
   public partial class Imperium
   {
     class CreatingTownInteraction : Interaction

@@ -12,7 +12,9 @@
     {
       AreaClaimed,
       AreaClaimRemoved,
+      AreaClaimTransferred,
       AreaCaptured,
+      AreaClaimAssigned,
       AreaClaimDeleted,
       HeadquartersMoved
     }
@@ -36,9 +38,6 @@
 
       [JsonProperty("factionId")]
       public string FactionId;
-
-      [JsonProperty("text")]
-      public string Text;
 
       public Event(EventType type, Area area, Faction faction, User user)
       {

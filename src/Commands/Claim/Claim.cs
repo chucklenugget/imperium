@@ -38,6 +38,9 @@
         case "rename":
           OnClaimRenameCommand(user, restArguments);
           break;
+        case "give":
+          OnClaimGiveCommand(user, restArguments);
+          break;
         case "cost":
           OnClaimCostCommand(user, restArguments);
           break;
@@ -49,6 +52,9 @@
           break;
         case "list":
           OnClaimListCommand(user, restArguments);
+          break;
+        case "assign":
+          OnClaimAssignCommand(user, restArguments);
           break;
         case "delete":
           OnClaimDeleteCommand(user, restArguments);

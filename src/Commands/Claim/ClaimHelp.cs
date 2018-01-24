@@ -12,6 +12,7 @@
       sb.AppendLine("  <color=#ffd479>/claim</color>: Add a claim for your faction");
       sb.AppendLine("  <color=#ffd479>/claim hq</color>: Select your faction's headquarters");
       sb.AppendLine("  <color=#ffd479>/claim remove</color>: Remove a claim for your faction (no undo!)");
+      sb.AppendLine("  <color=#ffd479>/claim give FACTION</color>: Give a claimed area to another faction (no undo!)");
       sb.AppendLine("  <color=#ffd479>/claim rename XY \"NAME\"</color>: Rename an area claimed by your faction");
       sb.AppendLine("  <color=#ffd479>/claim show XY</color>: Show who owns an area");
       sb.AppendLine("  <color=#ffd479>/claim list FACTION</color>: List all areas claimed for a faction");
@@ -25,6 +26,7 @@
       if (user.HasPermission(PERM_CHANGE_CLAIMS))
       {
         sb.AppendLine("Admin commands:");
+        sb.AppendLine("  <color=#ffd479>/claim assign FACTION</color>: Use the hammer to assign a claim to another faction");
         sb.AppendLine("  <color=#ffd479>/claim delete XY [XY XY XY...]</color>: Remove the claim on the specified areas (no undo!)");
       }
 

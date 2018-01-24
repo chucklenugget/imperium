@@ -179,7 +179,7 @@
           Type = Type,
           FactionId = FactionId,
           ClaimantId = ClaimantId,
-          CupboardId = ClaimCupboard?.net.ID
+          CupboardId = ClaimCupboard?.net?.ID
         };
       }
     }
