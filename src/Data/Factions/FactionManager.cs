@@ -48,7 +48,7 @@
 
         Instance.Wars.EndAllWarsForEliminatedFactions();
 
-        foreach (User user in faction.GetAllOnlineUsers())
+        foreach (User user in faction.GetAllActiveMembers())
           user.SetFaction(null);
 
         Factions.Remove(faction.Id);

@@ -49,7 +49,7 @@
         OwnerId = info.OwnerId;
         MemberIds = new HashSet<string>(info.MemberIds);
         ManagerIds = new HashSet<string>(info.ManagerIds);
-        MemberIds = new HashSet<string>(info.MemberIds);
+        InviteIds = new HashSet<string>(info.InviteIds);
 
         if (info.TaxChestId != null)
         {
@@ -193,14 +193,19 @@
         return MemberIds.Contains(userId);
       }
 
-      public User[] GetAllOnlineUsers()
+      public User[] GetAllActiveMembers()
       {
         return MemberIds.Select(id => Instance.Users.Get(id)).Where(user => user != null).ToArray();
       }
 
+      public User[] GetAllActiveInvitedUsers()
+      {
+        return InviteIds.Select(id => Instance.Users.Get(id)).Where(user => user != null).ToArray();
+      }
+
       public void SendChatMessage(string message, params object[] args)
       {
-        foreach (User user in GetAllOnlineUsers())
+        foreach (User user in GetAllActiveMembers())
           user.SendChatMessage(message, args);
       }
 

@@ -26,7 +26,7 @@
       public const string InteractionCanceled = "Command canceled.";
       public const string NoInteractionInProgress = "You aren't currently executing any commands.";
       public const string NoAreasClaimed = "Your faction has not claimed any areas.";
-      public const string NotMemberOfFaction = "You must be a member of a faction.";
+      public const string NotMemberOfFaction = "You are not a member of a faction.";
       public const string AlreadyMemberOfFaction = "You are already a member of a faction.";
       public const string NotLeaderOfFaction = "You must be an owner or a manager of a faction.";
       public const string FactionTooSmall = "To claim land, a faction must have least {0} members.";

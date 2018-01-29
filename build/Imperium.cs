@@ -1234,7 +1234,6 @@ namespace Oxide.Plugins
       sb.AppendLine("  <color=#ffd479>/faction</color>: Show information about your faction");
       sb.AppendLine("  <color=#ffd479>/f MESSAGE...</color>: Send a message to all online members of your faction");
       sb.AppendLine("  <color=#ffd479>/faction create</color>: Create a new faction");
-      sb.AppendLine("  <color=#ffd479>/faction FACTION</color>: Show information about another faction");
       sb.AppendLine("  <color=#ffd479>/faction join FACTION</color>: Join a faction if you have been invited");
       sb.AppendLine("  <color=#ffd479>/faction leave</color>: Leave your current faction");
 
@@ -1249,8 +1248,9 @@ namespace Oxide.Plugins
       if (user.HasPermission(PERM_CHANGE_FACTIONS))
       {
         sb.AppendLine("Admin commands:");
-        sb.AppendLine("  <color=#ffd479>/faction admin promote FACTION \"PLAYER\"</color>: Forcibly promote a member of a faction to manager");
-        sb.AppendLine("  <color=#ffd479>/faction admin delete FACTION</color>: Delete a faction (no undo!)");
+        sb.AppendLine("  <color=#ffd479>/faction force promote FACTION \"PLAYER\"</color>: Forcibly promote a member of a faction to manager");
+        sb.AppendLine("  <color=#ffd479>/faction force demote FACTION \"PLAYER\"</color>: Forcibly promote a member of a faction to manager");
+        sb.AppendLine("  <color=#ffd479>/faction force delete FACTION</color>: Delete a faction (no undo!)");
       }
 
       user.SendChatMessage(sb);
@@ -1456,10 +1456,58 @@ namespace Oxide.Plugins
   }
 }﻿namespace Oxide.Plugins
 {
+  using System.Text;
+
   public partial class Imperium
   {
     void OnFactionShowCommand(User user)
     {
+      Faction faction = user.Faction;
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.NotMemberOfFaction);
+        return;
+      }
+
+      var sb = new StringBuilder();
+
+      sb.Append("You are ");
+      if (faction.HasOwner(user))
+        sb.Append("the owner");
+      else if (faction.HasManager(user))
+        sb.Append("a manager");
+      else
+        sb.Append("a member");
+
+      sb.AppendLine($"of <color=#ffd479>[{faction.Id}]</color>.");
+
+      User[] activeMembers = faction.GetAllActiveMembers();
+
+      sb.AppendLine($"<color=#ffd479>{faction.MemberIds.Count}</color> member(s), <color=#ffd479>{activeMembers.Length}</color> online:");
+      sb.Append("  ");
+
+      foreach (User member in activeMembers)
+        sb.Append($"<color=#ffd479>{member.Name}</color>, ");
+
+      sb.Remove(sb.Length - 2, 2);
+      sb.AppendLine();
+
+      if (faction.InviteIds.Count > 0)
+      {
+        User[] activeInvitedUsers = faction.GetAllActiveInvitedUsers();
+
+        sb.AppendLine($"<color=#ffd479>{faction.InviteIds.Count}</color> invited player(s), <color=#ffd479>{activeInvitedUsers.Length}</color> online:");
+        sb.Append("  ");
+
+        foreach (User invitedUser in activeInvitedUsers)
+          sb.Append($"<color=#ffd479>{invitedUser.Name}</color>, ");
+
+        sb.Remove(sb.Length - 2, 2);
+        sb.AppendLine();
+      }
+
+      user.SendChatMessage(sb);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -2531,7 +2579,7 @@ namespace Oxide.Plugins
       public const string InteractionCanceled = "Command canceled.";
       public const string NoInteractionInProgress = "You aren't currently executing any commands.";
       public const string NoAreasClaimed = "Your faction has not claimed any areas.";
-      public const string NotMemberOfFaction = "You must be a member of a faction.";
+      public const string NotMemberOfFaction = "You are not a member of a faction.";
       public const string AlreadyMemberOfFaction = "You are already a member of a faction.";
       public const string NotLeaderOfFaction = "You must be an owner or a manager of a faction.";
       public const string FactionTooSmall = "To claim land, a faction must have least {0} members.";
@@ -3506,7 +3554,7 @@ namespace Oxide.Plugins
         OwnerId = info.OwnerId;
         MemberIds = new HashSet<string>(info.MemberIds);
         ManagerIds = new HashSet<string>(info.ManagerIds);
-        MemberIds = new HashSet<string>(info.MemberIds);
+        InviteIds = new HashSet<string>(info.InviteIds);
 
         if (info.TaxChestId != null)
         {
@@ -3650,14 +3698,19 @@ namespace Oxide.Plugins
         return MemberIds.Contains(userId);
       }
 
-      public User[] GetAllOnlineUsers()
+      public User[] GetAllActiveMembers()
       {
         return MemberIds.Select(id => Instance.Users.Get(id)).Where(user => user != null).ToArray();
       }
 
+      public User[] GetAllActiveInvitedUsers()
+      {
+        return InviteIds.Select(id => Instance.Users.Get(id)).Where(user => user != null).ToArray();
+      }
+
       public void SendChatMessage(string message, params object[] args)
       {
-        foreach (User user in GetAllOnlineUsers())
+        foreach (User user in GetAllActiveMembers())
           user.SendChatMessage(message, args);
       }
 
@@ -3814,7 +3867,7 @@ namespace Oxide.Plugins
 
         Instance.Wars.EndAllWarsForEliminatedFactions();
 
-        foreach (User user in faction.GetAllOnlineUsers())
+        foreach (User user in faction.GetAllActiveMembers())
           user.SetFaction(null);
 
         Factions.Remove(faction.Id);
