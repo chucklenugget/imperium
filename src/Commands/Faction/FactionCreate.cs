@@ -8,20 +8,19 @@
     {
       var idRegex = new Regex("^[a-zA-Z0-9]{2,6}$");
 
-      if (args.Length != 2)
-      {
-        user.SendChatMessage(Messages.Usage, "/faction create NAME \"DESCRIPTION\"");
-        return;
-      }
-
       if (user.Faction != null)
       {
         user.SendChatMessage(Messages.AlreadyMemberOfFaction);
         return;
       }
 
+      if (args.Length != 1)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction create NAME");
+        return;
+      }
+
       string id = args[0].Trim();
-      string description = args[1].Trim();
 
       if (!idRegex.IsMatch(id))
       {
@@ -35,10 +34,10 @@
         return;
       }
 
-      Faction faction = Factions.Create(id, description, user);
+      Faction faction = Factions.Create(id, user);
       user.SetFaction(faction);
 
-      PrintToChat(Messages.FactionCreatedAnnouncement, faction.Id, faction.Description);
+      PrintToChat(Messages.FactionCreatedAnnouncement, faction.Id);
     }
   }
 }

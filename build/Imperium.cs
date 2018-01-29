@@ -26,8 +26,9 @@ namespace Oxide.Plugins
   using Oxide.Core;
   using Oxide.Core.Configuration;
   using UnityEngine;
+  using System.Collections.Generic;
 
-  [Info("Imperium", "chucklenugget", "1.2.0")]
+  [Info("Imperium", "chucklenugget", "1.3.0")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -35,7 +36,6 @@ namespace Oxide.Plugins
     DynamicConfigFile AreasFile;
     DynamicConfigFile FactionsFile;
     DynamicConfigFile WarsFile;
-    DynamicConfigFile HistoryFile;
     DynamicConfigFile ImagesFile;
 
     GameObject GameObject;
@@ -61,14 +61,13 @@ namespace Oxide.Plugins
       AreasFile = GetDataFile("areas");
       FactionsFile = GetDataFile("factions");
       WarsFile = GetDataFile("wars");
-      HistoryFile = GetDataFile("history");
       ImagesFile = GetDataFile("images");
 
-      Factions = new FactionManager();
       Areas = new AreaManager();
+      Factions = new FactionManager();
       Wars = new WarManager();
-      Users = new UserManager();
       Images = new ImageManager();
+      Users = new UserManager();
 
       PrintToChat($"{Title} v{Version} initialized.");
     }
@@ -76,7 +75,16 @@ namespace Oxide.Plugins
     void Loaded()
     {
       InitLang();
-      Options = LoadOptions(Config);
+
+      try
+      {
+        Options = Config.ReadObject<ImperiumOptions>();
+      }
+      catch (Exception ex)
+      {
+        PrintError($"Error while loading configuration: {ex.ToString()}");
+      }
+
       Puts("Area claims are " + (Options.EnableAreaClaims ? "enabled" : "disabled"));
       Puts("Taxation is " + (Options.EnableTaxation ? "enabled" : "disabled"));
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
@@ -86,28 +94,14 @@ namespace Oxide.Plugins
       Puts("Claim upkeep is " + (Options.EnableUpkeep ? "enabled" : "disabled"));
     }
 
-    void Unload()
-    {
-      Images.Destroy();
-      Users.Destroy();
-      Wars.Destroy();
-      Areas.Destroy();
-      Factions.Destroy();
-
-      if (UpkeepCollectionTimer != null && !UpkeepCollectionTimer.Destroyed)
-        UpkeepCollectionTimer.Destroy();
-
-      UnityEngine.Object.Destroy(GameObject);
-    }
-
     void OnServerInitialized()
     {
       permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
       permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
       permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
 
-      Areas.Init(TryLoad<AreaInfo>(AreasFile));
       Factions.Init(TryLoad<FactionInfo>(FactionsFile));
+      Areas.Init(TryLoad<AreaInfo>(AreasFile));
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
       Images.Init(TryLoad<ImageInfo>(ImagesFile));
@@ -126,22 +120,38 @@ namespace Oxide.Plugins
       ImagesFile.WriteObject(Images.Serialize());
     }
 
+    void Unload()
+    {
+      Images.Destroy();
+      Users.Destroy();
+      Wars.Destroy();
+      Areas.Destroy();
+      Factions.Destroy();
+
+      if (UpkeepCollectionTimer != null && !UpkeepCollectionTimer.Destroyed)
+        UpkeepCollectionTimer.Destroy();
+
+      UnityEngine.Object.Destroy(GameObject);
+      Instance = null;
+    }
+
     DynamicConfigFile GetDataFile(string name)
     {
       return Interface.Oxide.DataFileSystem.GetFile(Name + Path.DirectorySeparatorChar + name);
     }
 
-    T[] TryLoad<T>(DynamicConfigFile file)
+    IEnumerable<T> TryLoad<T>(DynamicConfigFile file)
     {
-      T[] items = new T[0];
+      List<T> items;
 
       try
       {
-        items = file.ReadObject<T[]>();
+        items = file.ReadObject<List<T>>();
       }
       catch (Exception ex)
       {
         PrintWarning($"Error reading data from {file.Filename}: ${ex.ToString()}");
+        items = new List<T>();
       }
 
       return items;
@@ -1049,9 +1059,6 @@ namespace Oxide.Plugins
         case "disband":
           OnFactionDisbandCommand(user, restArguments);
           break;
-        case "chat":
-          OnFactionChatCommand(user, restArguments);
-          break;
         case "help":
         default:
           OnFactionHelpCommand(user);
@@ -1064,15 +1071,6 @@ namespace Oxide.Plugins
     {
       OnFactionCommand(player, command, args);
     }
-
-    [ChatCommand("c")]
-    void OnClanChatCommand(BasePlayer player, string command, string[] args)
-    {
-      User user = Users.Get(player);
-      if (user == null) return;
-
-      OnFactionChatCommand(user, args);
-    }
   }
 }
 ﻿namespace Oxide.Plugins
@@ -1081,8 +1079,12 @@ namespace Oxide.Plugins
 
   public partial class Imperium
   {
-    void OnFactionChatCommand(User user, string[] args)
+    [ChatCommand("f")]
+    void OnFactionChatCommand(BasePlayer player, string command, string[] args)
     {
+      User user = Users.Get(player);
+      if (user == null) return;
+
       string message = String.Join(" ", args).Trim();
 
       if (message.Length == 0)
@@ -1101,6 +1103,12 @@ namespace Oxide.Plugins
 
       faction.SendChatMessage("<color=#a1ff46>(FACTION)</color> {0}: {1}", user.Name, message);
     }
+
+    [ChatCommand("c")]
+    void OnClanChatCommand(BasePlayer player, string command, string[] args)
+    {
+      OnFactionChatCommand(player, command, args);
+    }
   }
 }﻿namespace Oxide.Plugins
 {
@@ -1112,20 +1120,19 @@ namespace Oxide.Plugins
     {
       var idRegex = new Regex("^[a-zA-Z0-9]{2,6}$");
 
-      if (args.Length != 2)
-      {
-        user.SendChatMessage(Messages.Usage, "/faction create NAME \"DESCRIPTION\"");
-        return;
-      }
-
       if (user.Faction != null)
       {
         user.SendChatMessage(Messages.AlreadyMemberOfFaction);
         return;
       }
 
+      if (args.Length != 1)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction create NAME");
+        return;
+      }
+
       string id = args[0].Trim();
-      string description = args[1].Trim();
 
       if (!idRegex.IsMatch(id))
       {
@@ -1139,10 +1146,10 @@ namespace Oxide.Plugins
         return;
       }
 
-      Faction faction = Factions.Create(id, description, user);
+      Faction faction = Factions.Create(id, user);
       user.SetFaction(faction);
 
-      PrintToChat(Messages.FactionCreatedAnnouncement, faction.Id, faction.Description);
+      PrintToChat(Messages.FactionCreatedAnnouncement, faction.Id);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -1375,9 +1382,9 @@ namespace Oxide.Plugins
   {
     void OnFactionLeaveCommand(User user, string[] args)
     {
-      if (args.Length != 1)
+      if (args.Length != 0)
       {
-        user.SendChatMessage(Messages.Usage, "/faction leave FACTION");
+        user.SendChatMessage(Messages.Usage, "/faction leave");
         return;
       }
 
@@ -1386,6 +1393,13 @@ namespace Oxide.Plugins
       if (faction == null)
       {
         user.SendChatMessage(Messages.NotMemberOfFaction);
+        return;
+      }
+
+      if (faction.MemberIds.Count == 1)
+      {
+        Factions.Disband(faction);
+        PrintToChat(Messages.FactionDisbandedAnnouncement, faction.Id);
         return;
       }
 
@@ -2326,8 +2340,15 @@ namespace Oxide.Plugins
 }
 ﻿namespace Oxide.Plugins
 {
+  using Network;
+
   public partial class Imperium : RustPlugin
   {
+    void OnUserApprove(Connection connection)
+    {
+      Users.SetOriginalName(connection.userid.ToString(), connection.username);
+    }
+
     void OnPlayerInit(BasePlayer player)
     {
       if (player == null) return;
@@ -2611,8 +2632,8 @@ namespace Oxide.Plugins
       public const string EnteredTown = "<color=#ffd479>BORDER:</color> You have entered the town of <color=#ffd479>{0}</color>, controlled by <color=#ffd479>[{1}]</color>.";
       public const string EnteredClaimedArea = "<color=#ffd479>BORDER:</color> You have entered land claimed by <color=#ffd479>[{0}]</color>.";
 
-      public const string FactionCreatedAnnouncement = "<color=#00ff00>FACTION CREATED:</color> A new faction <color=#ffd479>[{0}]</color> ({1}) has been created!";
-      public const string FactionDisbandedAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> ({1}) has been disbanded!";
+      public const string FactionCreatedAnnouncement = "<color=#00ff00>FACTION CREATED:</color> A new faction <color=#ffd479>[{0}]</color> has been created!";
+      public const string FactionDisbandedAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded!";
       public const string FactionMemberJoinedAnnouncement = "<color=#00ff00>MEMBER JOINED:</color> <color=#ffd479>{0}</color> has joined <color=#ffd479>[{1}]</color>!";
       public const string FactionMemberLeftAnnouncement = "<color=#00ff00>MEMBER LEFT:</color> <color=#ffd479>{0}</color> has left <color=#ffd479>[{1}]</color>!";
 
@@ -2748,7 +2769,6 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
-  using Oxide.Core.Configuration;
 
   public partial class Imperium : RustPlugin
   {
@@ -2782,69 +2802,40 @@ namespace Oxide.Plugins
       public int CommandCooldownSeconds;
     }
 
-    ImperiumOptions LoadOptions(DynamicConfigFile file)
-    {
-      return new ImperiumOptions {
-        EnableAreaClaims = file.Get<bool>("EnableAreaClaims"),
-        EnableTaxation = file.Get<bool>("EnableTaxation"),
-        EnableBadlands = file.Get<bool>("EnableBadlands"),
-        EnableTowns = file.Get<bool>("EnableTowns"),
-        EnableDefensiveBonuses = file.Get<bool>("EnableDefensiveBonuses"),
-        EnableDecayReduction = file.Get<bool>("EnableDecayReduction"),
-        EnableUpkeep = file.Get<bool>("EnableUpkeep"),
-        MinFactionMembers = file.Get<int>("MinFactionMembers"),
-        MinAreaNameLength = file.Get<int>("MinAreaNameLength"),
-        MinCassusBelliLength = file.Get<int>("MinCassusBelliLength"),
-        DefaultTaxRate = file.Get<float>("DefaultTaxRate"),
-        MaxTaxRate = file.Get<float>("MaxTaxRate"),
-        ClaimedLandGatherBonus = file.Get<float>("ClaimedLandGatherBonus"),
-        TownGatherBonus = file.Get<float>("TownGatherBonus"),
-        BadlandsGatherBonus = file.Get<float>("BadlandsGatherBonus"),
-        ClaimedLandDecayReduction = file.Get<float>("ClaimedLandDecayReduction"),
-        TownDecayReduction = file.Get<float>("TownDecayReduction"),
-        ClaimCosts = file.Get<List<int>>("ClaimCosts"),
-        UpkeepCosts = file.Get<List<int>>("UpkeepCosts"),
-        UpkeepCheckIntervalMinutes = file.Get<int>("UpkeepCheckIntervalMinutes"),
-        UpkeepCollectionPeriodHours = file.Get<int>("UpkeepCollectionPeriodHours"),
-        UpkeepGracePeriodHours = file.Get<int>("UpkeepGracePeriodHours"),
-        DefensiveBonuses = file.Get<List<float>>("DefensiveBonuses"),
-        MapImageUrl = file.Get<string>("MapImageUrl"),
-        MapImageSize = file.Get<int>("MapImageSize"),
-        CommandCooldownSeconds = file.Get<int>("CommandCooldownSeconds")
-      };
-    }
-
     protected override void LoadDefaultConfig()
     {
       PrintWarning("Loading default configuration.");
-      Config.Clear();
-      Config["EnableAreaClaims"] = true;
-      Config["EnableTaxation"] = true;
-      Config["EnableBadlands"] = true;
-      Config["EnableTowns"] = true;
-      Config["EnableDefensiveBonuses"] = true;
-      Config["EnableDecayReduction"] = true;
-      Config["EnableUpkeep"] = true;
-      Config["MinFactionMembers"] = 3;
-      Config["MinAreaNameLength"] = 3;
-      Config["MinCassusBelliLength"] = 50;
-      Config["DefaultTaxRate"] = 0.1f;
-      Config["MaxTaxRate"] = 0.2f;
-      Config["ClaimedLandGatherBonus"] = 0.1f;
-      Config["TownGatherBonus"] = 0.1f;
-      Config["BadlandsGatherBonus"] = 0.1f;
-      Config["ClaimedLandDecayReduction"] = 0.5f;
-      Config["TownDecayReduction"] = 1f;
-      Config["ClaimCosts"] = new List<int> { 0, 100, 200, 300, 400, 500 };
-      Config["UpkeepCosts"] = new List<int> { 10, 10, 20, 30, 40, 50 };
-      Config["UpkeepCheckIntervalMinutes"] = 15;
-      Config["UpkeepCollectionPeriodHours"] = 24;
-      Config["UpkeepGracePeriodHours"] = 12;
-      Config["DefensiveBonuses"] = new List<float> { 0, 0.5f, 1f };
-      Config["MapImageUrl"] = "";
-      Config["MapImageSize"] = 1440;
-      Config["CommandCooldownSeconds"] = 10;
-      SaveConfig();
+
+      var options = new ImperiumOptions {
+        EnableAreaClaims = true,
+        EnableBadlands = true,
+        EnableTaxation = true,
+        EnableTowns = true,
+        EnableDefensiveBonuses = true,
+        EnableDecayReduction = true,
+        EnableUpkeep = true,
+        MinFactionMembers = 3,
+        MinAreaNameLength = 3,
+        MinCassusBelliLength = 50,
+        DefaultTaxRate = 0.1f,
+        MaxTaxRate = 0.2f,
+        ClaimedLandGatherBonus = 0.1f,
+        TownGatherBonus = 0.1f,
+        BadlandsGatherBonus = 0.1f,
+        ClaimedLandDecayReduction = 0.5f,
+        TownDecayReduction = 1f,
+        ClaimCosts = new List<int> { 0, 100, 200, 300, 400, 500 },
+        UpkeepCosts = new List<int> { 10, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 },
+        UpkeepCheckIntervalMinutes = 15,
+        UpkeepCollectionPeriodHours = 24,
+        UpkeepGracePeriodHours = 12,
+        DefensiveBonuses = new List<float> { 0, 0.5f, 1f },
+        MapImageUrl = "",
+        MapImageSize = 1440,
+        CommandCooldownSeconds = 10
+      };
+
+      Config.WriteObject(options, true);
     }
   }
 }
@@ -3394,7 +3385,7 @@ namespace Oxide.Plugins
         return depth.Min() - 1;
       }
 
-      public void Init(AreaInfo[] areaInfos)
+      public void Init(IEnumerable<AreaInfo> areaInfos)
       {
         Instance.Puts("Creating area objects...");
 
@@ -3415,7 +3406,7 @@ namespace Oxide.Plugins
             AreaInfo info = null;
             lookup.TryGetValue(areaId, out info);
 
-            var area = Instance.GameObject.AddComponent<Area>();
+            var area = new GameObject().AddComponent<Area>();
             area.Init(areaId, row, col, position, size, info);
 
             Areas[areaId] = area;
@@ -3428,11 +3419,14 @@ namespace Oxide.Plugins
 
       public void Destroy()
       {
-        Area[] areas = Instance.GameObject.GetComponents<Area>();
-        Instance.Puts($"Destroying {areas.Length} area objects...");
+        Area[] areas = UnityEngine.Object.FindObjectsOfType<Area>();
 
-        foreach (Area area in areas)
-          UnityEngine.Object.Destroy(area);
+        if (areas != null)
+        {
+          Instance.Puts($"Destroying {areas.Length} area objects...");
+          foreach (Area area in areas)
+            UnityEngine.Object.Destroy(area);
+        }
 
         Areas.Clear();
         Array.Clear(Layout, 0, Layout.Length);
@@ -3470,10 +3464,9 @@ namespace Oxide.Plugins
 
   public partial class Imperium
   {
-    class Faction : MonoBehaviour
+    class Faction
     {
       public string Id { get; private set; }
-      public string Description { get; private set; }
       public string OwnerId { get; private set; }
       public HashSet<string> MemberIds { get; }
       public HashSet<string> ManagerIds { get; }
@@ -3493,25 +3486,27 @@ namespace Oxide.Plugins
         get { return DateTime.UtcNow < NextUpkeepPaymentTime; }
       }
 
-      public Faction()
-      {
-        MemberIds = new HashSet<string>();
-        ManagerIds = new HashSet<string>();
-        InviteIds = new HashSet<string>();
-      }
-
-      public void Init(string id, string description, User owner)
+      public Faction(string id, User owner)
       {
         Id = id;
-        Description = description;
+
         OwnerId = owner.Id;
+        MemberIds = new HashSet<string> { owner.Id };
+        ManagerIds = new HashSet<string>();
+        InviteIds = new HashSet<string>();
+
         TaxRate = Instance.Options.DefaultTaxRate;
         NextUpkeepPaymentTime = DateTime.UtcNow.AddHours(Instance.Options.UpkeepCollectionPeriodHours);
       }
 
-      public void Init(FactionInfo info)
+      public Faction(FactionInfo info)
       {
         Id = info.Id;
+
+        OwnerId = info.OwnerId;
+        MemberIds = new HashSet<string>(info.MemberIds);
+        ManagerIds = new HashSet<string>(info.ManagerIds);
+        MemberIds = new HashSet<string>(info.MemberIds);
 
         if (info.TaxChestId != null)
         {
@@ -3525,14 +3520,6 @@ namespace Oxide.Plugins
 
         TaxRate = info.TaxRate;
         NextUpkeepPaymentTime = info.NextUpkeepPaymentTime;
-
-        InvokeRepeating("CheckTaxChest", 60f, 60f);
-      }
-
-      void OnDestroy()
-      {
-        if (IsInvoking("CheckTaxChest"))
-          CancelInvoke("CheckTaxChest");
       }
 
       public bool AddMember(User user)
@@ -3548,11 +3535,21 @@ namespace Oxide.Plugins
 
       public bool RemoveMember(User user)
       {
-        if (HasOwner(user.Id))
-          throw new InvalidOperationException($"Cannot remove player {user.Id} from faction {Id}, since they are the owner");
-
         if (!HasMember(user.Id))
           return false;
+
+        if (HasOwner(user.Id))
+        {
+          if (ManagerIds.Count > 0)
+          {
+            OwnerId = ManagerIds.FirstOrDefault();
+            ManagerIds.Remove(OwnerId);
+          }
+          else
+          {
+            OwnerId = MemberIds.FirstOrDefault();
+          }
+        }
 
         MemberIds.Remove(user.Id);
         ManagerIds.Remove(user.Id);
@@ -3678,20 +3675,10 @@ namespace Oxide.Plugins
         return totalCost;
       }
 
-      void CheckTaxChest()
-      {
-        if (TaxChest == null || !TaxChest.IsDestroyed)
-          return;
-
-        Instance.PrintWarning($"Tax chest entity {TaxChest.net.ID} was destroyed. Removing from faction.");
-        TaxChest = null;
-      }
-
       public FactionInfo Serialize()
       {
         return new FactionInfo {
           Id = Id,
-          Description = Description,
           OwnerId = OwnerId,
           MemberIds = MemberIds.ToArray(),
           ManagerIds = ManagerIds.ToArray(),
@@ -3707,6 +3694,44 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using System;
+  using System.Collections.Generic;
+  using System.Linq;
+  using UnityEngine;
+
+  public partial class Imperium
+  {
+    class FactionEntityMonitor : MonoBehaviour
+    {
+      void Awake()
+      {
+        InvokeRepeating("CheckTaxChests", 60f, 60f);
+      }
+
+      void OnDestroy()
+      {
+        if (IsInvoking("CheckTaxChests")) CancelInvoke("CheckTaxChests");
+      }
+
+      void EnsureAllTaxChestsStillExist()
+      {
+        foreach (Faction faction in Instance.Factions.GetAll())
+          EnsureTaxChestExists(faction);
+      }
+
+      void EnsureTaxChestExists(Faction faction)
+      {
+        if (faction.TaxChest == null || !faction.TaxChest.IsDestroyed)
+          return;
+
+        Instance.PrintWarning($"Tax chest entity for faction {faction.Id} was destroyed. Removing from faction.");
+        faction.TaxChest = null;
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
   using Newtonsoft.Json;
 
   public partial class Imperium : RustPlugin
@@ -3715,9 +3740,6 @@ namespace Oxide.Plugins
     {
       [JsonProperty("id")]
       public string Id;
-
-      [JsonProperty("description")]
-      public string Description;
 
       [JsonProperty("ownerId")]
       public string OwnerId;
@@ -3754,18 +3776,24 @@ namespace Oxide.Plugins
     class FactionManager
     {
       Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
+      FactionEntityMonitor EntityMonitor;
 
-      public Faction Create(string id, string description, User owner)
+      public FactionManager()
+      {
+        Factions = new Dictionary<string, Faction>();
+        EntityMonitor = Instance.GameObject.AddComponent<FactionEntityMonitor>();
+      }
+
+      public Faction Create(string id, User owner)
       {
         Faction faction;
 
         if (Factions.TryGetValue(id, out faction))
           throw new InvalidOperationException($"Cannot create a new faction named ${id}, since one already exists");
 
-        faction = Instance.GameObject.AddComponent<Faction>();
-        faction.Init(id, description, owner);
-
+        faction = new Faction(id, owner);
         Factions.Add(id, faction);
+
         Api.HandleFactionCreated(faction);
 
         return faction;
@@ -3846,30 +3874,23 @@ namespace Oxide.Plugins
         Instance.OnFactionsChanged();
       }
 
-      public void Init(FactionInfo[] factionInfos)
+      public void Init(IEnumerable<FactionInfo> factionInfos)
       {
-        Instance.Puts($"Creating faction objects for {factionInfos.Length} factions...");
+        Instance.Puts($"Creating factions for {factionInfos.Count()} factions...");
 
         foreach (FactionInfo info in factionInfos)
         {
-          Faction faction = Instance.GameObject.AddComponent<Faction>();
-          faction.Init(info);
+          Faction faction = new Faction(info);
           Factions.Add(faction.Id, faction);
         }
 
-        Instance.Puts("Faction objects created.");
+        Instance.Puts("Factions created.");
       }
 
       public void Destroy()
       {
-        Faction[] factions = Resources.FindObjectsOfTypeAll<Faction>();
-        Instance.Puts($"Destroying {factions.Length} faction objects...");
-
-        foreach (Faction faction in factions)
-          UnityEngine.Object.Destroy(faction);
-
+        UnityEngine.Object.Destroy(EntityMonitor);
         Factions.Clear();
-        Instance.Puts("Faction objects destroyed.");
       }
 
       public FactionInfo[] Serialize()
@@ -4135,10 +4156,10 @@ namespace Oxide.Plugins
         MapOverlayGenerator.Generate();
       }
 
-      public void Init(ImageInfo[] imageInfos)
+      public void Init(IEnumerable<ImageInfo> imageInfos)
       {
         foreach (ImageInfo info in imageInfos)
-          Images.Add(info.Id, new Image(info));
+          Images.Add(info.Url, new Image(info));
 
         Instance.Puts($"Loaded {Images.Values.Count} cached images.");
 
@@ -4158,6 +4179,7 @@ namespace Oxide.Plugins
       {
         UnityEngine.Object.DestroyImmediate(ImageDownloader);
         UnityEngine.Object.DestroyImmediate(MapOverlayGenerator);
+        Images.Clear();
       }
 
       void RegisterDefaultImages(Type type)
@@ -4343,8 +4365,12 @@ namespace Oxide.Plugins
       {
         Map.Hide();
         HudPanel.Hide();
+
         if (IsInvoking("UpdateHud")) CancelInvoke("UpdateHud");
         if (IsInvoking("CheckArea")) CancelInvoke("CheckArea");
+
+        if (Player != null)
+          Player.displayName = OriginalName;
       }
 
       public void SetFaction(Faction faction)
@@ -4430,6 +4456,7 @@ namespace Oxide.Plugins
     class UserManager
     {
       Dictionary<string, User> Users = new Dictionary<string, User>();
+      Dictionary<string, string> OriginalNames = new Dictionary<string, string>();
 
       public User[] GetAll()
       {
@@ -4468,6 +4495,12 @@ namespace Oxide.Plugins
       {
         Remove(player);
 
+        string originalName;
+        if (OriginalNames.TryGetValue(player.UserIDString, out originalName))
+          player.displayName = originalName;
+        else
+          OriginalNames[player.UserIDString] = player.displayName;
+
         User user = player.gameObject.AddComponent<User>();
         user.Init(player);
 
@@ -4489,6 +4522,11 @@ namespace Oxide.Plugins
         Users.Remove(player.UserIDString);
 
         return true;
+      }
+
+      public void SetOriginalName(string userId, string name)
+      {
+        OriginalNames[userId] = name;
       }
 
       public void Init()
@@ -4743,9 +4781,9 @@ namespace Oxide.Plugins
           Instance.OnDiplomacyChanged();
       }
 
-      public void Init(WarInfo[] warInfos)
+      public void Init(IEnumerable<WarInfo> warInfos)
       {
-        Instance.Puts($"Loading {warInfos.Length} wars...");
+        Instance.Puts($"Loading {warInfos.Count()} wars...");
 
         foreach (WarInfo info in warInfos)
           Wars.Add(new War(info));
@@ -5331,42 +5369,6 @@ namespace Oxide.Plugins
     }
   }
 }
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
-// General Information about an assembly is controlled through the following
-// set of attributes. Change these attribute values to modify the information
-// associated with an assembly.
-[assembly: AssemblyTitle("Imperium")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Imperium")]
-[assembly: AssemblyCopyright("Copyright ©  2017")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
-
-// Setting ComVisible to false makes the types in this assembly not visible
-// to COM components.  If you need to access a type in this assembly from
-// COM, set the ComVisible attribute to true on that type.
-[assembly: ComVisible(false)]
-
-// The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("732db23b-b7e9-4615-a2e2-c72f7661fb3d")]
-
-// Version information for an assembly consists of the following four values:
-//
-//      Major Version
-//      Minor Version
-//      Build Number
-//      Revision
-//
-// You can specify all the values or you can default the Build and Revision Numbers
-// by using the '*' as shown below:
-// [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
 ﻿namespace Oxide.Plugins
 {
   using System;

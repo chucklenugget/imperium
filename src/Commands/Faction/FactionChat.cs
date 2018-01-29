@@ -4,8 +4,12 @@
 
   public partial class Imperium
   {
-    void OnFactionChatCommand(User user, string[] args)
+    [ChatCommand("f")]
+    void OnFactionChatCommand(BasePlayer player, string command, string[] args)
     {
+      User user = Users.Get(player);
+      if (user == null) return;
+
       string message = String.Join(" ", args).Trim();
 
       if (message.Length == 0)
@@ -23,6 +27,12 @@
       }
 
       faction.SendChatMessage("<color=#a1ff46>(FACTION)</color> {0}: {1}", user.Name, message);
+    }
+
+    [ChatCommand("c")]
+    void OnClanChatCommand(BasePlayer player, string command, string[] args)
+    {
+      OnFactionChatCommand(player, command, args);
     }
   }
 }

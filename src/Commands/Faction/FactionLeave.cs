@@ -4,9 +4,9 @@
   {
     void OnFactionLeaveCommand(User user, string[] args)
     {
-      if (args.Length != 1)
+      if (args.Length != 0)
       {
-        user.SendChatMessage(Messages.Usage, "/faction leave FACTION");
+        user.SendChatMessage(Messages.Usage, "/faction leave");
         return;
       }
 
@@ -15,6 +15,13 @@
       if (faction == null)
       {
         user.SendChatMessage(Messages.NotMemberOfFaction);
+        return;
+      }
+
+      if (faction.MemberIds.Count == 1)
+      {
+        Factions.Disband(faction);
+        PrintToChat(Messages.FactionDisbandedAnnouncement, faction.Id);
         return;
       }
 

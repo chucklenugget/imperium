@@ -70,10 +70,10 @@
         MapOverlayGenerator.Generate();
       }
 
-      public void Init(ImageInfo[] imageInfos)
+      public void Init(IEnumerable<ImageInfo> imageInfos)
       {
         foreach (ImageInfo info in imageInfos)
-          Images.Add(info.Id, new Image(info));
+          Images.Add(info.Url, new Image(info));
 
         Instance.Puts($"Loaded {Images.Values.Count} cached images.");
 
@@ -93,6 +93,7 @@
       {
         UnityEngine.Object.DestroyImmediate(ImageDownloader);
         UnityEngine.Object.DestroyImmediate(MapOverlayGenerator);
+        Images.Clear();
       }
 
       void RegisterDefaultImages(Type type)

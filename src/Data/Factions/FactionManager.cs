@@ -10,18 +10,24 @@
     class FactionManager
     {
       Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
+      FactionEntityMonitor EntityMonitor;
 
-      public Faction Create(string id, string description, User owner)
+      public FactionManager()
+      {
+        Factions = new Dictionary<string, Faction>();
+        EntityMonitor = Instance.GameObject.AddComponent<FactionEntityMonitor>();
+      }
+
+      public Faction Create(string id, User owner)
       {
         Faction faction;
 
         if (Factions.TryGetValue(id, out faction))
           throw new InvalidOperationException($"Cannot create a new faction named ${id}, since one already exists");
 
-        faction = Instance.GameObject.AddComponent<Faction>();
-        faction.Init(id, description, owner);
-
+        faction = new Faction(id, owner);
         Factions.Add(id, faction);
+
         Api.HandleFactionCreated(faction);
 
         return faction;
@@ -102,30 +108,23 @@
         Instance.OnFactionsChanged();
       }
 
-      public void Init(FactionInfo[] factionInfos)
+      public void Init(IEnumerable<FactionInfo> factionInfos)
       {
-        Instance.Puts($"Creating faction objects for {factionInfos.Length} factions...");
+        Instance.Puts($"Creating factions for {factionInfos.Count()} factions...");
 
         foreach (FactionInfo info in factionInfos)
         {
-          Faction faction = Instance.GameObject.AddComponent<Faction>();
-          faction.Init(info);
+          Faction faction = new Faction(info);
           Factions.Add(faction.Id, faction);
         }
 
-        Instance.Puts("Faction objects created.");
+        Instance.Puts("Factions created.");
       }
 
       public void Destroy()
       {
-        Faction[] factions = Resources.FindObjectsOfTypeAll<Faction>();
-        Instance.Puts($"Destroying {factions.Length} faction objects...");
-
-        foreach (Faction faction in factions)
-          UnityEngine.Object.Destroy(faction);
-
+        UnityEngine.Object.Destroy(EntityMonitor);
         Factions.Clear();
-        Instance.Puts("Faction objects destroyed.");
       }
 
       public FactionInfo[] Serialize()

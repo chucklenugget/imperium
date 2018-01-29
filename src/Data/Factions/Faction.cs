@@ -7,10 +7,9 @@
 
   public partial class Imperium
   {
-    class Faction : MonoBehaviour
+    class Faction
     {
       public string Id { get; private set; }
-      public string Description { get; private set; }
       public string OwnerId { get; private set; }
       public HashSet<string> MemberIds { get; }
       public HashSet<string> ManagerIds { get; }
@@ -30,25 +29,27 @@
         get { return DateTime.UtcNow < NextUpkeepPaymentTime; }
       }
 
-      public Faction()
-      {
-        MemberIds = new HashSet<string>();
-        ManagerIds = new HashSet<string>();
-        InviteIds = new HashSet<string>();
-      }
-
-      public void Init(string id, string description, User owner)
+      public Faction(string id, User owner)
       {
         Id = id;
-        Description = description;
+
         OwnerId = owner.Id;
+        MemberIds = new HashSet<string> { owner.Id };
+        ManagerIds = new HashSet<string>();
+        InviteIds = new HashSet<string>();
+
         TaxRate = Instance.Options.DefaultTaxRate;
         NextUpkeepPaymentTime = DateTime.UtcNow.AddHours(Instance.Options.UpkeepCollectionPeriodHours);
       }
 
-      public void Init(FactionInfo info)
+      public Faction(FactionInfo info)
       {
         Id = info.Id;
+
+        OwnerId = info.OwnerId;
+        MemberIds = new HashSet<string>(info.MemberIds);
+        ManagerIds = new HashSet<string>(info.ManagerIds);
+        MemberIds = new HashSet<string>(info.MemberIds);
 
         if (info.TaxChestId != null)
         {
@@ -62,14 +63,6 @@
 
         TaxRate = info.TaxRate;
         NextUpkeepPaymentTime = info.NextUpkeepPaymentTime;
-
-        InvokeRepeating("CheckTaxChest", 60f, 60f);
-      }
-
-      void OnDestroy()
-      {
-        if (IsInvoking("CheckTaxChest"))
-          CancelInvoke("CheckTaxChest");
       }
 
       public bool AddMember(User user)
@@ -85,11 +78,21 @@
 
       public bool RemoveMember(User user)
       {
-        if (HasOwner(user.Id))
-          throw new InvalidOperationException($"Cannot remove player {user.Id} from faction {Id}, since they are the owner");
-
         if (!HasMember(user.Id))
           return false;
+
+        if (HasOwner(user.Id))
+        {
+          if (ManagerIds.Count > 0)
+          {
+            OwnerId = ManagerIds.FirstOrDefault();
+            ManagerIds.Remove(OwnerId);
+          }
+          else
+          {
+            OwnerId = MemberIds.FirstOrDefault();
+          }
+        }
 
         MemberIds.Remove(user.Id);
         ManagerIds.Remove(user.Id);
@@ -215,20 +218,10 @@
         return totalCost;
       }
 
-      void CheckTaxChest()
-      {
-        if (TaxChest == null || !TaxChest.IsDestroyed)
-          return;
-
-        Instance.PrintWarning($"Tax chest entity {TaxChest.net.ID} was destroyed. Removing from faction.");
-        TaxChest = null;
-      }
-
       public FactionInfo Serialize()
       {
         return new FactionInfo {
           Id = Id,
-          Description = Description,
           OwnerId = OwnerId,
           MemberIds = MemberIds.ToArray(),
           ManagerIds = ManagerIds.ToArray(),

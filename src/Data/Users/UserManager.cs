@@ -8,6 +8,7 @@
     class UserManager
     {
       Dictionary<string, User> Users = new Dictionary<string, User>();
+      Dictionary<string, string> OriginalNames = new Dictionary<string, string>();
 
       public User[] GetAll()
       {
@@ -46,6 +47,12 @@
       {
         Remove(player);
 
+        string originalName;
+        if (OriginalNames.TryGetValue(player.UserIDString, out originalName))
+          player.displayName = originalName;
+        else
+          OriginalNames[player.UserIDString] = player.displayName;
+
         User user = player.gameObject.AddComponent<User>();
         user.Init(player);
 
@@ -67,6 +74,11 @@
         Users.Remove(player.UserIDString);
 
         return true;
+      }
+
+      public void SetOriginalName(string userId, string name)
+      {
+        OriginalNames[userId] = name;
       }
 
       public void Init()

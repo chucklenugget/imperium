@@ -77,9 +77,9 @@
           Instance.OnDiplomacyChanged();
       }
 
-      public void Init(WarInfo[] warInfos)
+      public void Init(IEnumerable<WarInfo> warInfos)
       {
-        Instance.Puts($"Loading {warInfos.Length} wars...");
+        Instance.Puts($"Loading {warInfos.Count()} wars...");
 
         foreach (WarInfo info in warInfos)
           Wars.Add(new War(info));

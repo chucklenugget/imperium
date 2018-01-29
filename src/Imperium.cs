@@ -26,8 +26,9 @@ namespace Oxide.Plugins
   using Oxide.Core;
   using Oxide.Core.Configuration;
   using UnityEngine;
+  using System.Collections.Generic;
 
-  [Info("Imperium", "chucklenugget", "1.2.0")]
+  [Info("Imperium", "chucklenugget", "1.3.0")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -35,7 +36,6 @@ namespace Oxide.Plugins
     DynamicConfigFile AreasFile;
     DynamicConfigFile FactionsFile;
     DynamicConfigFile WarsFile;
-    DynamicConfigFile HistoryFile;
     DynamicConfigFile ImagesFile;
 
     GameObject GameObject;
@@ -61,14 +61,13 @@ namespace Oxide.Plugins
       AreasFile = GetDataFile("areas");
       FactionsFile = GetDataFile("factions");
       WarsFile = GetDataFile("wars");
-      HistoryFile = GetDataFile("history");
       ImagesFile = GetDataFile("images");
 
-      Factions = new FactionManager();
       Areas = new AreaManager();
+      Factions = new FactionManager();
       Wars = new WarManager();
-      Users = new UserManager();
       Images = new ImageManager();
+      Users = new UserManager();
 
       PrintToChat($"{Title} v{Version} initialized.");
     }
@@ -76,7 +75,16 @@ namespace Oxide.Plugins
     void Loaded()
     {
       InitLang();
-      Options = LoadOptions(Config);
+
+      try
+      {
+        Options = Config.ReadObject<ImperiumOptions>();
+      }
+      catch (Exception ex)
+      {
+        PrintError($"Error while loading configuration: {ex.ToString()}");
+      }
+
       Puts("Area claims are " + (Options.EnableAreaClaims ? "enabled" : "disabled"));
       Puts("Taxation is " + (Options.EnableTaxation ? "enabled" : "disabled"));
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
@@ -86,28 +94,14 @@ namespace Oxide.Plugins
       Puts("Claim upkeep is " + (Options.EnableUpkeep ? "enabled" : "disabled"));
     }
 
-    void Unload()
-    {
-      Images.Destroy();
-      Users.Destroy();
-      Wars.Destroy();
-      Areas.Destroy();
-      Factions.Destroy();
-
-      if (UpkeepCollectionTimer != null && !UpkeepCollectionTimer.Destroyed)
-        UpkeepCollectionTimer.Destroy();
-
-      UnityEngine.Object.Destroy(GameObject);
-    }
-
     void OnServerInitialized()
     {
       permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
       permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
       permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
 
-      Areas.Init(TryLoad<AreaInfo>(AreasFile));
       Factions.Init(TryLoad<FactionInfo>(FactionsFile));
+      Areas.Init(TryLoad<AreaInfo>(AreasFile));
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
       Images.Init(TryLoad<ImageInfo>(ImagesFile));
@@ -126,22 +120,38 @@ namespace Oxide.Plugins
       ImagesFile.WriteObject(Images.Serialize());
     }
 
+    void Unload()
+    {
+      Images.Destroy();
+      Users.Destroy();
+      Wars.Destroy();
+      Areas.Destroy();
+      Factions.Destroy();
+
+      if (UpkeepCollectionTimer != null && !UpkeepCollectionTimer.Destroyed)
+        UpkeepCollectionTimer.Destroy();
+
+      UnityEngine.Object.Destroy(GameObject);
+      Instance = null;
+    }
+
     DynamicConfigFile GetDataFile(string name)
     {
       return Interface.Oxide.DataFileSystem.GetFile(Name + Path.DirectorySeparatorChar + name);
     }
 
-    T[] TryLoad<T>(DynamicConfigFile file)
+    IEnumerable<T> TryLoad<T>(DynamicConfigFile file)
     {
-      T[] items = new T[0];
+      List<T> items;
 
       try
       {
-        items = file.ReadObject<T[]>();
+        items = file.ReadObject<List<T>>();
       }
       catch (Exception ex)
       {
         PrintWarning($"Error reading data from {file.Filename}: ${ex.ToString()}");
+        items = new List<T>();
       }
 
       return items;

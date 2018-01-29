@@ -44,9 +44,6 @@
         case "disband":
           OnFactionDisbandCommand(user, restArguments);
           break;
-        case "chat":
-          OnFactionChatCommand(user, restArguments);
-          break;
         case "help":
         default:
           OnFactionHelpCommand(user);
@@ -58,15 +55,6 @@
     void OnClanCommand(BasePlayer player, string command, string[] args)
     {
       OnFactionCommand(player, command, args);
-    }
-
-    [ChatCommand("c")]
-    void OnClanChatCommand(BasePlayer player, string command, string[] args)
-    {
-      User user = Users.Get(player);
-      if (user == null) return;
-
-      OnFactionChatCommand(user, args);
     }
   }
 }

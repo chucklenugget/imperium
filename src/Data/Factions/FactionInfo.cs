@@ -10,9 +10,6 @@
       [JsonProperty("id")]
       public string Id;
 
-      [JsonProperty("description")]
-      public string Description;
-
       [JsonProperty("ownerId")]
       public string OwnerId;
 

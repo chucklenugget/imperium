@@ -242,7 +242,7 @@
         return depth.Min() - 1;
       }
 
-      public void Init(AreaInfo[] areaInfos)
+      public void Init(IEnumerable<AreaInfo> areaInfos)
       {
         Instance.Puts("Creating area objects...");
 
@@ -263,7 +263,7 @@
             AreaInfo info = null;
             lookup.TryGetValue(areaId, out info);
 
-            var area = Instance.GameObject.AddComponent<Area>();
+            var area = new GameObject().AddComponent<Area>();
             area.Init(areaId, row, col, position, size, info);
 
             Areas[areaId] = area;
@@ -276,11 +276,14 @@
 
       public void Destroy()
       {
-        Area[] areas = Instance.GameObject.GetComponents<Area>();
-        Instance.Puts($"Destroying {areas.Length} area objects...");
+        Area[] areas = UnityEngine.Object.FindObjectsOfType<Area>();
 
-        foreach (Area area in areas)
-          UnityEngine.Object.Destroy(area);
+        if (areas != null)
+        {
+          Instance.Puts($"Destroying {areas.Length} area objects...");
+          foreach (Area area in areas)
+            UnityEngine.Object.Destroy(area);
+        }
 
         Areas.Clear();
         Array.Clear(Layout, 0, Layout.Length);

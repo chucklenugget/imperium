@@ -1,7 +1,14 @@
 ﻿namespace Oxide.Plugins
 {
+  using Network;
+
   public partial class Imperium : RustPlugin
   {
+    void OnUserApprove(Connection connection)
+    {
+      Users.SetOriginalName(connection.userid.ToString(), connection.username);
+    }
+
     void OnPlayerInit(BasePlayer player)
     {
       if (player == null) return;

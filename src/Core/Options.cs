@@ -1,7 +1,6 @@
 ﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
-  using Oxide.Core.Configuration;
 
   public partial class Imperium : RustPlugin
   {
@@ -35,69 +34,40 @@
       public int CommandCooldownSeconds;
     }
 
-    ImperiumOptions LoadOptions(DynamicConfigFile file)
-    {
-      return new ImperiumOptions {
-        EnableAreaClaims = file.Get<bool>("EnableAreaClaims"),
-        EnableTaxation = file.Get<bool>("EnableTaxation"),
-        EnableBadlands = file.Get<bool>("EnableBadlands"),
-        EnableTowns = file.Get<bool>("EnableTowns"),
-        EnableDefensiveBonuses = file.Get<bool>("EnableDefensiveBonuses"),
-        EnableDecayReduction = file.Get<bool>("EnableDecayReduction"),
-        EnableUpkeep = file.Get<bool>("EnableUpkeep"),
-        MinFactionMembers = file.Get<int>("MinFactionMembers"),
-        MinAreaNameLength = file.Get<int>("MinAreaNameLength"),
-        MinCassusBelliLength = file.Get<int>("MinCassusBelliLength"),
-        DefaultTaxRate = file.Get<float>("DefaultTaxRate"),
-        MaxTaxRate = file.Get<float>("MaxTaxRate"),
-        ClaimedLandGatherBonus = file.Get<float>("ClaimedLandGatherBonus"),
-        TownGatherBonus = file.Get<float>("TownGatherBonus"),
-        BadlandsGatherBonus = file.Get<float>("BadlandsGatherBonus"),
-        ClaimedLandDecayReduction = file.Get<float>("ClaimedLandDecayReduction"),
-        TownDecayReduction = file.Get<float>("TownDecayReduction"),
-        ClaimCosts = file.Get<List<int>>("ClaimCosts"),
-        UpkeepCosts = file.Get<List<int>>("UpkeepCosts"),
-        UpkeepCheckIntervalMinutes = file.Get<int>("UpkeepCheckIntervalMinutes"),
-        UpkeepCollectionPeriodHours = file.Get<int>("UpkeepCollectionPeriodHours"),
-        UpkeepGracePeriodHours = file.Get<int>("UpkeepGracePeriodHours"),
-        DefensiveBonuses = file.Get<List<float>>("DefensiveBonuses"),
-        MapImageUrl = file.Get<string>("MapImageUrl"),
-        MapImageSize = file.Get<int>("MapImageSize"),
-        CommandCooldownSeconds = file.Get<int>("CommandCooldownSeconds")
-      };
-    }
-
     protected override void LoadDefaultConfig()
     {
       PrintWarning("Loading default configuration.");
-      Config.Clear();
-      Config["EnableAreaClaims"] = true;
-      Config["EnableTaxation"] = true;
-      Config["EnableBadlands"] = true;
-      Config["EnableTowns"] = true;
-      Config["EnableDefensiveBonuses"] = true;
-      Config["EnableDecayReduction"] = true;
-      Config["EnableUpkeep"] = true;
-      Config["MinFactionMembers"] = 3;
-      Config["MinAreaNameLength"] = 3;
-      Config["MinCassusBelliLength"] = 50;
-      Config["DefaultTaxRate"] = 0.1f;
-      Config["MaxTaxRate"] = 0.2f;
-      Config["ClaimedLandGatherBonus"] = 0.1f;
-      Config["TownGatherBonus"] = 0.1f;
-      Config["BadlandsGatherBonus"] = 0.1f;
-      Config["ClaimedLandDecayReduction"] = 0.5f;
-      Config["TownDecayReduction"] = 1f;
-      Config["ClaimCosts"] = new List<int> { 0, 100, 200, 300, 400, 500 };
-      Config["UpkeepCosts"] = new List<int> { 10, 10, 20, 30, 40, 50 };
-      Config["UpkeepCheckIntervalMinutes"] = 15;
-      Config["UpkeepCollectionPeriodHours"] = 24;
-      Config["UpkeepGracePeriodHours"] = 12;
-      Config["DefensiveBonuses"] = new List<float> { 0, 0.5f, 1f };
-      Config["MapImageUrl"] = "";
-      Config["MapImageSize"] = 1440;
-      Config["CommandCooldownSeconds"] = 10;
-      SaveConfig();
+
+      var options = new ImperiumOptions {
+        EnableAreaClaims = true,
+        EnableBadlands = true,
+        EnableTaxation = true,
+        EnableTowns = true,
+        EnableDefensiveBonuses = true,
+        EnableDecayReduction = true,
+        EnableUpkeep = true,
+        MinFactionMembers = 3,
+        MinAreaNameLength = 3,
+        MinCassusBelliLength = 50,
+        DefaultTaxRate = 0.1f,
+        MaxTaxRate = 0.2f,
+        ClaimedLandGatherBonus = 0.1f,
+        TownGatherBonus = 0.1f,
+        BadlandsGatherBonus = 0.1f,
+        ClaimedLandDecayReduction = 0.5f,
+        TownDecayReduction = 1f,
+        ClaimCosts = new List<int> { 0, 100, 200, 300, 400, 500 },
+        UpkeepCosts = new List<int> { 10, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 },
+        UpkeepCheckIntervalMinutes = 15,
+        UpkeepCollectionPeriodHours = 24,
+        UpkeepGracePeriodHours = 12,
+        DefensiveBonuses = new List<float> { 0, 0.5f, 1f },
+        MapImageUrl = "",
+        MapImageSize = 1440,
+        CommandCooldownSeconds = 10
+      };
+
+      Config.WriteObject(options, true);
     }
   }
 }

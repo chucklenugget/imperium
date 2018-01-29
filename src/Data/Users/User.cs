@@ -51,8 +51,12 @@
       {
         Map.Hide();
         HudPanel.Hide();
+
         if (IsInvoking("UpdateHud")) CancelInvoke("UpdateHud");
         if (IsInvoking("CheckArea")) CancelInvoke("CheckArea");
+
+        if (Player != null)
+          Player.displayName = OriginalName;
       }
 
       public void SetFaction(Faction faction)
