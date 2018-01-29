@@ -4,14 +4,14 @@
   {
     void OnClaimRenameCommand(User user, string[] args)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (!EnsureCanChangeFactionClaims(user, faction))
         return;
 
       if (args.Length != 2)
       {
-        user.SendMessage(Messages.CannotRenameAreaBadUsage);
+        user.SendChatMessage(Messages.Usage, "/claim rename XY \"NAME\"");
         return;
       }
 
@@ -20,7 +20,7 @@
 
       if (name == null || name.Length < Options.MinAreaNameLength)
       {
-        user.SendMessage(Messages.CannotRenameAreaBadName, areaId, Options.MinAreaNameLength);
+        user.SendChatMessage(Messages.InvalidAreaName, Options.MinAreaNameLength);
         return;
       }
 
@@ -28,24 +28,24 @@
 
       if (area == null)
       {
-        user.SendMessage(Messages.CannotRenameAreaUnknownAreaId, areaId);
+        user.SendChatMessage(Messages.UnknownArea, areaId);
         return;
       }
 
       if (area.FactionId != faction.Id)
       {
-        user.SendMessage(Messages.CannotRenameAreaNotClaimedByFaction, area.Id);
+        user.SendChatMessage(Messages.AreaNotOwnedByYourFaction, area.Id);
         return;
       }
 
       if (area.Type == AreaType.Town)
       {
-        user.SendMessage(Messages.CannotRenameAreaIsTown, area.Id, area.Name);
+        user.SendChatMessage(Messages.CannotRenameAreaIsTown, area.Id, area.Name);
         return;
       }
 
       area.Name = name;
-      user.SendMessage(Messages.AreaRenamed, area.Id, area.Name);
+      user.SendChatMessage(Messages.AreaRenamed, area.Id, area.Name);
     }
   }
 }

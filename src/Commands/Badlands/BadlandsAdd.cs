@@ -15,13 +15,13 @@
 
         if (area == null)
         {
-          user.SendMessage(Messages.CannotSetBadlandsUnknownArea, arg);
+          user.SendChatMessage(Messages.UnknownArea, arg);
           return;
         }
 
         if (area.Type != AreaType.Wilderness)
         {
-          user.SendMessage(Messages.CannotSetBadlandsNotWilderness, area.Id);
+          user.SendChatMessage(Messages.AreaNotWilderness, area.Id);
           return;
         }
 
@@ -31,7 +31,7 @@
       Areas.AddBadlands(areas);
 
       var badlands = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-      user.SendMessage(Messages.BadlandsSet, FormatList(badlands));
+      user.SendChatMessage(Messages.BadlandsSet, FormatList(badlands));
     }
   }
 }

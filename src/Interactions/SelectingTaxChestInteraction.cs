@@ -17,12 +17,12 @@
 
         if (container == null)
         {
-          User.SendMessage(Messages.SelectingTaxChestFailedInvalidTarget);
+          User.SendChatMessage(Messages.SelectingTaxChestFailedInvalidTarget);
           return false;
         }
 
-        Core.Factions.SetTaxChest(Faction, container);
-        User.SendMessage(Messages.SelectingTaxChestSucceeded, Faction.TaxRate * 100, Faction.Id);
+        Instance.Factions.SetTaxChest(Faction, container);
+        User.SendChatMessage(Messages.SelectingTaxChestSucceeded, Faction.TaxRate * 100, Faction.Id);
 
         return true;
       }

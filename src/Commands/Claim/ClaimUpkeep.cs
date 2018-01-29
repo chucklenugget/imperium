@@ -8,21 +8,21 @@
     {
       if (!Options.EnableUpkeep)
       {
-        user.SendMessage(Messages.UpkeepDisabled);
+        user.SendChatMessage(Messages.UpkeepDisabled);
         return;
       }
 
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (faction == null)
       {
-        user.SendMessage(Messages.InteractionFailedNotMemberOfFaction);
+        user.SendChatMessage(Messages.NotMemberOfFaction);
         return;
       }
 
-      if (faction.MemberSteamIds.Count < Options.MinFactionMembers)
+      if (faction.MemberIds.Count < Options.MinFactionMembers)
       {
-        user.SendMessage(Messages.InteractionFailedFactionTooSmall, Options.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmall, Options.MinFactionMembers);
         return;
       }
 
@@ -30,7 +30,7 @@
 
       if (areas.Length == 0)
       {
-        user.SendMessage(Messages.NoAreasClaimed);
+        user.SendChatMessage(Messages.NoAreasClaimed);
         return;
       }
 
@@ -38,9 +38,9 @@
       var nextPaymentHours = (int)faction.NextUpkeepPaymentTime.Subtract(DateTime.UtcNow).TotalHours;
 
       if (nextPaymentHours > 0)
-        user.SendMessage(Messages.UpkeepCost, upkeep, areas.Length, faction.Id, nextPaymentHours);
+        user.SendChatMessage(Messages.UpkeepCost, upkeep, areas.Length, faction.Id, nextPaymentHours);
       else
-        user.SendMessage(Messages.UpkeepCostOverdue, upkeep, areas.Length, faction.Id, nextPaymentHours);
+        user.SendChatMessage(Messages.UpkeepCostOverdue, upkeep, areas.Length, faction.Id, nextPaymentHours);
     }
   }
 }

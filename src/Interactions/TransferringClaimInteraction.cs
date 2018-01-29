@@ -17,35 +17,33 @@
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Core.EnsureCanChangeFactionClaims(User, SourceFaction) || !Core.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureCanChangeFactionClaims(User, SourceFaction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
           return false;
 
-        Area area = Core.Areas.GetByClaimCupboard(cupboard);
+        Area area = Instance.Areas.GetByClaimCupboard(cupboard);
 
         if (area == null)
         {
-          User.SendMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
+          User.SendChatMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
           return false;
         }
 
         if (area.FactionId != SourceFaction.Id)
         {
-          User.SendMessage(Messages.CannotTransferAreaNotOwnedByFaction, area.Id, TargetFaction.Id);
+          User.SendChatMessage(Messages.AreaNotOwnedByYourFaction, area.Id);
           return false;
         }
 
-        if (TargetFaction.MemberSteamIds.Count < Core.Options.MinFactionMembers)
+        if (TargetFaction.MemberIds.Count < Instance.Options.MinFactionMembers)
         {
-          User.SendMessage(Messages.InteractionFailedFactionTooSmall, Core.Options.MinFactionMembers);
+          User.SendChatMessage(Messages.FactionTooSmall, Instance.Options.MinFactionMembers);
           return false;
         }
 
-        Core.PrintToChat(Messages.AreaClaimTransferredAnnouncement, SourceFaction.Id, area.Id, TargetFaction.Id);
+        Instance.PrintToChat(Messages.AreaClaimTransferredAnnouncement, SourceFaction.Id, area.Id, TargetFaction.Id);
 
-        AreaType type = (Core.Areas.GetAllClaimedByFaction(TargetFaction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
-        Core.Areas.Claim(area, type, TargetFaction, User, cupboard);
-
-        Core.History.Record(EventType.AreaClaimTransferred, area, TargetFaction, User);
+        AreaType type = (Instance.Areas.GetAllClaimedByFaction(TargetFaction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
+        Instance.Areas.Claim(area, type, TargetFaction, User, cupboard);
 
         return true;
       }

@@ -4,23 +4,23 @@
   {
     void OnClaimCostCommand(User user, string[] args)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (faction == null)
       {
-        user.SendMessage(Messages.InteractionFailedNotMemberOfFaction);
+        user.SendChatMessage(Messages.NotMemberOfFaction);
         return;
       }
 
-      if (faction.MemberSteamIds.Count < Options.MinFactionMembers)
+      if (faction.MemberIds.Count < Options.MinFactionMembers)
       {
-        user.SendMessage(Messages.InteractionFailedFactionTooSmall, Options.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmall, Options.MinFactionMembers);
         return;
       }
 
       if (args.Length > 1)
       {
-        user.SendMessage(Messages.CannotShowClaimCostBadUsage);
+        user.SendChatMessage(Messages.Usage, "/claim cost [XY]");
         return;
       }
 
@@ -32,23 +32,23 @@
 
       if (area == null)
       {
-        user.SendMessage(Messages.CannotShowClaimCostBadUsage);
+        user.SendChatMessage(Messages.Usage, "/claim cost [XY]");
         return;
       }
 
       if (area.Type == AreaType.Badlands)
       {
-        user.SendMessage(Messages.CannotClaimAreaIsBadlands, area.Id);
+        user.SendChatMessage(Messages.AreaIsBadlands, area.Id);
         return;
       }
       else if (area.Type != AreaType.Wilderness)
       {
-        user.SendMessage(Messages.CannotClaimAreaIsClaimed, area.Id, area.FactionId);
+        user.SendChatMessage(Messages.CannotClaimAreaAlreadyClaimed, area.Id, area.FactionId);
         return;
       }
 
       int cost = area.GetClaimCost(faction);
-      user.SendMessage(Messages.ClaimCost, area.Id, faction.Id, cost);
+      user.SendChatMessage(Messages.ClaimCost, area.Id, faction.Id, cost);
     }
   }
 }

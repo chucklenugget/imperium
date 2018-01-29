@@ -7,11 +7,11 @@
   {
     void OnWarStatusCommand(User user)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (faction == null)
       {
-        user.SendMessage(Messages.InteractionFailedNotMemberOfFaction);
+        user.SendChatMessage(Messages.NotMemberOfFaction);
         return;
       }
 
@@ -35,7 +35,7 @@
         }
       }
 
-      user.SendMessage(sb);
+      user.SendChatMessage(sb);
     }
   }
 }

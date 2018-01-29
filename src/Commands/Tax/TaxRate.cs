@@ -6,17 +6,17 @@
   {
     void OnTaxRateCommand(User user, string[] args)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (faction == null)
       {
-        user.SendMessage(Messages.CannotSetTaxRateNotMemberOfFaction);
+        user.SendChatMessage(Messages.CannotSetTaxRateNotMemberOfFaction);
         return;
       }
 
-      if (!faction.IsLeader(user))
+      if (!faction.HasLeader(user))
       {
-        user.SendMessage(Messages.CannotSetTaxRateNotFactionLeader);
+        user.SendChatMessage(Messages.CannotSetTaxRateNotFactionLeader);
         return;
       }
 
@@ -27,18 +27,18 @@
       }
       catch
       {
-        user.SendMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
+        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
         return;
       }
 
       if (taxRate < 0 || taxRate > Options.MaxTaxRate)
       {
-        user.SendMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
+        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
         return;
       }
 
       Factions.SetTaxRate(faction, taxRate);
-      user.SendMessage(Messages.SetTaxRateSuccessful, faction.Id, taxRate * 100);
+      user.SendChatMessage(Messages.SetTaxRateSuccessful, faction.Id, taxRate * 100);
     }
   }
 }

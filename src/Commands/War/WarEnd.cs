@@ -4,7 +4,7 @@
   {
     void OnWarEndCommand(User user, string[] args)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (!EnsureCanEngageInDiplomacy(user, faction))
         return;
@@ -13,7 +13,7 @@
 
       if (enemy == null)
       {
-        user.SendMessage(Messages.InteractionFailedUnknownFaction, args[0]);
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
         return;
       }
 
@@ -21,13 +21,13 @@
 
       if (war == null)
       {
-        user.SendMessage(Messages.InteractionFailedNotAtWar, enemy.Id);
+        user.SendChatMessage(Messages.NotAtWar, enemy.Id);
         return;
       }
 
       if (war.IsOfferingPeace(faction))
       {
-        user.SendMessage(Messages.CannotOfferPeaceAlreadyOfferedPeace, enemy.Id);
+        user.SendChatMessage(Messages.CannotOfferPeaceAlreadyOfferedPeace, enemy.Id);
         return;
       }
 
@@ -36,13 +36,12 @@
       if (war.IsAttackerOfferingPeace && war.IsDefenderOfferingPeace)
       {
         Wars.EndWar(war, WarEndReason.Treaty);
-        user.SendMessage(Messages.WarEnded, enemy.Id);
         PrintToChat(Messages.WarEndedTreatyAcceptedAnnouncement, faction.Id, enemy.Id);
         OnDiplomacyChanged();
       }
       else
       {
-        user.SendMessage(Messages.PeaceOffered, enemy.Id);
+        user.SendChatMessage(Messages.PeaceOffered, enemy.Id);
       }
     }
   }

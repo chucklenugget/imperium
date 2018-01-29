@@ -4,12 +4,12 @@
   {
     void OnClaimAddCommand(User user)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (!EnsureCanChangeFactionClaims(user, faction))
         return;
 
-      user.SendMessage(Messages.SelectClaimCupboardToAdd);
+      user.SendChatMessage(Messages.SelectClaimCupboardToAdd);
       user.BeginInteraction(new AddingClaimInteraction(faction));
     }
   }

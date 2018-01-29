@@ -19,31 +19,31 @@
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Core.EnsureCanManageTowns(User, Faction) || !Core.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureCanManageTowns(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
           return false;
 
-        Area area = Core.Areas.GetByClaimCupboard(cupboard);
+        Area area = Instance.Areas.GetByClaimCupboard(cupboard);
 
         if (area == null)
         {
-          User.SendMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
+          User.SendChatMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
           return false;
         }
 
         if (area.Type == AreaType.Headquarters)
         {
-          User.SendMessage(Messages.CannotAddToTownAreaIsHeadquarters, area.Id);
+          User.SendChatMessage(Messages.CannotAddToTownAreaIsHeadquarters, area.Id);
           return false;
         }
 
         if (area.Type == AreaType.Town)
         {
-          User.SendMessage(Messages.CannotAddToTownOneAlreadyExists, area.Id, area.Name);
+          User.SendChatMessage(Messages.CannotAddToTownOneAlreadyExists, area.Id, area.Name);
           return false;
         }
 
-        Core.Areas.AddToTown(Town.Name, User, area);
-        User.SendMessage(Messages.AreaAddedToTown, area.Id, area.Name);
+        Instance.Areas.AddToTown(Town.Name, User, area);
+        User.SendChatMessage(Messages.AreaAddedToTown, area.Id, area.Name);
 
         return true;
       }

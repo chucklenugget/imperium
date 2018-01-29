@@ -13,7 +13,7 @@
       sb.AppendLine("  <color=#ffd479>/tax chest</color>: Select a container to use as your faction's tax chest");
       sb.AppendLine("  <color=#ffd479>/tax help</color>: Prints this message");
 
-      user.SendMessage(sb);
+      user.SendChatMessage(sb);
     }
   }
 }

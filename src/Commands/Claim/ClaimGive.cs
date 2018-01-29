@@ -6,11 +6,11 @@
     {
       if (args.Length == 0)
       {
-        user.SendMessage(Messages.CannotTransferClaimBadUsage);
+        user.SendChatMessage(Messages.Usage, "/claim give FACTION");
         return;
       }
 
-      Faction sourceFaction = Factions.GetByUser(user);
+      Faction sourceFaction = Factions.GetByMember(user);
 
       if (!EnsureCanChangeFactionClaims(user, sourceFaction))
         return;
@@ -20,11 +20,11 @@
 
       if (targetFaction == null)
       {
-        user.SendMessage(Messages.InteractionFailedUnknownFaction, factionId);
+        user.SendChatMessage(Messages.FactionDoesNotExist, factionId);
         return;
       }
 
-      user.SendMessage(Messages.SelectClaimCupboardToTransfer);
+      user.SendChatMessage(Messages.SelectClaimCupboardToTransfer);
       user.BeginInteraction(new TransferringClaimInteraction(sourceFaction, targetFaction));
     }
   }

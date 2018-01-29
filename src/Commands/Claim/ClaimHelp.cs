@@ -30,7 +30,7 @@
         sb.AppendLine("  <color=#ffd479>/claim delete XY [XY XY XY...]</color>: Remove the claim on the specified areas (no undo!)");
       }
 
-      user.SendMessage(sb);
+      user.SendChatMessage(sb);
     }
   }
 }

@@ -19,25 +19,25 @@
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Core.EnsureCanManageTowns(User, Faction) || !Core.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureCanManageTowns(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
           return false;
 
-        Area area = Core.Areas.GetByClaimCupboard(cupboard);
+        Area area = Instance.Areas.GetByClaimCupboard(cupboard);
 
         if (area == null)
         {
-          User.SendMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
+          User.SendChatMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
           return false;
         }
 
         if (area.Type != AreaType.Town)
         {
-          User.SendMessage(Messages.CannotRemoveFromTownNotPartOfTown, area.Id);
+          User.SendChatMessage(Messages.AreaNotPartOfTown, area.Id);
           return false;
         }
 
-        Core.Areas.RemoveFromTown(area);
-        User.SendMessage(Messages.AreaRemovedFromTown, area.Id, area.Name);
+        Instance.Areas.RemoveFromTown(area);
+        User.SendChatMessage(Messages.AreaRemovedFromTown, area.Id, area.Name);
 
         return true;
       }

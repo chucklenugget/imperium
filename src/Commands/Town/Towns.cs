@@ -10,7 +10,7 @@
 
       if (!Options.EnableTowns)
       {
-        user.SendMessage(Messages.TownsDisabled);
+        user.SendChatMessage(Messages.TownsDisabled);
         return;
       }
 

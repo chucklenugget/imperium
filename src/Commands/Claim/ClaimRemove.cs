@@ -4,12 +4,12 @@
   {
     void OnClaimRemoveCommand(User user)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (!EnsureCanChangeFactionClaims(user, faction))
         return;
 
-      user.SendMessage(Messages.SelectClaimCupboardToRemove);
+      user.SendChatMessage(Messages.SelectClaimCupboardToRemove);
       user.BeginInteraction(new RemovingClaimInteraction(faction));
     }
   }

@@ -21,7 +21,7 @@
         sb.AppendLine("  <color=#ffd479>/town disband</color>: Disband your town immediately (no undo!)");
       }
 
-      user.SendMessage(sb);
+      user.SendChatMessage(sb);
     }
   }
 }

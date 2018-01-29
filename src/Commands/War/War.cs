@@ -12,7 +12,7 @@
 
       if (!Options.EnableBadlands)
       {
-        user.SendMessage(Messages.BadlandsDisabled);
+        user.SendChatMessage(Messages.BadlandsDisabled);
         return;
       }
 

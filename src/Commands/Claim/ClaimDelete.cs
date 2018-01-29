@@ -8,13 +8,13 @@
     {
       if (args.Length == 0)
       {
-        user.SendMessage(Messages.CannotDeleteClaimsBadUsage);
+        user.SendChatMessage(Messages.Usage, "/claim delete XY [XY XY...]");
         return;
       }
 
       if (!user.HasPermission(PERM_CHANGE_CLAIMS))
       {
-        user.SendMessage(Messages.CannotDeleteClaimsNoPermission);
+        user.SendChatMessage(Messages.NoPermission);
         return;
       }
 
@@ -25,13 +25,13 @@
 
         if (area.Type == AreaType.Badlands)
         {
-          user.SendMessage(Messages.CannotDeleteClaimsAreaIsBadlands, area.Id);
+          user.SendChatMessage(Messages.AreaIsBadlands, area.Id);
           return;
         }
 
         if (area.Type == AreaType.Wilderness)
         {
-          user.SendMessage(Messages.CannotDeleteClaimsAreaNotUnclaimed, area.Id);
+          user.SendChatMessage(Messages.AreaIsWilderness, area.Id);
           return;
         }
 
@@ -39,10 +39,7 @@
       }
 
       foreach (Area area in areas)
-      {
         PrintToChat(Messages.AreaClaimDeletedAnnouncement, area.FactionId, area.Id);
-        History.Record(EventType.AreaClaimDeleted, area, null, user);
-      }
 
       Areas.Unclaim(areas);
     }

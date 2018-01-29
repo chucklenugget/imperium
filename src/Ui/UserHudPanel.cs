@@ -20,14 +20,11 @@
     {
       const float IconSize = 0.075f;
 
-      Imperium Core;
-      User User;
-
+      public User User { get; }
       public bool IsDisabled { get; set; }
 
-      public UserHudPanel(Imperium core, User user)
+      public UserHudPanel(User user)
       {
-        Core = core;
         User = user;
       }
 
@@ -97,7 +94,7 @@
 
           if (area.Type == AreaType.Badlands)
           {
-            string harvestBonus = String.Format("+{0}% Bonus", Core.Options.BadlandsGatherBonus * 100);
+            string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.BadlandsGatherBonus * 100);
             AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Harvest, UserHudPanelColor.TextNormal, harvestBonus);
           }
         }
@@ -211,7 +208,7 @@
           Name = UiElement.HudPanelIcon + guid,
           Parent = parent,
           Components = {
-            Core.Ui.CreateImageComponent(iconName),
+            Instance.Images.CreateImageComponent(iconName),
             new CuiRectTransformComponent {
               AnchorMin = $"{left} {IconSize}",
               AnchorMax = $"{left + IconSize} {1 - IconSize}",

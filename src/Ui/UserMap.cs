@@ -9,14 +9,11 @@
   {
     class UserMap
     {
-      Imperium Core;
-      User User;
-
+      public User User { get; }
       public bool IsVisible { get; private set; }
 
-      public UserMap(Imperium core, User user)
+      public UserMap(User user)
       {
-        Core = core;
         User = user;
       }
 
@@ -63,7 +60,7 @@
           Name = UiElement.MapBackgroundImage,
           Parent = UiElement.Map,
           Components = {
-            Core.Ui.CreateImageComponent(Core.Options.MapImageUrl),
+            Instance.Images.CreateImageComponent(Instance.Options.MapImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
@@ -72,7 +69,7 @@
           Name = UiElement.MapClaimsImage,
           Parent = UiElement.Map,
           Components = {
-            Core.Ui.CreateImageComponent(UiMapOverlayImageUrl),
+            Instance.Images.CreateImageComponent(UiMapOverlayImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
@@ -81,13 +78,13 @@
         foreach (MonumentInfo monument in monuments.Where(m => m.Type != MonumentType.Cave && !m.name.Contains("power_sub")))
           AddMarker(container, MapMarker.ForMonument(monument));
 
-        foreach (Area area in Core.Areas.GetAllByType(AreaType.Headquarters))
+        foreach (Area area in Instance.Areas.GetAllByType(AreaType.Headquarters))
         {
-          var faction = Core.Factions.Get(area.FactionId);
+          var faction = Instance.Factions.Get(area.FactionId);
           AddMarker(container, MapMarker.ForHeadquarters(area, faction));
         }
 
-        foreach (Area area in Core.Areas.GetAllByType(AreaType.Town))
+        foreach (Area area in Instance.Areas.GetAllByType(AreaType.Town))
           AddMarker(container, MapMarker.ForTown(area));
 
         AddMarker(container, MapMarker.ForUser(User));
@@ -107,7 +104,7 @@
           Name = UiElement.MapIcon + Guid.NewGuid().ToString(),
           Parent = UiElement.Map,
           Components = {
-            Core.Ui.CreateImageComponent(marker.IconUrl),
+            Instance.Images.CreateImageComponent(marker.IconUrl),
             new CuiRectTransformComponent {
               AnchorMin = $"{marker.X - iconSize} {marker.Z - iconSize}",
               AnchorMax = $"{marker.X + iconSize} {marker.Z + iconSize}"

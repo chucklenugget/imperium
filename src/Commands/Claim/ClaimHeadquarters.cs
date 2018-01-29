@@ -4,12 +4,12 @@
   {
     void OnClaimHeadquartersCommand(User user)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (!EnsureCanChangeFactionClaims(user, faction))
         return;
 
-      user.SendMessage(Messages.SelectClaimCupboardForHeadquarters);
+      user.SendChatMessage(Messages.SelectClaimCupboardForHeadquarters);
       user.BeginInteraction(new SelectingHeadquartersInteraction(faction));
     }
   }

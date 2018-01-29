@@ -4,9 +4,7 @@
   {
     abstract class Interaction
     {
-      public Imperium Core { get; set; }
       public User User { get; set; }
-
       public abstract bool TryComplete(HitInfo hit);
     }
   }

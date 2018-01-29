@@ -4,7 +4,7 @@
   {
     void OnTownExpandCommand(User user)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (!EnsureCanManageTowns(user, faction))
         return;
@@ -12,11 +12,11 @@
       Town town = Areas.GetTownByMayor(user);
       if (town == null)
       {
-        user.SendMessage(Messages.InteractionFailedNotMayorOfTown);
+        user.SendChatMessage(Messages.NotMayorOfTown);
         return;
       }
 
-      user.SendMessage(Messages.SelectTownCupboardToExpand, town.Name);
+      user.SendChatMessage(Messages.SelectTownCupboardToExpand, town.Name);
       user.BeginInteraction(new AddingAreaToTownInteraction(faction, town));
     }
   }

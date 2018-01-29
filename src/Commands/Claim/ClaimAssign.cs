@@ -4,15 +4,15 @@
   {
     void OnClaimAssignCommand(User user, string[] args)
     {
-      if (args.Length == 0)
+      if (!user.HasPermission(PERM_CHANGE_CLAIMS))
       {
-        user.SendMessage(Messages.CannotAssignClaimBadUsage);
+        user.SendChatMessage(Messages.NoPermission);
         return;
       }
 
-      if (!user.HasPermission(PERM_CHANGE_CLAIMS))
+      if (args.Length == 0)
       {
-        user.SendMessage(Messages.CannotAssignClaimNoPermission);
+        user.SendChatMessage(Messages.Usage, "/claim assign FACTION");
         return;
       }
 
@@ -21,11 +21,11 @@
 
       if (faction == null)
       {
-        user.SendMessage(Messages.InteractionFailedUnknownFaction, factionId);
+        user.SendChatMessage(Messages.FactionDoesNotExist, factionId);
         return;
       }
 
-      user.SendMessage(Messages.SelectClaimCupboardToAssign);
+      user.SendChatMessage(Messages.SelectClaimCupboardToAssign);
       user.BeginInteraction(new AssigningClaimInteraction(faction));
     }
   }

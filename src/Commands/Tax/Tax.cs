@@ -12,7 +12,7 @@
 
       if (!Options.EnableTaxation)
       {
-        user.SendMessage(Messages.TaxationDisabled);
+        user.SendChatMessage(Messages.TaxationDisabled);
         return;
       };
 

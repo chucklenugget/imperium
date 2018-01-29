@@ -15,25 +15,20 @@
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Core.EnsureCanChangeFactionClaims(User, Faction) || !Core.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureCanChangeFactionClaims(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
           return false;
 
-        Area area = Core.Areas.GetByClaimCupboard(cupboard);
+        Area area = Instance.Areas.GetByClaimCupboard(cupboard);
 
         if (area == null)
         {
-          User.SendMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
+          User.SendChatMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
           return false;
         }
 
-        User.SendMessage(Messages.ClaimRemoved, area.Id);
-        Core.PrintToChat(Messages.AreaClaimRemovedAnnouncement, Faction.Id, area.Id);
-        Core.Areas.Unclaim(area);
-        Core.History.Record(EventType.AreaClaimRemoved, area, Faction, User);
-
-        Area newHeadquarters = Core.Areas.SelectNewHeadquartersIfNecessary(Faction);
-        if (newHeadquarters != null)
-          Core.PrintToChat(Messages.HeadquartersChangedAnnouncement, Faction.Id, newHeadquarters.Id);
+        User.SendChatMessage(Messages.ClaimRemoved, area.Id);
+        Instance.PrintToChat(Messages.AreaClaimRemovedAnnouncement, Faction.Id, area.Id);
+        Instance.Areas.Unclaim(area);
 
         return true;
       }

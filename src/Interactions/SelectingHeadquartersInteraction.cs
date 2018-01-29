@@ -15,21 +15,18 @@
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Core.EnsureCanChangeFactionClaims(User, Faction) || !Core.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureCanChangeFactionClaims(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
           return false;
 
-        Area area = Core.Areas.GetByClaimCupboard(cupboard);
+        Area area = Instance.Areas.GetByClaimCupboard(cupboard);
         if (area == null)
         {
-          User.SendMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
+          User.SendChatMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
           return false;
         }
 
-        Core.Areas.SetHeadquarters(area, Faction);
-
-        User.SendMessage(Messages.HeadquartersMoved, area.Id);
-        Core.PrintToChat(Messages.HeadquartersChangedAnnouncement, Faction.Id, area.Id);
-        Core.History.Record(EventType.HeadquartersMoved, area, Faction, User);
+        Instance.Areas.SetHeadquarters(area, Faction);
+        Instance.PrintToChat(Messages.HeadquartersChangedAnnouncement, Faction.Id, area.Id);
 
         return true;
       }

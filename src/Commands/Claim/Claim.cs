@@ -12,7 +12,7 @@
 
       if (!Options.EnableAreaClaims)
       {
-        user.SendMessage(Messages.AreaClaimsDisabled);
+        user.SendChatMessage(Messages.AreaClaimsDisabled);
         return;
       }
 

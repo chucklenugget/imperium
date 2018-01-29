@@ -4,14 +4,14 @@
   {
     void OnWarDeclareCommand(User user, string[] args)
     {
-      Faction attacker = Factions.GetByUser(user);
+      Faction attacker = Factions.GetByMember(user);
 
       if (!EnsureCanEngageInDiplomacy(user, attacker))
         return;
 
       if (args.Length < 2)
       {
-        user.SendMessage(Messages.CannotDeclareWarWrongUsage);
+        user.SendChatMessage(Messages.Usage, "/war declare FACTION \"REASON\"");
         return;
       }
 
@@ -19,13 +19,13 @@
 
       if (defender == null)
       {
-        user.SendMessage(Messages.InteractionFailedUnknownFaction, args[0]);
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
         return;
       }
 
       if (attacker.Id == defender.Id)
       {
-        user.SendMessage(Messages.CannotDeclareWarAgainstYourself);
+        user.SendChatMessage(Messages.CannotDeclareWarAgainstYourself);
         return;
       }
 
@@ -33,7 +33,7 @@
 
       if (existingWar != null)
       {
-        user.SendMessage(Messages.CannotDeclareWarAlreadyAtWar, defender.Id);
+        user.SendChatMessage(Messages.CannotDeclareWarAlreadyAtWar, defender.Id);
         return;
       }
 
@@ -41,13 +41,11 @@
 
       if (cassusBelli.Length < Options.MinCassusBelliLength)
       {
-        user.SendMessage(Messages.CannotDeclareWarInvalidCassusBelli, defender.Id);
+        user.SendChatMessage(Messages.CannotDeclareWarInvalidCassusBelli, defender.Id);
         return;
       }
 
       War war = Wars.DeclareWar(attacker, defender, user, cassusBelli);
-
-      user.SendMessage(Messages.WarDeclared, war.DefenderId);
       PrintToChat(Messages.WarDeclaredAnnouncement, war.AttackerId, war.DefenderId, war.CassusBelli);
     }
   }

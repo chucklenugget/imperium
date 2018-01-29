@@ -30,6 +30,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Commands\Badlands\BadlandsHelp.cs" />
+    <Compile Include="Data\Areas\AreaInfo.cs" />
+    <Compile Include="Data\Areas\AreaType.cs" />
     <Compile Include="Commands\Badlands\Badlands.cs" />
     <Compile Include="Commands\Badlands\BadlandsAdd.cs" />
     <Compile Include="Commands\Badlands\BadlandsRemove.cs" />
@@ -48,6 +51,18 @@
     <Compile Include="Commands\Claim\ClaimRename.cs" />
     <Compile Include="Commands\Claim\ClaimShow.cs" />
     <Compile Include="Commands\Claim\ClaimUpkeep.cs" />
+    <Compile Include="Commands\Faction\Faction.cs" />
+    <Compile Include="Commands\Faction\FactionChat.cs" />
+    <Compile Include="Commands\Faction\FactionCreate.cs" />
+    <Compile Include="Commands\Faction\FactionDemote.cs" />
+    <Compile Include="Commands\Faction\FactionDisband.cs" />
+    <Compile Include="Commands\Faction\FactionHelp.cs" />
+    <Compile Include="Commands\Faction\FactionInvite.cs" />
+    <Compile Include="Commands\Faction\FactionJoin.cs" />
+    <Compile Include="Commands\Faction\FactionKick.cs" />
+    <Compile Include="Commands\Faction\FactionLeave.cs" />
+    <Compile Include="Commands\Faction\FactionPromote.cs" />
+    <Compile Include="Commands\Faction\FactionShow.cs" />
     <Compile Include="Commands\Help.cs" />
     <Compile Include="Commands\Ui\HudToggle.cs" />
     <Compile Include="Commands\Ui\MapToggle.cs" />
@@ -71,22 +86,23 @@
     <Compile Include="Commands\War\WarHelp.cs" />
     <Compile Include="Commands\War\WarList.cs" />
     <Compile Include="Commands\War\WarStatus.cs" />
-    <Compile Include="Core.cs" />
-    <Compile Include="Data.cs" />
-    <Compile Include="Economics.cs" />
-    <Compile Include="Hooks.cs" />
-    <Compile Include="History.cs" />
-    <Compile Include="Infrastructure\Area.cs" />
-    <Compile Include="Infrastructure\AreaManager.cs" />
-    <Compile Include="Infrastructure\LruCache.cs" />
-    <Compile Include="Infrastructure\WarManager.cs" />
-    <Compile Include="Infrastructure\Faction.cs" />
-    <Compile Include="Infrastructure\FactionManager.cs" />
-    <Compile Include="Infrastructure\ImperiumComponent.cs" />
-    <Compile Include="Infrastructure\Town.cs" />
-    <Compile Include="Infrastructure\User.cs" />
-    <Compile Include="Infrastructure\UserManager.cs" />
-    <Compile Include="Infrastructure\War.cs" />
+    <Compile Include="Core\Api.cs" />
+    <Compile Include="Data\Factions\FactionInfo.cs" />
+    <Compile Include="Data\Wars\WarEndReason.cs" />
+    <Compile Include="Data\Wars\WarInfo.cs" />
+    <Compile Include="Imperium.cs" />
+    <Compile Include="Core\Economics.cs" />
+    <Compile Include="Core\Hooks.cs" />
+    <Compile Include="Data\Areas\Area.cs" />
+    <Compile Include="Data\Areas\AreaManager.cs" />
+    <Compile Include="Framework\LruCache.cs" />
+    <Compile Include="Data\Wars\WarManager.cs" />
+    <Compile Include="Data\Factions\Faction.cs" />
+    <Compile Include="Data\Factions\FactionManager.cs" />
+    <Compile Include="Data\Towns\Town.cs" />
+    <Compile Include="Data\Users\User.cs" />
+    <Compile Include="Data\Users\UserManager.cs" />
+    <Compile Include="Data\Wars\War.cs" />
     <Compile Include="Interactions\AddingAreaToTownInteraction.cs" />
     <Compile Include="Interactions\AddingClaimInteraction.cs" />
     <Compile Include="Interactions\AssigningClaimInteraction.cs" />
@@ -97,20 +113,22 @@
     <Compile Include="Interactions\RemovingClaimInteraction.cs" />
     <Compile Include="Interactions\SelectingHeadquartersInteraction.cs" />
     <Compile Include="Interactions\SelectingTaxChestInteraction.cs" />
-    <Compile Include="Lang.cs" />
-    <Compile Include="Logistics.cs" />
-    <Compile Include="Options.cs" />
+    <Compile Include="Core\Lang.cs" />
+    <Compile Include="Core\Logistics.cs" />
+    <Compile Include="Core\Options.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Ui\FactionColorPicker.cs" />
-    <Compile Include="Ui\Image.cs" />
-    <Compile Include="Ui\ImageDownloader.cs" />
+    <Compile Include="Data\Images\FactionColorPicker.cs" />
+    <Compile Include="Data\Images\Image.cs" />
+    <Compile Include="Data\Images\ImageDownloader.cs" />
+    <Compile Include="Data\Images\ImageInfo.cs" />
     <Compile Include="Ui\MapGrid.cs" />
     <Compile Include="Ui\MapMarker.cs" />
-    <Compile Include="Ui\MapOverlayGenerator.cs" />
-    <Compile Include="Ui\UiManager.cs" />
+    <Compile Include="Data\Images\MapOverlayGenerator.cs" />
+    <Compile Include="Data\Images\ImageManager.cs" />
+    <Compile Include="Ui\Ui.cs" />
     <Compile Include="Ui\UserHudPanel.cs" />
     <Compile Include="Ui\UserMap.cs" />
-    <Compile Include="Util.cs" />
+    <Compile Include="Core\Util.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ApexAI">
@@ -176,9 +194,6 @@
     <Reference Include="Oxide.CSharp">
       <HintPath>..\lib\Oxide.CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="Oxide.Ext.RustIO">
-      <HintPath>..\lib\Oxide.Ext.RustIO.dll</HintPath>
-    </Reference>
     <Reference Include="Oxide.MySql">
       <HintPath>..\lib\Oxide.MySql.dll</HintPath>
     </Reference>
@@ -227,6 +242,9 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd $(ProjectDir)
-copy Core.cs +Data.cs + Economics.cs + History.cs + Hooks.cs + Lang.cs + Logistics.cs + Options.cs + Util.cs + Commands\Badlands\*.cs + Commands\Claim\*.cs + Commands\Diplomacy\*.cs + Commands\Internal\*.cs + Commands\Map\*.cs + Commands\Tax\*.cs + Commands\Town\*.cs + Infrastructure\*.cs + Interactions\*.cs + Ui\*.cs C:\rustserver\oxide\plugins\Imperium.cs /y /b</PostBuildEvent>
+del $(SolutionDir)build\$(ProjectName).cs
+for /r $(ProjectDir) %25%25F in (*.cs) do @type "%25%25F" &gt;&gt; $(SolutionDir)build\$(ProjectName).cs
+copy $(SolutionDir)build\$(ProjectName).cs C:\rustserver\oxide\plugins
+</PostBuildEvent>
   </PropertyGroup>
 </Project>

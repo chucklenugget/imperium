@@ -38,7 +38,7 @@
       else
         sb.AppendLine("<color=#ffd479>/badlands</color> Find badlands (PVP) areas");
 
-      user.SendMessage(sb);
+      user.SendChatMessage(sb);
     }
   }
 }

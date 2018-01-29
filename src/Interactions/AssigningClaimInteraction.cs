@@ -16,24 +16,22 @@
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
         Area area = User.CurrentArea;
-        AreaType type = (Core.Areas.GetAllClaimedByFaction(Faction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
+        AreaType type = (Instance.Areas.GetAllClaimedByFaction(Faction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         if (area == null)
         {
-          Core.PrintWarning("Player attempted to assign claim but wasn't in an area. This shouldn't happen.");
+          Instance.PrintWarning("Player attempted to assign claim but wasn't in an area. This shouldn't happen.");
           return false;
         }
 
         if (area.Type == AreaType.Badlands)
         {
-          User.SendMessage(Messages.CannotClaimAreaIsBadlands, area.Id);
+          User.SendChatMessage(Messages.AreaIsBadlands, area.Id);
           return false;
         }
 
-        Core.PrintToChat(Messages.AreaClaimAssignedAnnouncement, Faction.Id, area.Id);
-
-        Core.Areas.Claim(area, type, Faction, User, cupboard);
-        Core.History.Record(EventType.AreaClaimAssigned, area, Faction, User);
+        Instance.PrintToChat(Messages.AreaClaimAssignedAnnouncement, Faction.Id, area.Id);
+        Instance.Areas.Claim(area, type, Faction, User, cupboard);
 
         return true;
       }

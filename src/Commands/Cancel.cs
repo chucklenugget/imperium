@@ -9,11 +9,11 @@
 
       if (user.CurrentInteraction == null)
       {
-        user.SendMessage(Messages.NoInteractionInProgress);
+        user.SendChatMessage(Messages.NoInteractionInProgress);
         return;
       }
 
-      user.SendMessage(Messages.InteractionCanceled);
+      user.SendChatMessage(Messages.InteractionCanceled);
       user.CancelInteraction();
     }
   }

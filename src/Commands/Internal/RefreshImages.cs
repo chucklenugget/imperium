@@ -7,7 +7,7 @@
     {
       if (!arg.IsAdmin) return;
       arg.ReplyWith("Refreshing images...");
-      Ui.RefreshAllImages();
+      Images.RefreshAllImages();
     }
   }
 }

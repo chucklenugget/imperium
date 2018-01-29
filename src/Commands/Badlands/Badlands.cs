@@ -12,20 +12,20 @@
 
       if (!Options.EnableBadlands)
       {
-        user.SendMessage(Messages.BadlandsDisabled);
+        user.SendChatMessage(Messages.BadlandsDisabled);
         return;
       }
 
       if (args.Length == 0)
       {
         var areas = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-        user.SendMessage(Messages.BadlandsList, FormatList(areas), Options.BadlandsGatherBonus);
+        user.SendChatMessage(Messages.BadlandsList, FormatList(areas), Options.BadlandsGatherBonus);
         return;
       }
 
       if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_BADLANDS))
       {
-        user.SendMessage(Messages.CannotSetBadlandsNoPermission);
+        user.SendChatMessage(Messages.NoPermission);
         return;
       }
 
@@ -35,34 +35,34 @@
       {
         case "add":
           if (args.Length < 2)
-            user.SendMessage(Messages.CannotSetBadlandsWrongUsage);
+            user.SendChatMessage(Messages.Usage, "/badlands add [XY XY XY...]");
           else
             OnAddBadlandsCommand(user, areaIds);
           break;
 
         case "remove":
           if (args.Length < 2)
-            user.SendMessage(Messages.CannotSetBadlandsWrongUsage);
+            user.SendChatMessage(Messages.Usage, "/badlands remove [XY XY XY...]");
           else
             OnRemoveBadlandsCommand(user, areaIds);
           break;
 
         case "set":
           if (args.Length < 2)
-            user.SendMessage(Messages.CannotSetBadlandsWrongUsage);
+            user.SendChatMessage(Messages.Usage, "/badlands set [XY XY XY...]");
           else
             OnSetBadlandsCommand(user, areaIds);
           break;
 
         case "clear":
           if (args.Length != 1)
-            user.SendMessage(Messages.CannotSetBadlandsWrongUsage);
+            user.SendChatMessage(Messages.Usage, "/badlands clear");
           else
             OnSetBadlandsCommand(user, new string[0]);
           break;
 
         default:
-          user.SendMessage(Messages.CannotSetBadlandsWrongUsage);
+          OnBadlandsHelpCommand(user);
           break;
       }
     }

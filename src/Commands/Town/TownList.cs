@@ -27,7 +27,7 @@
         }
       }
 
-      user.SendMessage(sb);
+      user.SendChatMessage(sb);
     }
   }
 }

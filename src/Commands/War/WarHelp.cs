@@ -15,7 +15,7 @@
       sb.AppendLine("  <color=#ffd479>/war end FACTION</color>: Offer to end a war, or accept an offer made to you");
       sb.AppendLine("  <color=#ffd479>/war help</color>: Show this message");
 
-      user.SendMessage(sb);
+      user.SendChatMessage(sb);
     }
   }
 }

@@ -10,7 +10,7 @@
     {
       if (args.Length != 1)
       {
-        user.SendMessage(Messages.CannotListClaimsBadUsage);
+        user.SendChatMessage(Messages.Usage, "/claim list FACTION");
         return;
       }
 
@@ -19,7 +19,7 @@
 
       if (faction == null)
       {
-        user.SendMessage(Messages.InteractionFailedUnknownFaction, factionId);
+        user.SendChatMessage(Messages.FactionDoesNotExist, factionId);
         return;
       }
 
@@ -40,7 +40,7 @@
         sb.AppendLine(String.Format("Areas claimed: {0}", FormatList(areas.Select(a => a.Id))));
       }
 
-      user.SendMessage(sb);
+      user.SendChatMessage(sb);
     }
   }
 }

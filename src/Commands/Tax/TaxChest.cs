@@ -5,21 +5,21 @@
 
     void OnTaxChestCommand(User user)
     {
-      Faction faction = Factions.GetByUser(user);
+      Faction faction = Factions.GetByMember(user);
 
       if (faction == null)
       {
-        user.SendMessage(Messages.CannotSelectTaxChestNotMemberOfFaction);
+        user.SendChatMessage(Messages.CannotSelectTaxChestNotMemberOfFaction);
         return;
       }
 
-      if (!faction.IsLeader(user))
+      if (!faction.HasLeader(user))
       {
-        user.SendMessage(Messages.CannotSelectTaxChestNotFactionLeader);
+        user.SendChatMessage(Messages.CannotSelectTaxChestNotFactionLeader);
         return;
       }
 
-      user.SendMessage(Messages.SelectTaxChest);
+      user.SendChatMessage(Messages.SelectTaxChest);
       user.BeginInteraction(new SelectingTaxChestInteraction(faction));
     }
   }

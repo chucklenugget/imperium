@@ -6,7 +6,7 @@
     {
       if (args.Length != 1)
       {
-        user.SendMessage(Messages.CannotShowClaimBadUsage);
+        user.SendChatMessage(Messages.Usage, "/claim show XY");
         return;
       }
 
@@ -15,19 +15,19 @@
       switch (area.Type)
       {
         case AreaType.Badlands:
-          user.SendMessage(Messages.AreaIsBadlands, area.Id);
+          user.SendChatMessage(Messages.AreaIsBadlands, area.Id);
           return;
         case AreaType.Claimed:
-          user.SendMessage(Messages.AreaIsClaimed, area.Id, area.FactionId);
+          user.SendChatMessage(Messages.AreaIsClaimed, area.Id, area.FactionId);
           return;
         case AreaType.Headquarters:
-          user.SendMessage(Messages.AreaIsHeadquarters, area.Id, area.FactionId);
+          user.SendChatMessage(Messages.AreaIsHeadquarters, area.Id, area.FactionId);
           return;
         case AreaType.Town:
-          user.SendMessage(Messages.AreaIsTown, area.Id, area.Name, area.FactionId);
+          user.SendChatMessage(Messages.AreaIsTown, area.Id, area.Name, area.FactionId);
           return;
         default:
-          user.SendMessage(Messages.AreaIsWilderness, area.Id);
+          user.SendChatMessage(Messages.AreaIsWilderness, area.Id);
           return;
       }
     }
