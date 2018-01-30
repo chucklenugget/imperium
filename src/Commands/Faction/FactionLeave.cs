@@ -20,16 +20,19 @@
 
       if (faction.MemberIds.Count == 1)
       {
-        Factions.Disband(faction);
         PrintToChat(Messages.FactionDisbandedAnnouncement, faction.Id);
+        Log($"{Util.Format(user)} disbanded faction {faction.Id} by leaving as its only member");
+        Factions.Disband(faction);
         return;
       }
 
-      faction.RemoveMember(user);
-      user.SetFaction(null);
-
       user.SendChatMessage(Messages.YouLeftFaction, faction.Id);
       PrintToChat(Messages.FactionMemberLeftAnnouncement, user.Name, faction.Id);
+
+      Log($"{Util.Format(user)} left faction {faction.Id}");
+
+      faction.RemoveMember(user);
+      user.SetFaction(null);
     }
   }
 }

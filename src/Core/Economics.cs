@@ -21,14 +21,14 @@
 
       if (faction.IsUpkeepPaid)
       {
-        Puts($"{faction.Id}: Upkeep not due until {faction.NextUpkeepPaymentTime}");
+        Log($"[UPKEEP] {faction.Id}: Upkeep not due until {faction.NextUpkeepPaymentTime}");
         return;
       }
 
       int amountOwed = faction.GetUpkeepPerPeriod();
       var hoursSincePaid = (int)DateTime.UtcNow.Subtract(faction.NextUpkeepPaymentTime).TotalHours;
 
-      Puts($"{faction.Id}: {hoursSincePaid} hours since upkeep paid, trying to collect {amountOwed} scrap upkeep for {areas.Length} area claims");
+      Log($"[UPKEEP] {faction.Id}: {hoursSincePaid} hours since upkeep paid, trying to collect {amountOwed} scrap for {areas.Length} area claims");
 
       if (faction.TaxChest != null)
       {
@@ -37,22 +37,23 @@
         if (TryCollectFromStacks(scrapDef, stacks, amountOwed))
         {
           faction.NextUpkeepPaymentTime = faction.NextUpkeepPaymentTime.AddHours(Options.UpkeepCollectionPeriodHours);
-          Puts($"{faction.Id}: {amountOwed} scrap upkeep collected, next payment due {faction.NextUpkeepPaymentTime}");
+          Log($"[UPKEEP] {faction.Id}: {amountOwed} scrap upkeep collected, next payment due {faction.NextUpkeepPaymentTime}");
           return;
         }
       }
 
       if (hoursSincePaid <= Options.UpkeepGracePeriodHours)
       {
-        Puts($"{faction.Id}: Couldn't collect upkeep, but still within {Options.UpkeepGracePeriodHours} hour grace period");
+        Log($"[UPKEEP] {faction.Id}: Couldn't collect upkeep, but still within {Options.UpkeepGracePeriodHours} hour grace period");
         return;
       }
 
       Area lostArea = areas.OrderBy(area => Areas.GetDepthInsideFriendlyTerritory(area)).First();
-      Areas.Unclaim(lostArea);
 
-      Puts($"{faction.Id}: upkeep not paid in {hoursSincePaid} hours, seizing claim on {lostArea.Id}");
+      Log($"[UPKEEP] {faction.Id}: Upkeep not paid in {hoursSincePaid} hours, seizing claim on {lostArea.Id}");
       PrintToChat(Messages.AreaClaimLostUpkeepNotPaidAnnouncement, faction.Id, lostArea.Id);
+
+      Areas.Unclaim(lostArea);
     }
 
     void ProcessTaxesIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)

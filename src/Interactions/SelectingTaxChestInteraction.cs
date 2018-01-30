@@ -21,8 +21,9 @@
           return false;
         }
 
-        Instance.Factions.SetTaxChest(Faction, container);
         User.SendChatMessage(Messages.SelectingTaxChestSucceeded, Faction.TaxRate * 100, Faction.Id);
+        Instance.Log($"{Util.Format(User)} set {Faction.Id}'s tax chest to entity {Util.Format(container)}");
+        Instance.Factions.SetTaxChest(Faction, container);
 
         return true;
       }

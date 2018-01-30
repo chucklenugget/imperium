@@ -11,7 +11,7 @@
 
       foreach (string arg in args)
       {
-        Area area = Areas.Get(NormalizeAreaId(arg));
+        Area area = Areas.Get(Util.NormalizeAreaId(arg));
 
         if (area == null)
         {
@@ -30,8 +30,8 @@
 
       Areas.Unclaim(areas);
 
-      var badlands = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-      user.SendChatMessage(Messages.BadlandsSet, FormatList(badlands));
+      user.SendChatMessage(Messages.BadlandsSet, Util.Format(Areas.GetAllByType(AreaType.Badlands)));
+      Log($"{Util.Format(user)} removed {Util.Format(areas)} from badlands");
     }
   }
 }

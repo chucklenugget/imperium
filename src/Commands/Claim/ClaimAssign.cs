@@ -16,7 +16,7 @@
         return;
       }
 
-      string factionId = NormalizeFactionId(args[0]);
+      string factionId = Util.NormalizeFactionId(args[0]);
       Faction faction = Factions.Get(factionId);
 
       if (faction == null)

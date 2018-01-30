@@ -85,7 +85,7 @@
           cupboard = BaseNetworkable.serverEntities.Find((uint)info.CupboardId) as BuildingPrivlidge;
           if (cupboard == null)
           {
-            Instance.PrintWarning($"Couldn't find cupboard entity {info.CupboardId} for area {info.Id}.");
+            Instance.Log($"[LOAD] Area {Id}: Cupboard entity {info.CupboardId} not found, treating as unclaimed");
             return;
           }
         }
@@ -95,7 +95,7 @@
           Faction faction = Instance.Factions.Get(info.FactionId);
           if (faction == null)
           {
-            Instance.PrintWarning($"Area {Id} is owned by unknown faction {info.FactionId}. Ignoring.");
+            Instance.Log($"[LOAD] Area {Id}: Claimed by unknown faction {info.FactionId}, treating as unclaimed");
             return;
           }
         }
@@ -105,6 +105,9 @@
         FactionId = info.FactionId;
         ClaimantId = info.ClaimantId;
         ClaimCupboard = cupboard;
+
+        if (FactionId != null)
+          Instance.Log($"[LOAD] Area {Id}: Claimed by {FactionId}, type = {Type}, cupboard = {ClaimCupboard.net?.ID}");
       }
 
       void CheckClaimCupboard()
@@ -112,7 +115,7 @@
         if (ClaimCupboard == null || !ClaimCupboard.IsDestroyed)
           return;
 
-        Instance.PrintWarning($"Cupboard entity {ClaimCupboard.net.ID} was destroyed, but is still holding a claim on area {Id}. Removing claim.");
+        Instance.Log($"{FactionId} lost their claim on {Id} because the tool cupboard was destroyed (periodic check)");
         Instance.PrintToChat(Messages.AreaClaimLostCupboardDestroyedAnnouncement, FactionId, Id);
         Instance.Areas.Unclaim(this);
       }

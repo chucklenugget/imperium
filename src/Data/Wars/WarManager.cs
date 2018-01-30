@@ -82,7 +82,11 @@
         Instance.Puts($"Loading {warInfos.Count()} wars...");
 
         foreach (WarInfo info in warInfos)
-          Wars.Add(new War(info));
+        {
+          var war = new War(info);
+          Wars.Add(war);
+          Instance.Log($"[LOAD] War {war.AttackerId} vs {war.DefenderId}, isActive = {war.IsActive}");
+        }
 
         Instance.Puts("Wars loaded.");
       }

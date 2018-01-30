@@ -10,9 +10,9 @@
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableBadlands)
+      if (!Options.EnableWar)
       {
-        user.SendChatMessage(Messages.BadlandsDisabled);
+        user.SendChatMessage(Messages.WarDisabled);
         return;
       }
 

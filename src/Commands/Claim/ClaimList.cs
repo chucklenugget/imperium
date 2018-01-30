@@ -14,7 +14,7 @@
         return;
       }
 
-      string factionId = NormalizeFactionId(args[0]);
+      string factionId = Util.NormalizeFactionId(args[0]);
       Faction faction = Factions.Get(factionId);
 
       if (faction == null)
@@ -37,7 +37,7 @@
         float percentageOfMap = (areas.Length / (float)Areas.Count) * 100;
         sb.AppendLine(String.Format("<color=#ffd479>[{0}] owns {1} tiles ({2:F2}% of the known world)</color>", faction.Id, areas.Length, percentageOfMap));
         sb.AppendLine(String.Format("Headquarters: {0}", (headquarters == null) ? "Unknown" : headquarters.Id));
-        sb.AppendLine(String.Format("Areas claimed: {0}", FormatList(areas.Select(a => a.Id))));
+        sb.AppendLine(String.Format("Areas claimed: {0}", Util.Format(areas)));
       }
 
       user.SendChatMessage(sb);

@@ -26,10 +26,10 @@
           return false;
         }
 
-        User.SendChatMessage(Messages.ClaimRemoved, area.Id);
         Instance.PrintToChat(Messages.AreaClaimRemovedAnnouncement, Faction.Id, area.Id);
-        Instance.Areas.Unclaim(area);
+        Instance.Log($"{Util.Format(User)} removed {Faction.Id}'s claim on {area.Id}");
 
+        Instance.Areas.Unclaim(area);
         return true;
       }
     }

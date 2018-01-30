@@ -41,6 +41,7 @@
         }
 
         Instance.PrintToChat(Messages.AreaClaimTransferredAnnouncement, SourceFaction.Id, area.Id, TargetFaction.Id);
+        Instance.Log($"{Util.Format(User)} transferred {SourceFaction.Id}'s claim on {area.Id} to {TargetFaction.Id}");
 
         AreaType type = (Instance.Areas.GetAllClaimedByFaction(TargetFaction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
         Instance.Areas.Claim(area, type, TargetFaction, User, cupboard);

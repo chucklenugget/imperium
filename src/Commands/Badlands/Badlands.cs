@@ -19,7 +19,7 @@
       if (args.Length == 0)
       {
         var areas = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-        user.SendChatMessage(Messages.BadlandsList, FormatList(areas), Options.BadlandsGatherBonus);
+        user.SendChatMessage(Messages.BadlandsList, Util.Format(areas), Options.BadlandsGatherBonus);
         return;
       }
 
@@ -29,7 +29,7 @@
         return;
       }
 
-      var areaIds = args.Skip(1).Select(arg => NormalizeAreaId(arg)).ToArray();
+      var areaIds = args.Skip(1).Select(arg => Util.NormalizeAreaId(arg)).ToArray();
 
       switch (args[0].ToLower())
       {

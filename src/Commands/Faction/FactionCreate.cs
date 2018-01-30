@@ -34,10 +34,11 @@
         return;
       }
 
+      PrintToChat(Messages.FactionCreatedAnnouncement, Name);
+      Log($"{Util.Format(user)} created faction {Name}");
+
       Faction faction = Factions.Create(id, user);
       user.SetFaction(faction);
-
-      PrintToChat(Messages.FactionCreatedAnnouncement, faction.Id);
     }
   }
 }

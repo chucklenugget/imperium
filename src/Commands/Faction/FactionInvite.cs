@@ -32,10 +32,12 @@
         return;
       }
 
-      faction.AddInvite(member);
-
       member.SendChatMessage(Messages.InviteReceived, user.Name, faction.Id);
       user.SendChatMessage(Messages.InviteAdded, member.Name, faction.Id);
+
+      Log($"{Util.Format(user)} invited {member} to faction {faction.Id}");
+
+      faction.AddInvite(member);
     }
   }
 }

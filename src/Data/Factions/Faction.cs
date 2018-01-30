@@ -56,13 +56,15 @@
           var taxChest = BaseNetworkable.serverEntities.Find((uint)info.TaxChestId) as StorageContainer;
 
           if (taxChest == null || taxChest.IsDestroyed)
-            Instance.PrintWarning($"Couldn't find entity {info.TaxChestId} for faction {Id}'s tax chest. Ignoring.");
+            Instance.Log($"[LOAD] Faction {Id}: Tax chest entity {info.TaxChestId} was not found");
           else
             TaxChest = taxChest;
         }
 
         TaxRate = info.TaxRate;
         NextUpkeepPaymentTime = info.NextUpkeepPaymentTime;
+
+        Instance.Log($"[LOAD] Faction {Id}: {MemberIds.Count} members, tax chest = {Util.Format(TaxChest)}");
       }
 
       public bool AddMember(User user)

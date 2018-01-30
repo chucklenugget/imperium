@@ -15,8 +15,8 @@
         return;
       }
 
-      var areaId = NormalizeAreaId(args[0]);
-      var name = NormalizeName(args[1]);
+      var areaId = Util.NormalizeAreaId(args[0]);
+      var name = Util.NormalizeAreaName(args[1]);
 
       if (name == null || name.Length < Options.MinAreaNameLength)
       {
@@ -44,8 +44,10 @@
         return;
       }
 
+      user.SendChatMessage(Messages.AreaRenamed, area.Id, Name);
+      Log($"{Util.Format(user)} renamed {area.Id} to {Name}");
+
       area.Name = name;
-      user.SendChatMessage(Messages.AreaRenamed, area.Id, area.Name);
     }
   }
 }

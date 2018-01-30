@@ -8,15 +8,9 @@
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (faction == null)
+      if (faction == null || !faction.HasLeader(user))
       {
-        user.SendChatMessage(Messages.CannotSetTaxRateNotMemberOfFaction);
-        return;
-      }
-
-      if (!faction.HasLeader(user))
-      {
-        user.SendChatMessage(Messages.CannotSetTaxRateNotFactionLeader);
+        user.SendChatMessage(Messages.NotLeaderOfFaction);
         return;
       }
 
@@ -37,8 +31,10 @@
         return;
       }
 
-      Factions.SetTaxRate(faction, taxRate);
       user.SendChatMessage(Messages.SetTaxRateSuccessful, faction.Id, taxRate * 100);
+      Log($"{Util.Format(user)} set the tax rate for faction {faction.Id} to {taxRate * 100}%");
+
+      Factions.SetTaxRate(faction, taxRate);
     }
   }
 }

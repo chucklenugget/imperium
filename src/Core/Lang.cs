@@ -12,6 +12,7 @@
       public const string BadlandsDisabled = "Badlands are currently disabled.";
       public const string TownsDisabled = "Towns are currently disabled.";
       public const string UpkeepDisabled = "Upkeep is currently disabled.";
+      public const string WarDisabled = "War is currently disabled.";
 
       public const string AreaIsBadlands = "<color=#ffd479>{0}</color> is a part of the badlands.";
       public const string AreaIsClaimed = "<color=#ffd479>{0}</color> has been claimed by <color=#ffd479>[{1}]</color>.";
@@ -84,19 +85,14 @@
       public const string AreaRenamed = "<color=#ffd479>{0}</color> is now known as <color=#ffd479>{1}</color>.";
 
       public const string ClaimsList = "<color=#ffd479>[{0}]</color> has claimed: <color=#ffd479>{1}</color>";
-
       public const string ClaimCost = "<color=#ffd479>{0}</color> can be claimed by <color=#ffd479>[{1}]</color> for <color=#ffd479>{2}</color> scrap.";
       public const string UpkeepCost = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Upkeep is due <color=#ffd479>{3}</color> hours from now.";
       public const string UpkeepCostOverdue = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Your upkeep is <color=#ffd479>{3}</color> hours overdue! Fill your tax chest with scrap immediately, before your claims begin to fall into ruin.";
 
-      public const string CannotSelectTaxChestNotMemberOfFaction = "You cannot select a tax chest without being a member of a faction!";
-      public const string CannotSelectTaxChestNotFactionLeader = "You cannot select a tax chest because you aren't an owner or a moderator of your faction.";
       public const string SelectTaxChest = "Use the hammer to select the container to receive your faction's tribute. Say <color=#ffd479>/cancel</color> to cancel.";
       public const string SelectingTaxChestFailedInvalidTarget = "That can't be used as a tax chest.";
       public const string SelectingTaxChestSucceeded = "You have selected a new tax chest that will receive <color=#ffd479>{0}%</color> of the materials harvested within land owned by <color=#ffd479>[{1}]</color>. To change the tax rate, say <color=#ffd479>/tax rate PERCENT</color>.";
 
-      public const string CannotSetTaxRateNotMemberOfFaction = "You cannot set a tax rate without being a member of a faction!";
-      public const string CannotSetTaxRateNotFactionLeader = "You cannot set a tax rate because you aren't an owner or a moderator of your faction.";
       public const string CannotSetTaxRateInvalidValue = "You must specify a valid percentage between <color=#ffd479>0-{0}%</color> as a tax rate.";
       public const string SetTaxRateSuccessful = "You have set the tax rate on the land holdings of <color=#ffd479>[{0}]</color> to <color=#ffd479>{1}%</color>.";
 
@@ -143,7 +139,7 @@
       public const string AreaClaimLostFactionDisbandedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> <color=#ffd479>[{0}]</color> has been disbanded, losing its claim on <color=#ffd479>{1}</color>!";
       public const string AreaClaimLostUpkeepNotPaidAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color>: <color=#ffd479>[{0}]</color> has lost their claim on <color=#ffd479>{1}</color> after it fell into ruin!";
       public const string HeadquartersChangedAnnouncement = "<color=#00ff00>HQ CHANGED:</color> The headquarters of <color=#ffd479>[{0}]</color> is now <color=#ffd479>{1}</color>.";
-      public const string TownCreatedAnnouncement = "<color=#00ff00>TOWN FOUNDED:</color> [{0}]</color> has founded the town of <color=#ffd479>{1}</color> in <color=#ffd479>{2}</color>.";
+      public const string TownCreatedAnnouncement = "<color=#00ff00>TOWN FOUNDED:</color> <color=#ffd479>[{0}]</color> has founded the town of <color=#ffd479>{1}</color> in <color=#ffd479>{2}</color>.";
       public const string TownDisbandedAnnouncement = "<color=#ff0000>TOWN DISBANDED:</color> <color=#ffd479>[{0}]</color> has disbanded the town of <color=#ffd479>{1}</color>.";
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";

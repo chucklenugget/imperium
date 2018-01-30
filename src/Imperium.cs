@@ -157,6 +157,11 @@ namespace Oxide.Plugins
       return items;
     }
 
+    void Log(string message, params object[] args)
+    {
+      LogToFile("log", String.Format(message, args), this, true);
+    }
+
     bool EnsureCanChangeFactionClaims(User user, Faction faction)
     {
       if (faction == null || !faction.HasLeader(user))

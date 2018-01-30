@@ -32,11 +32,13 @@
         return;
       }
 
-      faction.RemoveMember(member);
-      member.SetFaction(null);
-
       user.SendChatMessage(Messages.MemberRemoved, member.Name, faction.Id);
       PrintToChat(Messages.FactionMemberLeftAnnouncement, member.Name, faction.Id);
+
+      Log($"{Util.Format(user)} kicked {member} from faction {faction.Id}");
+
+      faction.RemoveMember(member);
+      member.SetFaction(null);
     }
   }
 }

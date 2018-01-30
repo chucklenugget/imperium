@@ -18,8 +18,10 @@
         return;
       }
 
-      Factions.Disband(faction);
       PrintToChat(Messages.FactionDisbandedAnnouncement, faction.Id);
+      Log($"{Util.Format(user)} disbanded faction {faction.Id}");
+
+      Factions.Disband(faction);
     }
   }
 }

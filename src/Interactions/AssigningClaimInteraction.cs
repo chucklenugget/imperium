@@ -31,8 +31,9 @@
         }
 
         Instance.PrintToChat(Messages.AreaClaimAssignedAnnouncement, Faction.Id, area.Id);
-        Instance.Areas.Claim(area, type, Faction, User, cupboard);
+        Instance.Log($"{Util.Format(User)} assigned {area.Id} to {Faction.Id}");
 
+        Instance.Areas.Claim(area, type, Faction, User, cupboard);
         return true;
       }
     }

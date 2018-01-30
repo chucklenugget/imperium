@@ -125,6 +125,7 @@
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
+          Instance.Log($"Corrected area for {this} during periodic check: was {currentArea.Id}, should be {correctArea.Id}");
           Instance.OnUserExitArea(currentArea, this);
           Instance.OnUserEnterArea(correctArea, this);
         }

@@ -25,9 +25,10 @@
           return false;
         }
 
-        Instance.Areas.SetHeadquarters(area, Faction);
         Instance.PrintToChat(Messages.HeadquartersChangedAnnouncement, Faction.Id, area.Id);
+        Instance.Log($"{Util.Format(User)} set {Faction.Id}'s headquarters to {area.Id}");
 
+        Instance.Areas.SetHeadquarters(area, Faction);
         return true;
       }
     }

@@ -42,9 +42,10 @@
           return false;
         }
 
-        Instance.Areas.AddToTown(Town.Name, User, area);
         User.SendChatMessage(Messages.AreaAddedToTown, area.Id, area.Name);
+        Instance.Log($"{Util.Format(User)} added {area.Id} to town {Town.Name}");
 
+        Instance.Areas.AddToTown(Town.Name, User, area);
         return true;
       }
     }

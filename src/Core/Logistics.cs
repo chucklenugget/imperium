@@ -21,7 +21,7 @@
 
     object ScaleDamageForDecay(BaseEntity entity, HitInfo hit)
     {
-      Area area = Areas.GetByEntityPosition(entity);
+      Area area = Areas.GetByEntityPosition(entity, true);
       float reduction = 0;
 
       if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
@@ -34,10 +34,7 @@
         return false;
 
       if (reduction > 0)
-      {
-        Puts($"Reducing decay on entity {entity.net.ID} by {reduction*100}%");
         hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
-      }
 
       return null;
     }
@@ -51,7 +48,7 @@
       if (attacker.Player.userID == entity.OwnerID)
         return null;
 
-      Area area = Areas.GetByEntityPosition(entity);
+      Area area = Areas.GetByEntityPosition(entity, true);
 
       if (area == null)
       {

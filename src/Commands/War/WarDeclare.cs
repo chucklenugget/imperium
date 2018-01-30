@@ -15,7 +15,7 @@
         return;
       }
 
-      Faction defender = Factions.Get(NormalizeFactionId(args[0]));
+      Faction defender = Factions.Get(Util.NormalizeFactionId(args[0]));
 
       if (defender == null)
       {
@@ -47,6 +47,7 @@
 
       War war = Wars.DeclareWar(attacker, defender, user, cassusBelli);
       PrintToChat(Messages.WarDeclaredAnnouncement, war.AttackerId, war.DefenderId, war.CassusBelli);
+      Log($"{Util.Format(user)} declared war on faction {war.DefenderId} on behalf of {war.AttackerId} for reason: {war.CassusBelli}");
     }
   }
 }

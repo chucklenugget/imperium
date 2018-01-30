@@ -87,11 +87,11 @@
         return GetAllTowns().FirstOrDefault(town => town.MayorId == user.Id);
       }
 
-      public Area GetByEntityPosition(BaseEntity entity)
+      public Area GetByEntityPosition(BaseEntity entity, bool useCache = false)
       {
         Area area;
 
-        if (EntityAreas.TryGetValue(entity.net.ID, out area))
+        if (useCache && EntityAreas.TryGetValue(entity.net.ID, out area))
           return area;
 
         var x = entity.transform.position.x;
@@ -115,7 +115,9 @@
         }
 
         area = Layout[row, col];
-        EntityAreas.Set(entity.net.ID, area);
+
+        if (useCache)
+          EntityAreas.Set(entity.net.ID, area);
 
         return area;
       }

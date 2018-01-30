@@ -1,8 +1,5 @@
 ﻿namespace Oxide.Plugins
 {
-  using System;
-  using System.Collections.Generic;
-  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -30,7 +27,7 @@
         if (faction.TaxChest == null || !faction.TaxChest.IsDestroyed)
           return;
 
-        Instance.PrintWarning($"Tax chest entity for faction {faction.Id} was destroyed. Removing from faction.");
+        Instance.Log($"{faction.Id}'s tax chest was destroyed (periodic check)");
         faction.TaxChest = null;
       }
     }

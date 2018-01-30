@@ -157,6 +157,11 @@ namespace Oxide.Plugins
       return items;
     }
 
+    void Log(string message, params object[] args)
+    {
+      LogToFile("log", String.Format(message, args), this, true);
+    }
+
     bool EnsureCanChangeFactionClaims(User user, Faction faction)
     {
       if (faction == null || !faction.HasLeader(user))
@@ -298,31 +303,38 @@ namespace Oxide.Plugins
 
       var sb = new StringBuilder();
 
-      sb.AppendLine($"<size=18>Welcome to {ConVar.Server.description}!</size>");
+      sb.AppendLine($"<size=18>Welcome to {ConVar.Server.hostname}!</size>");
       sb.AppendLine($"Powered by {Name} v{Version} by <color=#ffd479>chucklenugget</color>");
-      sb.AppendLine();
-
-      sb.AppendLine($"Please read the rules at <color=#ffd479>{ConVar.Server.url}</color>!");
       sb.AppendLine();
 
       sb.Append("The following commands are available. To learn more about each command, do <color=#ffd479>/command help</color>. ");
       sb.AppendLine("For example, to learn more about how to claim land, do <color=#ffd479>/claim help</color>.");
       sb.AppendLine();
 
-      sb.AppendLine("<color=#ffd479>/clan</color> Create a faction");
+      sb.AppendLine("<color=#ffd479>/faction</color> Create or join a faction");
       sb.AppendLine("<color=#ffd479>/claim</color> Claim areas of land");
-      sb.AppendLine("<color=#ffd479>/tax</color> Manage taxation of your land");
-      sb.AppendLine("<color=#ffd479>/war</color> See active wars, declare war, or offer peace");
 
-      if (user.HasPermission(PERM_CHANGE_TOWNS))
-        sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns, or create one yourself");
-      else
-        sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns");
+      if (Options.EnableTaxation)
+        sb.AppendLine("<color=#ffd479>/tax</color> Manage taxation of your land");
 
-      if (user.HasPermission(PERM_CHANGE_BADLANDS))
-        sb.AppendLine("<color=#ffd479>/badlands</color> Find or change badlands areas");
-      else
-        sb.AppendLine("<color=#ffd479>/badlands</color> Find badlands (PVP) areas");
+      if (Options.EnableWar)
+        sb.AppendLine("<color=#ffd479>/war</color> See active wars, declare war, or offer peace");
+
+      if (Options.EnableTowns)
+      {
+        if (user.HasPermission(PERM_CHANGE_TOWNS))
+          sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns, or create one yourself");
+        else
+          sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns");
+      }
+
+      if (Options.EnableBadlands)
+      {
+        if (user.HasPermission(PERM_CHANGE_BADLANDS))
+          sb.AppendLine("<color=#ffd479>/badlands</color> Find or change badlands areas");
+        else
+          sb.AppendLine("<color=#ffd479>/badlands</color> Find badlands (PVP) areas");
+      }
 
       user.SendChatMessage(sb);
     }
@@ -349,7 +361,7 @@ namespace Oxide.Plugins
       if (args.Length == 0)
       {
         var areas = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-        user.SendChatMessage(Messages.BadlandsList, FormatList(areas), Options.BadlandsGatherBonus);
+        user.SendChatMessage(Messages.BadlandsList, Util.Format(areas), Options.BadlandsGatherBonus);
         return;
       }
 
@@ -359,7 +371,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      var areaIds = args.Skip(1).Select(arg => NormalizeAreaId(arg)).ToArray();
+      var areaIds = args.Skip(1).Select(arg => Util.NormalizeAreaId(arg)).ToArray();
 
       switch (args[0].ToLower())
       {
@@ -411,7 +423,7 @@ namespace Oxide.Plugins
 
       foreach (string arg in args)
       {
-        Area area = Areas.Get(NormalizeAreaId(arg));
+        Area area = Areas.Get(Util.NormalizeAreaId(arg));
 
         if (area == null)
         {
@@ -430,8 +442,8 @@ namespace Oxide.Plugins
 
       Areas.AddBadlands(areas);
 
-      var badlands = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-      user.SendChatMessage(Messages.BadlandsSet, FormatList(badlands));
+      user.SendChatMessage(Messages.BadlandsSet, Util.Format(Areas.GetAllByType(AreaType.Badlands)));
+      Log($"{Util.Format(user)} added {Util.Format(areas)} to badlands");
     }
   }
 }
@@ -469,7 +481,7 @@ namespace Oxide.Plugins
 
       foreach (string arg in args)
       {
-        Area area = Areas.Get(NormalizeAreaId(arg));
+        Area area = Areas.Get(Util.NormalizeAreaId(arg));
 
         if (area == null)
         {
@@ -488,8 +500,8 @@ namespace Oxide.Plugins
 
       Areas.Unclaim(areas);
 
-      var badlands = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-      user.SendChatMessage(Messages.BadlandsSet, FormatList(badlands));
+      user.SendChatMessage(Messages.BadlandsSet, Util.Format(Areas.GetAllByType(AreaType.Badlands)));
+      Log($"{Util.Format(user)} removed {Util.Format(areas)} from badlands");
     }
   }
 }
@@ -506,7 +518,7 @@ namespace Oxide.Plugins
 
       foreach (string arg in args)
       {
-        Area area = Areas.Get(NormalizeAreaId(arg));
+        Area area = Areas.Get(Util.NormalizeAreaId(arg));
 
         if (area == null)
         {
@@ -526,8 +538,8 @@ namespace Oxide.Plugins
       Areas.Unclaim(Areas.GetAllByType(AreaType.Badlands));
       Areas.AddBadlands(areas);
 
-      var badlands = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-      user.SendChatMessage(Messages.BadlandsSet, FormatList(badlands));
+      user.SendChatMessage(Messages.BadlandsSet, Util.Format(Areas.GetAllByType(AreaType.Badlands)));
+      Log($"{Util.Format(user)} set badlands to {Util.Format(areas)}");
     }
   }
 }
@@ -632,7 +644,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      string factionId = NormalizeFactionId(args[0]);
+      string factionId = Util.NormalizeFactionId(args[0]);
       Faction faction = Factions.Get(factionId);
 
       if (faction == null)
@@ -675,7 +687,7 @@ namespace Oxide.Plugins
       if (args.Length == 0)
         area = user.CurrentArea;
       else
-        area = Areas.Get(NormalizeAreaId(args[0]));
+        area = Areas.Get(Util.NormalizeAreaId(args[0]));
 
       if (area == null)
       {
@@ -701,6 +713,7 @@ namespace Oxide.Plugins
 }﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
+  using System.Linq;
 
   public partial class Imperium
   {
@@ -721,7 +734,7 @@ namespace Oxide.Plugins
       var areas = new List<Area>();
       foreach (string arg in args)
       {
-        Area area = Areas.Get(NormalizeAreaId(arg));
+        Area area = Areas.Get(Util.NormalizeAreaId(arg));
 
         if (area.Type == AreaType.Badlands)
         {
@@ -739,7 +752,10 @@ namespace Oxide.Plugins
       }
 
       foreach (Area area in areas)
+      {
         PrintToChat(Messages.AreaClaimDeletedAnnouncement, area.FactionId, area.Id);
+        Log($"{Util.Format(user)} deleted {area.FactionId}'s claim on {area.Id}");
+      }
 
       Areas.Unclaim(areas);
     }
@@ -761,7 +777,7 @@ namespace Oxide.Plugins
       if (!EnsureCanChangeFactionClaims(user, sourceFaction))
         return;
 
-      string factionId = NormalizeFactionId(args[0]);
+      string factionId = Util.NormalizeFactionId(args[0]);
       Faction targetFaction = Factions.Get(factionId);
 
       if (targetFaction == null)
@@ -840,7 +856,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      string factionId = NormalizeFactionId(args[0]);
+      string factionId = Util.NormalizeFactionId(args[0]);
       Faction faction = Factions.Get(factionId);
 
       if (faction == null)
@@ -863,7 +879,7 @@ namespace Oxide.Plugins
         float percentageOfMap = (areas.Length / (float)Areas.Count) * 100;
         sb.AppendLine(String.Format("<color=#ffd479>[{0}] owns {1} tiles ({2:F2}% of the known world)</color>", faction.Id, areas.Length, percentageOfMap));
         sb.AppendLine(String.Format("Headquarters: {0}", (headquarters == null) ? "Unknown" : headquarters.Id));
-        sb.AppendLine(String.Format("Areas claimed: {0}", FormatList(areas.Select(a => a.Id))));
+        sb.AppendLine(String.Format("Areas claimed: {0}", Util.Format(areas)));
       }
 
       user.SendChatMessage(sb);
@@ -901,8 +917,8 @@ namespace Oxide.Plugins
         return;
       }
 
-      var areaId = NormalizeAreaId(args[0]);
-      var name = NormalizeName(args[1]);
+      var areaId = Util.NormalizeAreaId(args[0]);
+      var name = Util.NormalizeAreaName(args[1]);
 
       if (name == null || name.Length < Options.MinAreaNameLength)
       {
@@ -930,8 +946,10 @@ namespace Oxide.Plugins
         return;
       }
 
+      user.SendChatMessage(Messages.AreaRenamed, area.Id, Name);
+      Log($"{Util.Format(user)} renamed {area.Id} to {Name}");
+
       area.Name = name;
-      user.SendChatMessage(Messages.AreaRenamed, area.Id, area.Name);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -946,7 +964,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      Area area = Areas.Get(NormalizeAreaId(args[0]));
+      Area area = Areas.Get(Util.NormalizeAreaId(args[0]));
 
       switch (area.Type)
       {
@@ -1102,6 +1120,7 @@ namespace Oxide.Plugins
       }
 
       faction.SendChatMessage("<color=#a1ff46>(FACTION)</color> {0}: {1}", user.Name, message);
+      Puts("[FACTION] {0} - {1}: {2}", faction.Id, user.Name, message);
     }
 
     [ChatCommand("c")]
@@ -1146,10 +1165,11 @@ namespace Oxide.Plugins
         return;
       }
 
+      PrintToChat(Messages.FactionCreatedAnnouncement, Name);
+      Log($"{Util.Format(user)} created faction {Name}");
+
       Faction faction = Factions.Create(id, user);
       user.SetFaction(faction);
-
-      PrintToChat(Messages.FactionCreatedAnnouncement, faction.Id);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -1192,8 +1212,10 @@ namespace Oxide.Plugins
         return;
       }
 
-      faction.Demote(member);
       user.SendChatMessage(Messages.ManagerRemoved, member.Name, faction.Id);
+      Log($"{Util.Format(user)} demoted {member} in faction {faction.Id}");
+
+      faction.Demote(member);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -1216,8 +1238,10 @@ namespace Oxide.Plugins
         return;
       }
 
-      Factions.Disband(faction);
       PrintToChat(Messages.FactionDisbandedAnnouncement, faction.Id);
+      Log($"{Util.Format(user)} disbanded faction {faction.Id}");
+
+      Factions.Disband(faction);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -1290,10 +1314,12 @@ namespace Oxide.Plugins
         return;
       }
 
-      faction.AddInvite(member);
-
       member.SendChatMessage(Messages.InviteReceived, user.Name, faction.Id);
       user.SendChatMessage(Messages.InviteAdded, member.Name, faction.Id);
+
+      Log($"{Util.Format(user)} invited {member} to faction {faction.Id}");
+
+      faction.AddInvite(member);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -1328,11 +1354,13 @@ namespace Oxide.Plugins
         return;
       }
 
+      user.SendChatMessage(Messages.YouJoinedFaction, faction.Id);
+      PrintToChat(Messages.FactionMemberJoinedAnnouncement, user.Name, faction.Id);
+      Log($"{Util.Format(user)} joined faction {faction.Id}");
+
       faction.AddMember(user);
       user.SetFaction(faction);
 
-      user.SendChatMessage(Messages.YouJoinedFaction, faction.Id);
-      PrintToChat(Messages.FactionMemberJoinedAnnouncement, user.Name, faction.Id);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -1369,11 +1397,13 @@ namespace Oxide.Plugins
         return;
       }
 
-      faction.RemoveMember(member);
-      member.SetFaction(null);
-
       user.SendChatMessage(Messages.MemberRemoved, member.Name, faction.Id);
       PrintToChat(Messages.FactionMemberLeftAnnouncement, member.Name, faction.Id);
+
+      Log($"{Util.Format(user)} kicked {member} from faction {faction.Id}");
+
+      faction.RemoveMember(member);
+      member.SetFaction(null);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -1398,16 +1428,19 @@ namespace Oxide.Plugins
 
       if (faction.MemberIds.Count == 1)
       {
-        Factions.Disband(faction);
         PrintToChat(Messages.FactionDisbandedAnnouncement, faction.Id);
+        Log($"{Util.Format(user)} disbanded faction {faction.Id} by leaving as its only member");
+        Factions.Disband(faction);
         return;
       }
 
-      faction.RemoveMember(user);
-      user.SetFaction(null);
-
       user.SendChatMessage(Messages.YouLeftFaction, faction.Id);
       PrintToChat(Messages.FactionMemberLeftAnnouncement, user.Name, faction.Id);
+
+      Log($"{Util.Format(user)} left faction {faction.Id}");
+
+      faction.RemoveMember(user);
+      user.SetFaction(null);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -1450,8 +1483,10 @@ namespace Oxide.Plugins
         return;
       }
 
-      faction.Promote(member);
       user.SendChatMessage(Messages.ManagerAdded, member.Name, faction.Id);
+      Log($"{Util.Format(user)} promoted {member} in faction {faction.Id}");
+
+      faction.Promote(member);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -1569,20 +1604,13 @@ namespace Oxide.Plugins
 {
   public partial class Imperium
   {
-
     void OnTaxChestCommand(User user)
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (faction == null)
+      if (faction == null || !faction.HasLeader(user))
       {
-        user.SendChatMessage(Messages.CannotSelectTaxChestNotMemberOfFaction);
-        return;
-      }
-
-      if (!faction.HasLeader(user))
-      {
-        user.SendChatMessage(Messages.CannotSelectTaxChestNotFactionLeader);
+        user.SendChatMessage(Messages.NotLeaderOfFaction);
         return;
       }
 
@@ -1620,15 +1648,9 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (faction == null)
+      if (faction == null || !faction.HasLeader(user))
       {
-        user.SendChatMessage(Messages.CannotSetTaxRateNotMemberOfFaction);
-        return;
-      }
-
-      if (!faction.HasLeader(user))
-      {
-        user.SendChatMessage(Messages.CannotSetTaxRateNotFactionLeader);
+        user.SendChatMessage(Messages.NotLeaderOfFaction);
         return;
       }
 
@@ -1649,8 +1671,10 @@ namespace Oxide.Plugins
         return;
       }
 
-      Factions.SetTaxRate(faction, taxRate);
       user.SendChatMessage(Messages.SetTaxRateSuccessful, faction.Id, taxRate * 100);
+      Log($"{Util.Format(user)} set the tax rate for faction {faction.Id} to {taxRate * 100}%");
+
+      Factions.SetTaxRate(faction, taxRate);
     }
   }
 }
@@ -1728,7 +1752,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      var name = NormalizeName(args[0]);
+      var name = Util.NormalizeAreaName(args[0]);
 
       town = Areas.GetTown(name);
       if (town != null)
@@ -1760,8 +1784,10 @@ namespace Oxide.Plugins
         return;
       }
 
-      Areas.RemoveFromTown(town.Areas);
       PrintToChat(Messages.TownDisbandedAnnouncement, faction.Id, town.Name);
+      Log($"{Util.Format(user)} disbanded the town faction {town.Name}");
+
+      Areas.RemoveFromTown(town.Areas);
     }
   }
 }
@@ -1837,10 +1863,8 @@ namespace Oxide.Plugins
         sb.AppendLine(String.Format("<color=#ffd479>There are {0} towns on the island:</color>", towns.Length));
         foreach (Town town in towns)
         {
-          var areaIds = town.Areas.Select(area => area.Id);
           float distance = (float) Math.Floor(town.GetDistanceFromEntity(user.Player));
-          int population = town.GetPopulation();
-          sb.AppendLine(String.Format("  <color=#ffd479>{0}:</color> {1:0.00}m ({2}), population {3}", town.Name, distance, FormatList(areaIds), population));
+          sb.AppendLine(String.Format("  <color=#ffd479>{0}:</color> {1:0.00}m ({2})", town.Name, distance, Util.Format(town.Areas)));
         }
       }
 
@@ -1960,9 +1984,9 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableBadlands)
+      if (!Options.EnableWar)
       {
-        user.SendChatMessage(Messages.BadlandsDisabled);
+        user.SendChatMessage(Messages.WarDisabled);
         return;
       }
 
@@ -2012,7 +2036,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      Faction defender = Factions.Get(NormalizeFactionId(args[0]));
+      Faction defender = Factions.Get(Util.NormalizeFactionId(args[0]));
 
       if (defender == null)
       {
@@ -2044,6 +2068,7 @@ namespace Oxide.Plugins
 
       War war = Wars.DeclareWar(attacker, defender, user, cassusBelli);
       PrintToChat(Messages.WarDeclaredAnnouncement, war.AttackerId, war.DefenderId, war.CassusBelli);
+      Log($"{Util.Format(user)} declared war on faction {war.DefenderId} on behalf of {war.AttackerId} for reason: {war.CassusBelli}");
     }
   }
 }
@@ -2058,7 +2083,7 @@ namespace Oxide.Plugins
       if (!EnsureCanEngageInDiplomacy(user, faction))
         return;
 
-      Faction enemy = Factions.Get(NormalizeFactionId(args[0]));
+      Faction enemy = Factions.Get(Util.NormalizeFactionId(args[0]));
 
       if (enemy == null)
       {
@@ -2084,13 +2109,15 @@ namespace Oxide.Plugins
 
       if (war.IsAttackerOfferingPeace && war.IsDefenderOfferingPeace)
       {
-        Wars.EndWar(war, WarEndReason.Treaty);
         PrintToChat(Messages.WarEndedTreatyAcceptedAnnouncement, faction.Id, enemy.Id);
+        Log($"{Util.Format(user)} accepted the peace offering of {enemy.Id} on behalf of {faction.Id}");
+        Wars.EndWar(war, WarEndReason.Treaty);
         OnDiplomacyChanged();
       }
       else
       {
         user.SendChatMessage(Messages.PeaceOffered, enemy.Id);
+        Log($"{Util.Format(user)} offered peace to faction {enemy.Id} on behalf of {faction.Id}");
       }
     }
   }
@@ -2261,14 +2288,14 @@ namespace Oxide.Plugins
 
       if (faction.IsUpkeepPaid)
       {
-        Puts($"{faction.Id}: Upkeep not due until {faction.NextUpkeepPaymentTime}");
+        Log($"[UPKEEP] {faction.Id}: Upkeep not due until {faction.NextUpkeepPaymentTime}");
         return;
       }
 
       int amountOwed = faction.GetUpkeepPerPeriod();
       var hoursSincePaid = (int)DateTime.UtcNow.Subtract(faction.NextUpkeepPaymentTime).TotalHours;
 
-      Puts($"{faction.Id}: {hoursSincePaid} hours since upkeep paid, trying to collect {amountOwed} scrap upkeep for {areas.Length} area claims");
+      Log($"[UPKEEP] {faction.Id}: {hoursSincePaid} hours since upkeep paid, trying to collect {amountOwed} scrap for {areas.Length} area claims");
 
       if (faction.TaxChest != null)
       {
@@ -2277,22 +2304,23 @@ namespace Oxide.Plugins
         if (TryCollectFromStacks(scrapDef, stacks, amountOwed))
         {
           faction.NextUpkeepPaymentTime = faction.NextUpkeepPaymentTime.AddHours(Options.UpkeepCollectionPeriodHours);
-          Puts($"{faction.Id}: {amountOwed} scrap upkeep collected, next payment due {faction.NextUpkeepPaymentTime}");
+          Log($"[UPKEEP] {faction.Id}: {amountOwed} scrap upkeep collected, next payment due {faction.NextUpkeepPaymentTime}");
           return;
         }
       }
 
       if (hoursSincePaid <= Options.UpkeepGracePeriodHours)
       {
-        Puts($"{faction.Id}: Couldn't collect upkeep, but still within {Options.UpkeepGracePeriodHours} hour grace period");
+        Log($"[UPKEEP] {faction.Id}: Couldn't collect upkeep, but still within {Options.UpkeepGracePeriodHours} hour grace period");
         return;
       }
 
       Area lostArea = areas.OrderBy(area => Areas.GetDepthInsideFriendlyTerritory(area)).First();
-      Areas.Unclaim(lostArea);
 
-      Puts($"{faction.Id}: upkeep not paid in {hoursSincePaid} hours, seizing claim on {lostArea.Id}");
+      Log($"[UPKEEP] {faction.Id}: Upkeep not paid in {hoursSincePaid} hours, seizing claim on {lostArea.Id}");
       PrintToChat(Messages.AreaClaimLostUpkeepNotPaidAnnouncement, faction.Id, lostArea.Id);
+
+      Areas.Unclaim(lostArea);
     }
 
     void ProcessTaxesIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)
@@ -2462,6 +2490,7 @@ namespace Oxide.Plugins
         if (area != null)
         {
           PrintToChat(Messages.AreaClaimLostCupboardDestroyedAnnouncement, area.FactionId, area.Id);
+          Log($"{area.FactionId} lost their claim on {area.Id} because the tool cupboard was destroyed (hook function)");
           Areas.Unclaim(area);
         }
       }
@@ -2474,7 +2503,10 @@ namespace Oxide.Plugins
         {
           Faction faction = Factions.GetByTaxChest(container);
           if (faction != null)
+          {
+            Log($"{faction.Id}'s tax chest was destroyed (hook function)");
             faction.TaxChest = null;
+          }
         }
       }
     }
@@ -2565,6 +2597,7 @@ namespace Oxide.Plugins
       public const string BadlandsDisabled = "Badlands are currently disabled.";
       public const string TownsDisabled = "Towns are currently disabled.";
       public const string UpkeepDisabled = "Upkeep is currently disabled.";
+      public const string WarDisabled = "War is currently disabled.";
 
       public const string AreaIsBadlands = "<color=#ffd479>{0}</color> is a part of the badlands.";
       public const string AreaIsClaimed = "<color=#ffd479>{0}</color> has been claimed by <color=#ffd479>[{1}]</color>.";
@@ -2637,19 +2670,14 @@ namespace Oxide.Plugins
       public const string AreaRenamed = "<color=#ffd479>{0}</color> is now known as <color=#ffd479>{1}</color>.";
 
       public const string ClaimsList = "<color=#ffd479>[{0}]</color> has claimed: <color=#ffd479>{1}</color>";
-
       public const string ClaimCost = "<color=#ffd479>{0}</color> can be claimed by <color=#ffd479>[{1}]</color> for <color=#ffd479>{2}</color> scrap.";
       public const string UpkeepCost = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Upkeep is due <color=#ffd479>{3}</color> hours from now.";
       public const string UpkeepCostOverdue = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Your upkeep is <color=#ffd479>{3}</color> hours overdue! Fill your tax chest with scrap immediately, before your claims begin to fall into ruin.";
 
-      public const string CannotSelectTaxChestNotMemberOfFaction = "You cannot select a tax chest without being a member of a faction!";
-      public const string CannotSelectTaxChestNotFactionLeader = "You cannot select a tax chest because you aren't an owner or a moderator of your faction.";
       public const string SelectTaxChest = "Use the hammer to select the container to receive your faction's tribute. Say <color=#ffd479>/cancel</color> to cancel.";
       public const string SelectingTaxChestFailedInvalidTarget = "That can't be used as a tax chest.";
       public const string SelectingTaxChestSucceeded = "You have selected a new tax chest that will receive <color=#ffd479>{0}%</color> of the materials harvested within land owned by <color=#ffd479>[{1}]</color>. To change the tax rate, say <color=#ffd479>/tax rate PERCENT</color>.";
 
-      public const string CannotSetTaxRateNotMemberOfFaction = "You cannot set a tax rate without being a member of a faction!";
-      public const string CannotSetTaxRateNotFactionLeader = "You cannot set a tax rate because you aren't an owner or a moderator of your faction.";
       public const string CannotSetTaxRateInvalidValue = "You must specify a valid percentage between <color=#ffd479>0-{0}%</color> as a tax rate.";
       public const string SetTaxRateSuccessful = "You have set the tax rate on the land holdings of <color=#ffd479>[{0}]</color> to <color=#ffd479>{1}%</color>.";
 
@@ -2696,7 +2724,7 @@ namespace Oxide.Plugins
       public const string AreaClaimLostFactionDisbandedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> <color=#ffd479>[{0}]</color> has been disbanded, losing its claim on <color=#ffd479>{1}</color>!";
       public const string AreaClaimLostUpkeepNotPaidAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color>: <color=#ffd479>[{0}]</color> has lost their claim on <color=#ffd479>{1}</color> after it fell into ruin!";
       public const string HeadquartersChangedAnnouncement = "<color=#00ff00>HQ CHANGED:</color> The headquarters of <color=#ffd479>[{0}]</color> is now <color=#ffd479>{1}</color>.";
-      public const string TownCreatedAnnouncement = "<color=#00ff00>TOWN FOUNDED:</color> [{0}]</color> has founded the town of <color=#ffd479>{1}</color> in <color=#ffd479>{2}</color>.";
+      public const string TownCreatedAnnouncement = "<color=#00ff00>TOWN FOUNDED:</color> <color=#ffd479>[{0}]</color> has founded the town of <color=#ffd479>{1}</color> in <color=#ffd479>{2}</color>.";
       public const string TownDisbandedAnnouncement = "<color=#ff0000>TOWN DISBANDED:</color> <color=#ffd479>[{0}]</color> has disbanded the town of <color=#ffd479>{1}</color>.";
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
@@ -2736,7 +2764,7 @@ namespace Oxide.Plugins
 
     object ScaleDamageForDecay(BaseEntity entity, HitInfo hit)
     {
-      Area area = Areas.GetByEntityPosition(entity);
+      Area area = Areas.GetByEntityPosition(entity, true);
       float reduction = 0;
 
       if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
@@ -2749,10 +2777,7 @@ namespace Oxide.Plugins
         return false;
 
       if (reduction > 0)
-      {
-        Puts($"Reducing decay on entity {entity.net.ID} by {reduction*100}%");
         hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
-      }
 
       return null;
     }
@@ -2766,7 +2791,7 @@ namespace Oxide.Plugins
       if (attacker.Player.userID == entity.OwnerID)
         return null;
 
-      Area area = Areas.GetByEntityPosition(entity);
+      Area area = Areas.GetByEntityPosition(entity, true);
 
       if (area == null)
       {
@@ -2823,12 +2848,13 @@ namespace Oxide.Plugins
     class ImperiumOptions
     {
       public bool EnableAreaClaims;
-      public bool EnableTaxation;
       public bool EnableBadlands;
-      public bool EnableTowns;
-      public bool EnableDefensiveBonuses;
       public bool EnableDecayReduction;
+      public bool EnableDefensiveBonuses;
+      public bool EnableTaxation;
+      public bool EnableTowns;
       public bool EnableUpkeep;
+      public bool EnableWar;
       public int MinFactionMembers;
       public int MinAreaNameLength;
       public int MinCassusBelliLength;
@@ -2857,11 +2883,12 @@ namespace Oxide.Plugins
       var options = new ImperiumOptions {
         EnableAreaClaims = true,
         EnableBadlands = true,
+        EnableDecayReduction = true,
+        EnableDefensiveBonuses = true,
         EnableTaxation = true,
         EnableTowns = true,
-        EnableDefensiveBonuses = true,
-        EnableDecayReduction = true,
         EnableUpkeep = true,
+        EnableWar = true,
         MinFactionMembers = 3,
         MinAreaNameLength = 3,
         MinCassusBelliLength = 50,
@@ -2884,90 +2911,6 @@ namespace Oxide.Plugins
       };
 
       Config.WriteObject(options, true);
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using System;
-  using System.Collections.Generic;
-  using System.Linq;
-  using System.Text;
-
-  public partial class Imperium
-  {
-    static string FormatList(IEnumerable<string> items)
-    {
-      return String.Join(", ", items.ToArray());
-    }
-
-    static string RemoveSpecialCharacters(string str)
-    {
-      if (String.IsNullOrEmpty(str))
-        return String.Empty;
-
-      StringBuilder sb = new StringBuilder(str.Length);
-      foreach (char c in str)
-      {
-        if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= 'А' && c <= 'Я') || (c >= 'а' && c <= 'я') || c == ' ' || c == '.' || c == '_')
-          sb.Append(c);
-      }
-
-      return sb.ToString();
-    }
-
-    static string NormalizeAreaId(string input)
-    {
-      return input.ToUpper().Trim();
-    }
-
-    static string NormalizeName(string input)
-    {
-      return RemoveSpecialCharacters(input.Trim());
-    }
-
-    static string NormalizeFactionId(string input)
-    {
-      string factionId = input.Trim();
-
-      if (factionId.StartsWith("[") && factionId.EndsWith("]"))
-        factionId = factionId.Substring(1, factionId.Length - 2);
-
-      return factionId;
-    }
-
-    static int GetLevenshteinDistance(string source, string target)
-    {
-      if (String.IsNullOrEmpty(source) && String.IsNullOrEmpty(target))
-        return 0;
-
-      if (source.Length == target.Length)
-        return source.Length;
-
-      if (source.Length == 0)
-        return target.Length;
-
-      if (target.Length == 0)
-        return source.Length;
-
-      var distance = new int[source.Length + 1, target.Length + 1];
-
-      for (int idx = 0; idx <= source.Length; distance[idx, 0] = idx++) ;
-      for (int idx = 0; idx <= target.Length; distance[0, idx] = idx++) ;
-
-      for (int i = 1; i <= source.Length; i++)
-      {
-        for (int j = 1; j <= target.Length; j++)
-        {
-          int cost = target[j - 1] == source[i - 1] ? 0 : 1;
-          distance[i, j] = Math.Min(
-            Math.Min(distance[i - 1, j] + 1, distance[i, j - 1] + 1),
-            distance[i - 1, j - 1] + cost
-          );
-        }
-      }
-
-      return distance[source.Length, target.Length];
     }
   }
 }
@@ -3058,7 +3001,7 @@ namespace Oxide.Plugins
           cupboard = BaseNetworkable.serverEntities.Find((uint)info.CupboardId) as BuildingPrivlidge;
           if (cupboard == null)
           {
-            Instance.PrintWarning($"Couldn't find cupboard entity {info.CupboardId} for area {info.Id}.");
+            Instance.Log($"[LOAD] Area {Id}: Cupboard entity {info.CupboardId} not found, treating as unclaimed");
             return;
           }
         }
@@ -3068,7 +3011,7 @@ namespace Oxide.Plugins
           Faction faction = Instance.Factions.Get(info.FactionId);
           if (faction == null)
           {
-            Instance.PrintWarning($"Area {Id} is owned by unknown faction {info.FactionId}. Ignoring.");
+            Instance.Log($"[LOAD] Area {Id}: Claimed by unknown faction {info.FactionId}, treating as unclaimed");
             return;
           }
         }
@@ -3078,6 +3021,9 @@ namespace Oxide.Plugins
         FactionId = info.FactionId;
         ClaimantId = info.ClaimantId;
         ClaimCupboard = cupboard;
+
+        if (FactionId != null)
+          Instance.Log($"[LOAD] Area {Id}: Claimed by {FactionId}, type = {Type}, cupboard = {ClaimCupboard.net?.ID}");
       }
 
       void CheckClaimCupboard()
@@ -3085,7 +3031,7 @@ namespace Oxide.Plugins
         if (ClaimCupboard == null || !ClaimCupboard.IsDestroyed)
           return;
 
-        Instance.PrintWarning($"Cupboard entity {ClaimCupboard.net.ID} was destroyed, but is still holding a claim on area {Id}. Removing claim.");
+        Instance.Log($"{FactionId} lost their claim on {Id} because the tool cupboard was destroyed (periodic check)");
         Instance.PrintToChat(Messages.AreaClaimLostCupboardDestroyedAnnouncement, FactionId, Id);
         Instance.Areas.Unclaim(this);
       }
@@ -3278,11 +3224,11 @@ namespace Oxide.Plugins
         return GetAllTowns().FirstOrDefault(town => town.MayorId == user.Id);
       }
 
-      public Area GetByEntityPosition(BaseEntity entity)
+      public Area GetByEntityPosition(BaseEntity entity, bool useCache = false)
       {
         Area area;
 
-        if (EntityAreas.TryGetValue(entity.net.ID, out area))
+        if (useCache && EntityAreas.TryGetValue(entity.net.ID, out area))
           return area;
 
         var x = entity.transform.position.x;
@@ -3306,7 +3252,9 @@ namespace Oxide.Plugins
         }
 
         area = Layout[row, col];
-        EntityAreas.Set(entity.net.ID, area);
+
+        if (useCache)
+          EntityAreas.Set(entity.net.ID, area);
 
         return area;
       }
@@ -3561,13 +3509,15 @@ namespace Oxide.Plugins
           var taxChest = BaseNetworkable.serverEntities.Find((uint)info.TaxChestId) as StorageContainer;
 
           if (taxChest == null || taxChest.IsDestroyed)
-            Instance.PrintWarning($"Couldn't find entity {info.TaxChestId} for faction {Id}'s tax chest. Ignoring.");
+            Instance.Log($"[LOAD] Faction {Id}: Tax chest entity {info.TaxChestId} was not found");
           else
             TaxChest = taxChest;
         }
 
         TaxRate = info.TaxRate;
         NextUpkeepPaymentTime = info.NextUpkeepPaymentTime;
+
+        Instance.Log($"[LOAD] Faction {Id}: {MemberIds.Count} members, tax chest = {Util.Format(TaxChest)}");
       }
 
       public bool AddMember(User user)
@@ -3746,9 +3696,6 @@ namespace Oxide.Plugins
 }
 ﻿namespace Oxide.Plugins
 {
-  using System;
-  using System.Collections.Generic;
-  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -3776,7 +3723,7 @@ namespace Oxide.Plugins
         if (faction.TaxChest == null || !faction.TaxChest.IsDestroyed)
           return;
 
-        Instance.PrintWarning($"Tax chest entity for faction {faction.Id} was destroyed. Removing from faction.");
+        Instance.Log($"{faction.Id}'s tax chest was destroyed (periodic check)");
         faction.TaxChest = null;
       }
     }
@@ -4103,18 +4050,18 @@ namespace Oxide.Plugins
 
         if (!String.IsNullOrEmpty(www.error))
         {
-          Instance.PrintWarning($"Error while downloading image {image.Url}: {www.error}");
+          Instance.Log($"[IMAGES] Error while downloading image {image.Url}: {www.error}");
         }
         else if (www.bytes == null || www.bytes.Length == 0)
         {
-          Instance.PrintWarning($"Error while downloading image {image.Url}: No data received");
+          Instance.Log($"[IMAGES] Error while downloading image {image.Url}: No data received");
         }
         else
         {
           byte[] data = www.texture.EncodeToPNG();
           image.Save(data);
           DestroyImmediate(www.texture);
-          Instance.Puts($"Stored {image.Url} as id {image.Id}");
+          Instance.Log($"[IMAGES] Stored {image.Url} as id {image.Id}");
           DownloadNext();
         }
       }
@@ -4192,9 +4139,15 @@ namespace Oxide.Plugins
       {
         Image image;
 
+        if (String.IsNullOrEmpty(imageUrl))
+        {
+          Instance.PrintError($"CuiRawImageComponent requested for an image with a null URL. Did you forget to set MapImageUrl in the configuration?");
+          return null;
+        }
+
         if (!Images.TryGetValue(imageUrl, out image))
         {
-          Instance.PrintWarning($"Tried to create CuiRawImageComponent for unregistered image {imageUrl}. This shouldn't happen.");
+          Instance.PrintError($"CuiRawImageComponent requested for image with an unregistered URL {imageUrl}. This shouldn't happen.");
           return null;
         }
 
@@ -4265,7 +4218,7 @@ namespace Oxide.Plugins
       IEnumerator GenerateOverlayImage()
       {
         IsGenerating = true;
-        Instance.Puts("Generating new map overlay image...");
+        Instance.Log("[MAP] Generating new map overlay image...");
 
         using (var bitmap = new Bitmap(Instance.Options.MapImageSize, Instance.Options.MapImageSize))
         using (var graphics = Graphics.FromImage(bitmap))
@@ -4324,7 +4277,7 @@ namespace Oxide.Plugins
 
           Image image = Instance.Images.RegisterImage(UiMapOverlayImageUrl, imageData, true);
 
-          Instance.Puts($"Created new map overlay image {image.Id}.");
+          Instance.Log($"[MAP] Created new map overlay image {image.Id}.");
           IsGenerating = false;
         }
       }
@@ -4492,6 +4445,7 @@ namespace Oxide.Plugins
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
+          Instance.Log($"Corrected area for {this} during periodic check: was {currentArea.Id}, should be {correctArea.Id}");
           Instance.OnUserExitArea(currentArea, this);
           Instance.OnUserEnterArea(correctArea, this);
         }
@@ -4540,7 +4494,7 @@ namespace Oxide.Plugins
 
         return Users.Values
           .Where(u => u.Name.ToLowerInvariant().Contains(searchString.ToLowerInvariant()))
-          .OrderBy(u => GetLevenshteinDistance(searchString.ToLowerInvariant(), u.Name.ToLowerInvariant()))
+          .OrderBy(u => Util.GetLevenshteinDistance(searchString.ToLowerInvariant(), u.Name.ToLowerInvariant()))
           .FirstOrDefault();
       }
 
@@ -4839,7 +4793,11 @@ namespace Oxide.Plugins
         Instance.Puts($"Loading {warInfos.Count()} wars...");
 
         foreach (WarInfo info in warInfos)
-          Wars.Add(new War(info));
+        {
+          var war = new War(info);
+          Wars.Add(war);
+          Instance.Log($"[LOAD] War {war.AttackerId} vs {war.DefenderId}, isActive = {war.IsActive}");
+        }
 
         Instance.Puts("Wars loaded.");
       }
@@ -4958,6 +4916,131 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using System;
+  using System.Collections;
+  using System.Text;
+
+  public partial class Imperium
+  {
+    static class Util
+    {
+      public static string Format(object obj)
+      {
+        var user = obj as User;
+        if (user != null) return Format(user);
+
+        var entity = obj as BaseEntity;
+        if (entity != null) return Format(entity);
+
+        var list = obj as IEnumerable;
+        if (list != null) return Format(list);
+
+        return obj.ToString();
+      }
+
+      public static string Format(User user)
+      {
+        if (user == null)
+          return "(null)";
+        else
+          return $"{user.Name} ({user.Id})";
+      }
+
+      public static string Format(BaseEntity entity)
+      {
+        if (entity == null)
+          return "(null)";
+        else if (entity.net == null)
+          return "(missing networkable)";
+        else
+          return entity.net.ID.ToString();
+      }
+
+      public static string Format(IEnumerable items)
+      {
+        var sb = new StringBuilder();
+
+        foreach (object item in items)
+          sb.Append($"{Format(item)}, ");
+
+        sb.Remove(sb.Length - 2, 2);
+
+        return sb.ToString();
+      }
+
+      public static string NormalizeAreaId(string input)
+      {
+        return input.ToUpper().Trim();
+      }
+
+      public static string NormalizeAreaName(string input)
+      {
+        return RemoveSpecialCharacters(input.Trim());
+      }
+
+      public static string NormalizeFactionId(string input)
+      {
+        string factionId = input.Trim();
+
+        if (factionId.StartsWith("[") && factionId.EndsWith("]"))
+          factionId = factionId.Substring(1, factionId.Length - 2);
+
+        return factionId;
+      }
+
+      public static string RemoveSpecialCharacters(string str)
+      {
+        if (string.IsNullOrEmpty(str))
+          return string.Empty;
+
+        StringBuilder sb = new StringBuilder(str.Length);
+        foreach (char c in str)
+        {
+          if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= 'А' && c <= 'Я') || (c >= 'а' && c <= 'я') || c == ' ' || c == '.' || c == '_')
+            sb.Append(c);
+        }
+
+        return sb.ToString();
+      }
+
+      public static int GetLevenshteinDistance(string source, string target)
+      {
+        if (string.IsNullOrEmpty(source) && string.IsNullOrEmpty(target))
+          return 0;
+
+        if (source.Length == target.Length)
+          return source.Length;
+
+        if (source.Length == 0)
+          return target.Length;
+
+        if (target.Length == 0)
+          return source.Length;
+
+        var distance = new int[source.Length + 1, target.Length + 1];
+
+        for (int idx = 0; idx <= source.Length; distance[idx, 0] = idx++) ;
+        for (int idx = 0; idx <= target.Length; distance[0, idx] = idx++) ;
+
+        for (int i = 1; i <= source.Length; i++)
+        {
+          for (int j = 1; j <= target.Length; j++)
+          {
+            int cost = target[j - 1] == source[i - 1] ? 0 : 1;
+            distance[i, j] = Math.Min(
+              Math.Min(distance[i - 1, j] + 1, distance[i, j - 1] + 1),
+              distance[i - 1, j - 1] + cost
+            );
+          }
+        }
+
+        return distance[source.Length, target.Length];
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
 
   public partial class Imperium
   {
@@ -4999,9 +5082,10 @@ namespace Oxide.Plugins
           return false;
         }
 
-        Instance.Areas.AddToTown(Town.Name, User, area);
         User.SendChatMessage(Messages.AreaAddedToTown, area.Id, area.Name);
+        Instance.Log($"{Util.Format(User)} added {area.Id} to town {Town.Name}");
 
+        Instance.Areas.AddToTown(Town.Name, User, area);
         return true;
       }
     }
@@ -5073,6 +5157,7 @@ namespace Oxide.Plugins
           else
             Instance.PrintToChat(Messages.AreaClaimedAnnouncement, Faction.Id, area.Id);
 
+          Instance.Log($"{Util.Format(User)} claimed {area.Id} on behalf of {Faction.Id}");
           Instance.Areas.Claim(area, type, Faction, User, cupboard);
           return true;
         }
@@ -5088,6 +5173,7 @@ namespace Oxide.Plugins
           {
             // If the same faction claims a new cupboard within the same area, move the claim to the new cupboard.
             User.SendChatMessage(Messages.ClaimCupboardMoved, area.Id);
+            Instance.Log($"{Util.Format(User)} moved {area.FactionId}'s claim on {area.Id} from cupboard {Util.Format(area.ClaimCupboard)} to cupboard {Util.Format(cupboard)}");
             area.ClaimantId = User.Id;
             area.ClaimCupboard = cupboard;
             return true;
@@ -5108,8 +5194,9 @@ namespace Oxide.Plugins
           // If a new faction claims the claim cabinet for an area, they take control of that area.
           User.SendChatMessage(Messages.ClaimCaptured, area.Id, area.FactionId);
           Instance.PrintToChat(Messages.AreaCapturedAnnouncement, Faction.Id, area.Id, area.FactionId);
-          Instance.Areas.Claim(area, type, Faction, User, cupboard);
+          Instance.Log($"{Util.Format(User)} captured the claim on {area.Id} from {area.FactionId} on behalf of {Faction.Id}");
 
+          Instance.Areas.Claim(area, type, Faction, User, cupboard);
           return true;
         }
 
@@ -5152,8 +5239,9 @@ namespace Oxide.Plugins
         }
 
         Instance.PrintToChat(Messages.AreaClaimAssignedAnnouncement, Faction.Id, area.Id);
-        Instance.Areas.Claim(area, type, Faction, User, cupboard);
+        Instance.Log($"{Util.Format(User)} assigned {area.Id} to {Faction.Id}");
 
+        Instance.Areas.Claim(area, type, Faction, User, cupboard);
         return true;
       }
     }
@@ -5201,10 +5289,10 @@ namespace Oxide.Plugins
           return false;
         }
 
-        Instance.Areas.AddToTown(Name, User, area);
-        Instance.PrintToChat(Messages.TownCreatedAnnouncement, Faction.Id, area.Name, area.Id);
-        // TODO: History
+        Instance.PrintToChat(Messages.TownCreatedAnnouncement, Faction.Id, Name, area.Id);
+        Instance.Log($"{Util.Format(User)} created the town {Name} in {area.Id} on behalf of {Faction.Id}");
 
+        Instance.Areas.AddToTown(Name, User, area);
         return true;
       }
     }
@@ -5259,9 +5347,10 @@ namespace Oxide.Plugins
           return false;
         }
 
-        Instance.Areas.RemoveFromTown(area);
         User.SendChatMessage(Messages.AreaRemovedFromTown, area.Id, area.Name);
+        Instance.Log($"{Util.Format(User)} removed {area.Id} from the town of {area.Name} on behalf of {Faction.Id}");
 
+        Instance.Areas.RemoveFromTown(area);
         return true;
       }
     }
@@ -5295,10 +5384,10 @@ namespace Oxide.Plugins
           return false;
         }
 
-        User.SendChatMessage(Messages.ClaimRemoved, area.Id);
         Instance.PrintToChat(Messages.AreaClaimRemovedAnnouncement, Faction.Id, area.Id);
-        Instance.Areas.Unclaim(area);
+        Instance.Log($"{Util.Format(User)} removed {Faction.Id}'s claim on {area.Id}");
 
+        Instance.Areas.Unclaim(area);
         return true;
       }
     }
@@ -5331,9 +5420,10 @@ namespace Oxide.Plugins
           return false;
         }
 
-        Instance.Areas.SetHeadquarters(area, Faction);
         Instance.PrintToChat(Messages.HeadquartersChangedAnnouncement, Faction.Id, area.Id);
+        Instance.Log($"{Util.Format(User)} set {Faction.Id}'s headquarters to {area.Id}");
 
+        Instance.Areas.SetHeadquarters(area, Faction);
         return true;
       }
     }
@@ -5362,8 +5452,9 @@ namespace Oxide.Plugins
           return false;
         }
 
-        Instance.Factions.SetTaxChest(Faction, container);
         User.SendChatMessage(Messages.SelectingTaxChestSucceeded, Faction.TaxRate * 100, Faction.Id);
+        Instance.Log($"{Util.Format(User)} set {Faction.Id}'s tax chest to entity {Util.Format(container)}");
+        Instance.Factions.SetTaxChest(Faction, container);
 
         return true;
       }
@@ -5413,6 +5504,7 @@ namespace Oxide.Plugins
         }
 
         Instance.PrintToChat(Messages.AreaClaimTransferredAnnouncement, SourceFaction.Id, area.Id, TargetFaction.Id);
+        Instance.Log($"{Util.Format(User)} transferred {SourceFaction.Id}'s claim on {area.Id} to {TargetFaction.Id}");
 
         AreaType type = (Instance.Areas.GetAllClaimedByFaction(TargetFaction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
         Instance.Areas.Claim(area, type, TargetFaction, User, cupboard);
@@ -5538,7 +5630,7 @@ namespace Oxide.Plugins
       {
         return new MapMarker {
           IconUrl = UiMapIcon.Headquarters,
-          Label = RemoveSpecialCharacters(faction.Id),
+          Label = Util.RemoveSpecialCharacters(faction.Id),
           X = TranslatePosition(area.ClaimCupboard.transform.position.x),
           Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
         };
@@ -5548,7 +5640,7 @@ namespace Oxide.Plugins
       {
         return new MapMarker {
           IconUrl = UiMapIcon.Town,
-          Label = RemoveSpecialCharacters(area.Name),
+          Label = Util.RemoveSpecialCharacters(area.Name),
           X = TranslatePosition(area.ClaimCupboard.transform.position.x),
           Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
         };

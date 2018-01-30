@@ -25,7 +25,7 @@
       {
         return new MapMarker {
           IconUrl = UiMapIcon.Headquarters,
-          Label = RemoveSpecialCharacters(faction.Id),
+          Label = Util.RemoveSpecialCharacters(faction.Id),
           X = TranslatePosition(area.ClaimCupboard.transform.position.x),
           Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
         };
@@ -35,7 +35,7 @@
       {
         return new MapMarker {
           IconUrl = UiMapIcon.Town,
-          Label = RemoveSpecialCharacters(area.Name),
+          Label = Util.RemoveSpecialCharacters(area.Name),
           X = TranslatePosition(area.ClaimCupboard.transform.position.x),
           Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
         };

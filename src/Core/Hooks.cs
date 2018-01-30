@@ -74,6 +74,7 @@
         if (area != null)
         {
           PrintToChat(Messages.AreaClaimLostCupboardDestroyedAnnouncement, area.FactionId, area.Id);
+          Log($"{area.FactionId} lost their claim on {area.Id} because the tool cupboard was destroyed (hook function)");
           Areas.Unclaim(area);
         }
       }
@@ -86,7 +87,10 @@
         {
           Faction faction = Factions.GetByTaxChest(container);
           if (faction != null)
+          {
+            Log($"{faction.Id}'s tax chest was destroyed (hook function)");
             faction.TaxChest = null;
+          }
         }
       }
     }

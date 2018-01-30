@@ -30,11 +30,13 @@
         return;
       }
 
+      user.SendChatMessage(Messages.YouJoinedFaction, faction.Id);
+      PrintToChat(Messages.FactionMemberJoinedAnnouncement, user.Name, faction.Id);
+      Log($"{Util.Format(user)} joined faction {faction.Id}");
+
       faction.AddMember(user);
       user.SetFaction(faction);
 
-      user.SendChatMessage(Messages.YouJoinedFaction, faction.Id);
-      PrintToChat(Messages.FactionMemberJoinedAnnouncement, user.Name, faction.Id);
     }
   }
 }

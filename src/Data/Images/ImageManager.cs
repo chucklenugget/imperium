@@ -53,9 +53,15 @@
       {
         Image image;
 
+        if (String.IsNullOrEmpty(imageUrl))
+        {
+          Instance.PrintError($"CuiRawImageComponent requested for an image with a null URL. Did you forget to set MapImageUrl in the configuration?");
+          return null;
+        }
+
         if (!Images.TryGetValue(imageUrl, out image))
         {
-          Instance.PrintWarning($"Tried to create CuiRawImageComponent for unregistered image {imageUrl}. This shouldn't happen.");
+          Instance.PrintError($"CuiRawImageComponent requested for image with an unregistered URL {imageUrl}. This shouldn't happen.");
           return null;
         }
 

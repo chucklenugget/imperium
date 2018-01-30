@@ -2,20 +2,13 @@
 {
   public partial class Imperium
   {
-
     void OnTaxChestCommand(User user)
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (faction == null)
+      if (faction == null || !faction.HasLeader(user))
       {
-        user.SendChatMessage(Messages.CannotSelectTaxChestNotMemberOfFaction);
-        return;
-      }
-
-      if (!faction.HasLeader(user))
-      {
-        user.SendChatMessage(Messages.CannotSelectTaxChestNotFactionLeader);
+        user.SendChatMessage(Messages.NotLeaderOfFaction);
         return;
       }
 

@@ -19,7 +19,7 @@
       IEnumerator GenerateOverlayImage()
       {
         IsGenerating = true;
-        Instance.Puts("Generating new map overlay image...");
+        Instance.Log("[MAP] Generating new map overlay image...");
 
         using (var bitmap = new Bitmap(Instance.Options.MapImageSize, Instance.Options.MapImageSize))
         using (var graphics = Graphics.FromImage(bitmap))
@@ -78,7 +78,7 @@
 
           Image image = Instance.Images.RegisterImage(UiMapOverlayImageUrl, imageData, true);
 
-          Instance.Puts($"Created new map overlay image {image.Id}.");
+          Instance.Log($"[MAP] Created new map overlay image {image.Id}.");
           IsGenerating = false;
         }
       }

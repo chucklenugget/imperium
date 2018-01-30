@@ -40,18 +40,18 @@
 
         if (!String.IsNullOrEmpty(www.error))
         {
-          Instance.PrintWarning($"Error while downloading image {image.Url}: {www.error}");
+          Instance.Log($"[IMAGES] Error while downloading image {image.Url}: {www.error}");
         }
         else if (www.bytes == null || www.bytes.Length == 0)
         {
-          Instance.PrintWarning($"Error while downloading image {image.Url}: No data received");
+          Instance.Log($"[IMAGES] Error while downloading image {image.Url}: No data received");
         }
         else
         {
           byte[] data = www.texture.EncodeToPNG();
           image.Save(data);
           DestroyImmediate(www.texture);
-          Instance.Puts($"Stored {image.Url} as id {image.Id}");
+          Instance.Log($"[IMAGES] Stored {image.Url} as id {image.Id}");
           DownloadNext();
         }
       }

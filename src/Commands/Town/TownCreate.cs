@@ -22,7 +22,7 @@
         return;
       }
 
-      var name = NormalizeName(args[0]);
+      var name = Util.NormalizeAreaName(args[0]);
 
       town = Areas.GetTown(name);
       if (town != null)

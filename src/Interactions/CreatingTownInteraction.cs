@@ -40,10 +40,10 @@
           return false;
         }
 
-        Instance.Areas.AddToTown(Name, User, area);
-        Instance.PrintToChat(Messages.TownCreatedAnnouncement, Faction.Id, area.Name, area.Id);
-        // TODO: History
+        Instance.PrintToChat(Messages.TownCreatedAnnouncement, Faction.Id, Name, area.Id);
+        Instance.Log($"{Util.Format(User)} created the town {Name} in {area.Id} on behalf of {Faction.Id}");
 
+        Instance.Areas.AddToTown(Name, User, area);
         return true;
       }
     }

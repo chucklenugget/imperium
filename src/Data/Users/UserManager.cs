@@ -39,7 +39,7 @@
 
         return Users.Values
           .Where(u => u.Name.ToLowerInvariant().Contains(searchString.ToLowerInvariant()))
-          .OrderBy(u => GetLevenshteinDistance(searchString.ToLowerInvariant(), u.Name.ToLowerInvariant()))
+          .OrderBy(u => Util.GetLevenshteinDistance(searchString.ToLowerInvariant(), u.Name.ToLowerInvariant()))
           .FirstOrDefault();
       }
 

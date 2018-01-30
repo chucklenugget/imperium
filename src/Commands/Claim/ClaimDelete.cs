@@ -1,6 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
+  using System.Linq;
 
   public partial class Imperium
   {
@@ -21,7 +22,7 @@
       var areas = new List<Area>();
       foreach (string arg in args)
       {
-        Area area = Areas.Get(NormalizeAreaId(arg));
+        Area area = Areas.Get(Util.NormalizeAreaId(arg));
 
         if (area.Type == AreaType.Badlands)
         {
@@ -39,7 +40,10 @@
       }
 
       foreach (Area area in areas)
+      {
         PrintToChat(Messages.AreaClaimDeletedAnnouncement, area.FactionId, area.Id);
+        Log($"{Util.Format(user)} deleted {area.FactionId}'s claim on {area.Id}");
+      }
 
       Areas.Unclaim(areas);
     }

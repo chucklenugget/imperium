@@ -28,7 +28,7 @@
       if (args.Length == 0)
         area = user.CurrentArea;
       else
-        area = Areas.Get(NormalizeAreaId(args[0]));
+        area = Areas.Get(Util.NormalizeAreaId(args[0]));
 
       if (area == null)
       {

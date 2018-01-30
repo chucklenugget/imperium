@@ -36,9 +36,10 @@
           return false;
         }
 
-        Instance.Areas.RemoveFromTown(area);
         User.SendChatMessage(Messages.AreaRemovedFromTown, area.Id, area.Name);
+        Instance.Log($"{Util.Format(User)} removed {area.Id} from the town of {area.Name} on behalf of {Faction.Id}");
 
+        Instance.Areas.RemoveFromTown(area);
         return true;
       }
     }

@@ -15,7 +15,7 @@
       if (!EnsureCanChangeFactionClaims(user, sourceFaction))
         return;
 
-      string factionId = NormalizeFactionId(args[0]);
+      string factionId = Util.NormalizeFactionId(args[0]);
       Faction targetFaction = Factions.Get(factionId);
 
       if (targetFaction == null)

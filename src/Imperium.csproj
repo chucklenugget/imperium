@@ -91,6 +91,7 @@
     <Compile Include="Data\Factions\FactionEntityMonitor.cs" />
     <Compile Include="Data\Wars\WarEndReason.cs" />
     <Compile Include="Data\Wars\WarInfo.cs" />
+    <Compile Include="Framework\Util.cs" />
     <Compile Include="Imperium.cs" />
     <Compile Include="Core\Economics.cs" />
     <Compile Include="Core\Hooks.cs" />
@@ -128,7 +129,6 @@
     <Compile Include="Ui\Ui.cs" />
     <Compile Include="Ui\UserHudPanel.cs" />
     <Compile Include="Ui\UserMap.cs" />
-    <Compile Include="Core\Util.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ApexAI">

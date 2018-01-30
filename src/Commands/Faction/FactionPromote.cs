@@ -38,8 +38,10 @@
         return;
       }
 
-      faction.Promote(member);
       user.SendChatMessage(Messages.ManagerAdded, member.Name, faction.Id);
+      Log($"{Util.Format(user)} promoted {member} in faction {faction.Id}");
+
+      faction.Promote(member);
     }
   }
 }

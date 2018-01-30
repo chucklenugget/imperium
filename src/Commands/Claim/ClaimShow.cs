@@ -10,7 +10,7 @@
         return;
       }
 
-      Area area = Areas.Get(NormalizeAreaId(args[0]));
+      Area area = Areas.Get(Util.NormalizeAreaId(args[0]));
 
       switch (area.Type)
       {

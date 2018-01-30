@@ -27,6 +27,7 @@
       }
 
       faction.SendChatMessage("<color=#a1ff46>(FACTION)</color> {0}: {1}", user.Name, message);
+      Puts("[FACTION] {0} - {1}: {2}", faction.Id, user.Name, message);
     }
 
     [ChatCommand("c")]

@@ -7,12 +7,13 @@
     class ImperiumOptions
     {
       public bool EnableAreaClaims;
-      public bool EnableTaxation;
       public bool EnableBadlands;
-      public bool EnableTowns;
-      public bool EnableDefensiveBonuses;
       public bool EnableDecayReduction;
+      public bool EnableDefensiveBonuses;
+      public bool EnableTaxation;
+      public bool EnableTowns;
       public bool EnableUpkeep;
+      public bool EnableWar;
       public int MinFactionMembers;
       public int MinAreaNameLength;
       public int MinCassusBelliLength;
@@ -41,11 +42,12 @@
       var options = new ImperiumOptions {
         EnableAreaClaims = true,
         EnableBadlands = true,
+        EnableDecayReduction = true,
+        EnableDefensiveBonuses = true,
         EnableTaxation = true,
         EnableTowns = true,
-        EnableDefensiveBonuses = true,
-        EnableDecayReduction = true,
         EnableUpkeep = true,
+        EnableWar = true,
         MinFactionMembers = 3,
         MinAreaNameLength = 3,
         MinCassusBelliLength = 50,

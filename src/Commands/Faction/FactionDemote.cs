@@ -38,8 +38,10 @@
         return;
       }
 
-      faction.Demote(member);
       user.SendChatMessage(Messages.ManagerRemoved, member.Name, faction.Id);
+      Log($"{Util.Format(user)} demoted {member} in faction {faction.Id}");
+
+      faction.Demote(member);
     }
   }
 }
