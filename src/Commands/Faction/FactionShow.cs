@@ -32,7 +32,7 @@
       sb.Append("  ");
 
       foreach (User member in activeMembers)
-        sb.Append($"<color=#ffd479>{member.Name}</color>, ");
+        sb.Append($"<color=#ffd479>{member.UserName}</color>, ");
 
       sb.Remove(sb.Length - 2, 2);
       sb.AppendLine();
@@ -45,7 +45,7 @@
         sb.Append("  ");
 
         foreach (User invitedUser in activeInvitedUsers)
-          sb.Append($"<color=#ffd479>{invitedUser.Name}</color>, ");
+          sb.Append($"<color=#ffd479>{invitedUser.UserName}</color>, ");
 
         sb.Remove(sb.Length - 2, 2);
         sb.AppendLine();

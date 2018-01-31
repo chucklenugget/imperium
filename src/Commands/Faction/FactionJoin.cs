@@ -31,7 +31,7 @@
       }
 
       user.SendChatMessage(Messages.YouJoinedFaction, faction.Id);
-      PrintToChat(Messages.FactionMemberJoinedAnnouncement, user.Name, faction.Id);
+      PrintToChat(Messages.FactionMemberJoinedAnnouncement, user.UserName, faction.Id);
       Log($"{Util.Format(user)} joined faction {faction.Id}");
 
       faction.AddMember(user);

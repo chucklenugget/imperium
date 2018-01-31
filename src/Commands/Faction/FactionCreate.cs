@@ -34,8 +34,8 @@
         return;
       }
 
-      PrintToChat(Messages.FactionCreatedAnnouncement, Name);
-      Log($"{Util.Format(user)} created faction {Name}");
+      PrintToChat(Messages.FactionCreatedAnnouncement, id);
+      Log($"{Util.Format(user)} created faction {id}");
 
       Faction faction = Factions.Create(id, user);
       user.SetFaction(faction);

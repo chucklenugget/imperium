@@ -27,7 +27,7 @@
         if (user == null)
           return "(null)";
         else
-          return $"{user.Name} ({user.Id})";
+          return $"{user.UserName} ({user.Id})";
       }
 
       public static string Format(BaseEntity entity)

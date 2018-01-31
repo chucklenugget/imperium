@@ -946,8 +946,8 @@ namespace Oxide.Plugins
         return;
       }
 
-      user.SendChatMessage(Messages.AreaRenamed, area.Id, Name);
-      Log($"{Util.Format(user)} renamed {area.Id} to {Name}");
+      user.SendChatMessage(Messages.AreaRenamed, area.Id, name);
+      Log($"{Util.Format(user)} renamed {area.Id} to {name}");
 
       area.Name = name;
     }
@@ -1119,8 +1119,8 @@ namespace Oxide.Plugins
         return;
       }
 
-      faction.SendChatMessage("<color=#a1ff46>(FACTION)</color> {0}: {1}", user.Name, message);
-      Puts("[FACTION] {0} - {1}: {2}", faction.Id, user.Name, message);
+      faction.SendChatMessage("<color=#a1ff46>(FACTION)</color> {0}: {1}", user.UserName, message);
+      Puts("[FACTION] {0} - {1}: {2}", faction.Id, user.UserName, message);
     }
 
     [ChatCommand("c")]
@@ -1165,8 +1165,8 @@ namespace Oxide.Plugins
         return;
       }
 
-      PrintToChat(Messages.FactionCreatedAnnouncement, Name);
-      Log($"{Util.Format(user)} created faction {Name}");
+      PrintToChat(Messages.FactionCreatedAnnouncement, id);
+      Log($"{Util.Format(user)} created faction {id}");
 
       Faction faction = Factions.Create(id, user);
       user.SetFaction(faction);
@@ -1202,18 +1202,18 @@ namespace Oxide.Plugins
 
       if (faction.HasOwner(member))
       {
-        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.UserName, faction.Id);
         return;
       }
 
       if (!faction.HasManager(member))
       {
-        user.SendChatMessage(Messages.UserIsNotManagerOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.UserIsNotManagerOfFaction, member.UserName, faction.Id);
         return;
       }
 
-      user.SendChatMessage(Messages.ManagerRemoved, member.Name, faction.Id);
-      Log($"{Util.Format(user)} demoted {member} in faction {faction.Id}");
+      user.SendChatMessage(Messages.ManagerRemoved, member.UserName, faction.Id);
+      Log($"{Util.Format(user)} demoted {Util.Format(member)} in faction {faction.Id}");
 
       faction.Demote(member);
     }
@@ -1310,14 +1310,14 @@ namespace Oxide.Plugins
 
       if (faction.HasMember(member))
       {
-        user.SendChatMessage(Messages.UserIsAlreadyMemberOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.UserIsAlreadyMemberOfFaction, member.UserName, faction.Id);
         return;
       }
 
-      member.SendChatMessage(Messages.InviteReceived, user.Name, faction.Id);
-      user.SendChatMessage(Messages.InviteAdded, member.Name, faction.Id);
+      member.SendChatMessage(Messages.InviteReceived, user.UserName, faction.Id);
+      user.SendChatMessage(Messages.InviteAdded, member.UserName, faction.Id);
 
-      Log($"{Util.Format(user)} invited {member} to faction {faction.Id}");
+      Log($"{Util.Format(user)} invited {Util.Format(member)} to faction {faction.Id}");
 
       faction.AddInvite(member);
     }
@@ -1355,7 +1355,7 @@ namespace Oxide.Plugins
       }
 
       user.SendChatMessage(Messages.YouJoinedFaction, faction.Id);
-      PrintToChat(Messages.FactionMemberJoinedAnnouncement, user.Name, faction.Id);
+      PrintToChat(Messages.FactionMemberJoinedAnnouncement, user.UserName, faction.Id);
       Log($"{Util.Format(user)} joined faction {faction.Id}");
 
       faction.AddMember(user);
@@ -1393,14 +1393,14 @@ namespace Oxide.Plugins
 
       if (faction.HasLeader(member))
       {
-        user.SendChatMessage(Messages.CannotKickLeaderOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.CannotKickLeaderOfFaction, member.UserName, faction.Id);
         return;
       }
 
-      user.SendChatMessage(Messages.MemberRemoved, member.Name, faction.Id);
-      PrintToChat(Messages.FactionMemberLeftAnnouncement, member.Name, faction.Id);
+      user.SendChatMessage(Messages.MemberRemoved, member.UserName, faction.Id);
+      PrintToChat(Messages.FactionMemberLeftAnnouncement, member.UserName, faction.Id);
 
-      Log($"{Util.Format(user)} kicked {member} from faction {faction.Id}");
+      Log($"{Util.Format(user)} kicked {Util.Format(member)} from faction {faction.Id}");
 
       faction.RemoveMember(member);
       member.SetFaction(null);
@@ -1435,7 +1435,7 @@ namespace Oxide.Plugins
       }
 
       user.SendChatMessage(Messages.YouLeftFaction, faction.Id);
-      PrintToChat(Messages.FactionMemberLeftAnnouncement, user.Name, faction.Id);
+      PrintToChat(Messages.FactionMemberLeftAnnouncement, user.UserName, faction.Id);
 
       Log($"{Util.Format(user)} left faction {faction.Id}");
 
@@ -1473,18 +1473,18 @@ namespace Oxide.Plugins
 
       if (faction.HasOwner(member))
       {
-        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.UserName, faction.Id);
         return;
       }
 
       if (faction.HasManager(member))
       {
-        user.SendChatMessage(Messages.UserIsAlreadyManagerOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.UserIsAlreadyManagerOfFaction, member.UserName, faction.Id);
         return;
       }
 
-      user.SendChatMessage(Messages.ManagerAdded, member.Name, faction.Id);
-      Log($"{Util.Format(user)} promoted {member} in faction {faction.Id}");
+      user.SendChatMessage(Messages.ManagerAdded, member.UserName, faction.Id);
+      Log($"{Util.Format(user)} promoted {Util.Format(member)} in faction {faction.Id}");
 
       faction.Promote(member);
     }
@@ -1523,7 +1523,7 @@ namespace Oxide.Plugins
       sb.Append("  ");
 
       foreach (User member in activeMembers)
-        sb.Append($"<color=#ffd479>{member.Name}</color>, ");
+        sb.Append($"<color=#ffd479>{member.UserName}</color>, ");
 
       sb.Remove(sb.Length - 2, 2);
       sb.AppendLine();
@@ -1536,7 +1536,7 @@ namespace Oxide.Plugins
         sb.Append("  ");
 
         foreach (User invitedUser in activeInvitedUsers)
-          sb.Append($"<color=#ffd479>{invitedUser.Name}</color>, ");
+          sb.Append($"<color=#ffd479>{invitedUser.UserName}</color>, ");
 
         sb.Remove(sb.Length - 2, 2);
         sb.AppendLine();
@@ -3023,7 +3023,7 @@ namespace Oxide.Plugins
         ClaimCupboard = cupboard;
 
         if (FactionId != null)
-          Instance.Log($"[LOAD] Area {Id}: Claimed by {FactionId}, type = {Type}, cupboard = {ClaimCupboard.net?.ID}");
+          Instance.Log($"[LOAD] Area {Id}: Claimed by {FactionId}, type = {Type}, cupboard = {Util.Format(ClaimCupboard)}");
       }
 
       void CheckClaimCupboard()
@@ -4344,12 +4344,12 @@ namespace Oxide.Plugins
         get { return Player.UserIDString; }
       }
 
-      public string Name
+      public string UserName
       {
         get { return OriginalName; }
       }
 
-      public string NameWithFactionTag
+      public string UserNameWithFactionTag
       {
         get { return Player.displayName; }
       }
@@ -4445,7 +4445,6 @@ namespace Oxide.Plugins
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
-          Instance.Log($"Corrected area for {this} during periodic check: was {currentArea.Id}, should be {correctArea.Id}");
           Instance.OnUserExitArea(currentArea, this);
           Instance.OnUserEnterArea(correctArea, this);
         }
@@ -4493,8 +4492,8 @@ namespace Oxide.Plugins
           return user;
 
         return Users.Values
-          .Where(u => u.Name.ToLowerInvariant().Contains(searchString.ToLowerInvariant()))
-          .OrderBy(u => Util.GetLevenshteinDistance(searchString.ToLowerInvariant(), u.Name.ToLowerInvariant()))
+          .Where(u => u.UserName.ToLowerInvariant().Contains(searchString.ToLowerInvariant()))
+          .OrderBy(u => Util.GetLevenshteinDistance(searchString.ToLowerInvariant(), u.UserName.ToLowerInvariant()))
           .FirstOrDefault();
       }
 
@@ -4942,7 +4941,7 @@ namespace Oxide.Plugins
         if (user == null)
           return "(null)";
         else
-          return $"{user.Name} ({user.Id})";
+          return $"{user.UserName} ({user.Id})";
       }
 
       public static string Format(BaseEntity entity)
@@ -5082,7 +5081,7 @@ namespace Oxide.Plugins
           return false;
         }
 
-        User.SendChatMessage(Messages.AreaAddedToTown, area.Id, area.Name);
+        User.SendChatMessage(Messages.AreaAddedToTown, area.Id, Town.Name);
         Instance.Log($"{Util.Format(User)} added {area.Id} to town {Town.Name}");
 
         Instance.Areas.AddToTown(Town.Name, User, area);

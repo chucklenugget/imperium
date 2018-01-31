@@ -28,14 +28,14 @@
 
       if (faction.HasLeader(member))
       {
-        user.SendChatMessage(Messages.CannotKickLeaderOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.CannotKickLeaderOfFaction, member.UserName, faction.Id);
         return;
       }
 
-      user.SendChatMessage(Messages.MemberRemoved, member.Name, faction.Id);
-      PrintToChat(Messages.FactionMemberLeftAnnouncement, member.Name, faction.Id);
+      user.SendChatMessage(Messages.MemberRemoved, member.UserName, faction.Id);
+      PrintToChat(Messages.FactionMemberLeftAnnouncement, member.UserName, faction.Id);
 
-      Log($"{Util.Format(user)} kicked {member} from faction {faction.Id}");
+      Log($"{Util.Format(user)} kicked {Util.Format(member)} from faction {faction.Id}");
 
       faction.RemoveMember(member);
       member.SetFaction(null);

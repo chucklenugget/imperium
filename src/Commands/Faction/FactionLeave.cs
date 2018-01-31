@@ -27,7 +27,7 @@
       }
 
       user.SendChatMessage(Messages.YouLeftFaction, faction.Id);
-      PrintToChat(Messages.FactionMemberLeftAnnouncement, user.Name, faction.Id);
+      PrintToChat(Messages.FactionMemberLeftAnnouncement, user.UserName, faction.Id);
 
       Log($"{Util.Format(user)} left faction {faction.Id}");
 

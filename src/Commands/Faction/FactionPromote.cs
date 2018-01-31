@@ -28,18 +28,18 @@
 
       if (faction.HasOwner(member))
       {
-        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.UserName, faction.Id);
         return;
       }
 
       if (faction.HasManager(member))
       {
-        user.SendChatMessage(Messages.UserIsAlreadyManagerOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.UserIsAlreadyManagerOfFaction, member.UserName, faction.Id);
         return;
       }
 
-      user.SendChatMessage(Messages.ManagerAdded, member.Name, faction.Id);
-      Log($"{Util.Format(user)} promoted {member} in faction {faction.Id}");
+      user.SendChatMessage(Messages.ManagerAdded, member.UserName, faction.Id);
+      Log($"{Util.Format(user)} promoted {Util.Format(member)} in faction {faction.Id}");
 
       faction.Promote(member);
     }

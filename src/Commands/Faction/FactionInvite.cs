@@ -28,14 +28,14 @@
 
       if (faction.HasMember(member))
       {
-        user.SendChatMessage(Messages.UserIsAlreadyMemberOfFaction, member.Name, faction.Id);
+        user.SendChatMessage(Messages.UserIsAlreadyMemberOfFaction, member.UserName, faction.Id);
         return;
       }
 
-      member.SendChatMessage(Messages.InviteReceived, user.Name, faction.Id);
-      user.SendChatMessage(Messages.InviteAdded, member.Name, faction.Id);
+      member.SendChatMessage(Messages.InviteReceived, user.UserName, faction.Id);
+      user.SendChatMessage(Messages.InviteAdded, member.UserName, faction.Id);
 
-      Log($"{Util.Format(user)} invited {member} to faction {faction.Id}");
+      Log($"{Util.Format(user)} invited {Util.Format(member)} to faction {faction.Id}");
 
       faction.AddInvite(member);
     }

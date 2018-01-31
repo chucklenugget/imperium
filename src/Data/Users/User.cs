@@ -24,12 +24,12 @@
         get { return Player.UserIDString; }
       }
 
-      public string Name
+      public string UserName
       {
         get { return OriginalName; }
       }
 
-      public string NameWithFactionTag
+      public string UserNameWithFactionTag
       {
         get { return Player.displayName; }
       }
@@ -125,7 +125,6 @@
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
-          Instance.Log($"Corrected area for {this} during periodic check: was {currentArea.Id}, should be {correctArea.Id}");
           Instance.OnUserExitArea(currentArea, this);
           Instance.OnUserEnterArea(correctArea, this);
         }

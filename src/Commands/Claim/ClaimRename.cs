@@ -44,8 +44,8 @@
         return;
       }
 
-      user.SendChatMessage(Messages.AreaRenamed, area.Id, Name);
-      Log($"{Util.Format(user)} renamed {area.Id} to {Name}");
+      user.SendChatMessage(Messages.AreaRenamed, area.Id, name);
+      Log($"{Util.Format(user)} renamed {area.Id} to {name}");
 
       area.Name = name;
     }

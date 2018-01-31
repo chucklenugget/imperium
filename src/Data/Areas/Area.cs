@@ -107,7 +107,7 @@
         ClaimCupboard = cupboard;
 
         if (FactionId != null)
-          Instance.Log($"[LOAD] Area {Id}: Claimed by {FactionId}, type = {Type}, cupboard = {ClaimCupboard.net?.ID}");
+          Instance.Log($"[LOAD] Area {Id}: Claimed by {FactionId}, type = {Type}, cupboard = {Util.Format(ClaimCupboard)}");
       }
 
       void CheckClaimCupboard()
