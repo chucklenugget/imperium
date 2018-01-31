@@ -1787,7 +1787,8 @@ namespace Oxide.Plugins
       PrintToChat(Messages.TownDisbandedAnnouncement, faction.Id, town.Name);
       Log($"{Util.Format(user)} disbanded the town faction {town.Name}");
 
-      Areas.RemoveFromTown(town.Areas);
+      foreach (Area area in town.Areas)
+        Areas.RemoveFromTown(area);
     }
   }
 }
@@ -2223,6 +2224,21 @@ namespace Oxide.Plugins
   {
     static class Api
     {
+      public static void HandleAreaChanged(Area area)
+      {
+        Interface.Call("OnAreaChanged", area);
+      }
+
+      public static void HandleUserEnteredArea(Area area, User user)
+      {
+        Interface.Call("OnUserEnteredArea", area, user);
+      }
+
+      public static void HandleUserLeftArea(Area area, User user)
+      {
+        Interface.Call("OnUserLeftArea", area, user);
+      }
+
       public static void HandleFactionCreated(Faction faction)
       {
         Interface.Call("OnFactionCreated", faction);
@@ -2231,6 +2247,11 @@ namespace Oxide.Plugins
       public static void HandleFactionDisbanded(Faction faction)
       {
         Interface.Call("OnFactionDisbanded", faction);
+      }
+
+      public static void HandleFactionTaxesChanged(Faction faction)
+      {
+        Interface.Call("OnFactionTaxesChanged", faction);
       }
 
       public static void HandlePlayerJoinedFaction(Faction faction, User user)
@@ -2523,7 +2544,7 @@ namespace Oxide.Plugins
       AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
-    void OnUserEnterArea(Area area, User user)
+    void OnUserEnteredArea(Area area, User user)
     {
       Area previousArea = user.CurrentArea;
 
@@ -2560,26 +2581,42 @@ namespace Oxide.Plugins
       }
     }
 
-    void OnUserExitArea(Area area, User user)
+    void OnFactionCreated(Faction faction)
     {
-      // TODO: If we don't need this hook, we should remove it.
+      Ui.RefreshUiForAllPlayers();
     }
 
-    void OnAreasChanged()
+    void OnFactionDisbanded(Faction faction)
+    {
+      Area[] areas = Instance.Areas.GetAllClaimedByFaction(faction);
+
+      if (areas.Length > 0)
+      {
+        foreach (Area area in areas)
+          PrintToChat(Messages.AreaClaimLostFactionDisbandedAnnouncement, area.FactionId, area.Id);
+
+        Areas.Unclaim(areas);
+      }
+
+      Wars.EndAllWarsForEliminatedFactions();
+      Ui.RefreshUiForAllPlayers();
+    }
+
+    void OnFactionTaxesChanged(Faction faction)
+    {
+      Ui.RefreshUiForAllPlayers();
+    }
+
+    void OnAreaChanged(Area area)
     {
       Wars.EndAllWarsForEliminatedFactions();
       Images.GenerateMapOverlayImage();
-      RefreshUiForAllPlayers();
-    }
-
-    void OnFactionsChanged()
-    {
-      RefreshUiForAllPlayers();
+      Ui.RefreshUiForAllPlayers();
     }
 
     void OnDiplomacyChanged()
     {
-      RefreshUiForAllPlayers();
+      Ui.RefreshUiForAllPlayers();
     }
   }
 }
@@ -3040,14 +3077,14 @@ namespace Oxide.Plugins
       {
         var user = collider.GetComponentInParent<User>();
         if (user != null && user.CurrentArea != this)
-          Instance.OnUserEnterArea(this, user);
+          Api.HandleUserEnteredArea(this, user);
       }
 
       void OnTriggerExit(Collider collider)
       {
         var user = collider.GetComponentInParent<User>();
         if (user != null)
-          Instance.OnUserExitArea(this, user);
+          Api.HandleUserLeftArea(this, user);
       }
 
       public float GetDistanceFromEntity(BaseEntity entity)
@@ -3261,45 +3298,42 @@ namespace Oxide.Plugins
 
       public void Claim(Area area, AreaType type, Faction faction, User claimant, BuildingPrivlidge cupboard)
       {
-        string previousFactionId = area.FactionId;
-
         area.Type = type;
         area.FactionId = faction.Id;
         area.ClaimantId = claimant.Id;
         area.ClaimCupboard = cupboard;
 
-        Instance.OnAreasChanged();
+        Api.HandleAreaChanged(area);
       }
 
       public void SetHeadquarters(Area area, Faction faction)
       {
         // Ensure that no other areas are considered headquarters.
         foreach (Area otherArea in GetAllClaimedByFaction(faction).Where(a => a.Type == AreaType.Headquarters))
+        {
           otherArea.Type = AreaType.Claimed;
+          Api.HandleAreaChanged(otherArea);
+        }
 
         area.Type = AreaType.Headquarters;
-        Instance.OnAreasChanged();
+        Api.HandleAreaChanged(area);
       }
 
-      public void AddToTown(string name, User mayor, params Area[] areas)
+      public void AddToTown(string name, User mayor, Area area)
       {
-        foreach (Area area in areas)
-        {
-          area.Type = AreaType.Town;
-          area.Name = name;
-          area.ClaimantId = mayor.Id;
-        }
-        Instance.OnAreasChanged();
+        area.Type = AreaType.Town;
+        area.Name = name;
+        area.ClaimantId = mayor.Id;
+
+        Api.HandleAreaChanged(area);
       }
 
-      public void RemoveFromTown(params Area[] areas)
+      public void RemoveFromTown(Area area)
       {
-        foreach (Area area in areas)
-        {
-          area.Type = AreaType.Claimed;
-          area.Name = null;
-        }
-        Instance.OnAreasChanged();
+        area.Type = AreaType.Claimed;
+        area.Name = null;
+
+        Api.HandleAreaChanged(area);
       }
 
       public void Unclaim(IEnumerable<Area> areas)
@@ -3309,17 +3343,15 @@ namespace Oxide.Plugins
 
       public void Unclaim(params Area[] areas)
       {
-        string[] factionIds = areas.Select(a => a.FactionId).Distinct().ToArray();
-
         foreach (Area area in areas)
         {
           area.Type = AreaType.Wilderness;
           area.FactionId = null;
           area.ClaimantId = null;
           area.ClaimCupboard = null;
-        }
 
-        Instance.OnAreasChanged();
+          Api.HandleAreaChanged(area);
+        }
       }
 
       public void AddBadlands(params Area[] areas)
@@ -3330,8 +3362,9 @@ namespace Oxide.Plugins
           area.FactionId = null;
           area.ClaimantId = null;
           area.ClaimCupboard = null;
+
+          Api.HandleAreaChanged(area);
         }
-        Instance.OnAreasChanged();
       }
 
       public void AddBadlands(IEnumerable<Area> areas)
@@ -3799,28 +3832,13 @@ namespace Oxide.Plugins
         return faction;
       }
 
-      // TODO: Move some of this into a hook?
       public void Disband(Faction faction)
       {
-        Area[] areas = Instance.Areas.GetAllClaimedByFaction(faction);
-
-        if (areas.Length > 0)
-        {
-          foreach (Area area in areas)
-            Instance.PrintToChat(Messages.AreaClaimLostFactionDisbandedAnnouncement, area.FactionId, area.Id);
-
-          Instance.Areas.Unclaim(areas);
-        }
-
-        Instance.Wars.EndAllWarsForEliminatedFactions();
-
         foreach (User user in faction.GetAllActiveMembers())
           user.SetFaction(null);
 
         Factions.Remove(faction.Id);
         Api.HandleFactionDisbanded(faction);
-
-        Instance.OnFactionsChanged();
       }
 
       public Faction[] GetAll()
@@ -3865,13 +3883,13 @@ namespace Oxide.Plugins
       public void SetTaxRate(Faction faction, float taxRate)
       {
         faction.TaxRate = taxRate;
-        Instance.OnFactionsChanged();
+        Api.HandleFactionTaxesChanged(faction);
       }
 
       public void SetTaxChest(Faction faction, StorageContainer taxChest)
       {
         faction.TaxChest = taxChest;
-        Instance.OnFactionsChanged();
+        Api.HandleFactionTaxesChanged(faction);
       }
 
       public void Init(IEnumerable<FactionInfo> factionInfos)
@@ -4152,9 +4170,9 @@ namespace Oxide.Plugins
         }
 
         if (image.Id != null)
-          return new CuiRawImageComponent { Png = image.Id, Sprite = UI_TRANSPARENT_TEXTURE };
+          return new CuiRawImageComponent { Png = image.Id, Sprite = Ui.TransparentTexture };
         else
-          return new CuiRawImageComponent { Url = image.Url, Sprite = UI_TRANSPARENT_TEXTURE };
+          return new CuiRawImageComponent { Url = image.Url, Sprite = Ui.TransparentTexture };
       }
 
       public void GenerateMapOverlayImage()
@@ -4172,8 +4190,8 @@ namespace Oxide.Plugins
         if (!String.IsNullOrEmpty(Instance.Options.MapImageUrl))
           RegisterImage(Instance.Options.MapImageUrl);
 
-        RegisterDefaultImages(typeof(UiHudIcon));
-        RegisterDefaultImages(typeof(UiMapIcon));
+        RegisterDefaultImages(typeof(Ui.HudIcon));
+        RegisterDefaultImages(typeof(Ui.MapIcon));
       }
 
       public ImageInfo[] Serialize()
@@ -4218,7 +4236,7 @@ namespace Oxide.Plugins
       IEnumerator GenerateOverlayImage()
       {
         IsGenerating = true;
-        Instance.Log("[MAP] Generating new map overlay image...");
+        Instance.Puts("Generating new map overlay image...");
 
         using (var bitmap = new Bitmap(Instance.Options.MapImageSize, Instance.Options.MapImageSize))
         using (var graphics = Graphics.FromImage(bitmap))
@@ -4275,9 +4293,11 @@ namespace Oxide.Plugins
           var converter = new ImageConverter();
           var imageData = (byte[])converter.ConvertTo(bitmap, typeof(byte[]));
 
-          Image image = Instance.Images.RegisterImage(UiMapOverlayImageUrl, imageData, true);
+          Image image = Instance.Images.RegisterImage(Ui.MapOverlayImageUrl, imageData, true);
 
-          Instance.Log($"[MAP] Created new map overlay image {image.Id}.");
+          Instance.Puts($"Generated new map overlay image {image.Id}.");
+          Instance.Log($"Created new map overlay image {image.Id}.");
+
           IsGenerating = false;
         }
       }
@@ -4445,8 +4465,8 @@ namespace Oxide.Plugins
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
-          Instance.OnUserExitArea(currentArea, this);
-          Instance.OnUserEnterArea(correctArea, this);
+          Api.HandleUserLeftArea(currentArea, this);
+          Api.HandleUserEnteredArea(correctArea, this);
         }
       }
     }
@@ -5619,7 +5639,7 @@ namespace Oxide.Plugins
       {
         return new MapMarker
         {
-          IconUrl = UiMapIcon.Player,
+          IconUrl = Ui.MapIcon.Player,
           X = TranslatePosition(user.Player.transform.position.x),
           Z = TranslatePosition(user.Player.transform.position.z)
         };
@@ -5628,7 +5648,7 @@ namespace Oxide.Plugins
       public static MapMarker ForHeadquarters(Area area, Faction faction)
       {
         return new MapMarker {
-          IconUrl = UiMapIcon.Headquarters,
+          IconUrl = Ui.MapIcon.Headquarters,
           Label = Util.RemoveSpecialCharacters(faction.Id),
           X = TranslatePosition(area.ClaimCupboard.transform.position.x),
           Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
@@ -5638,7 +5658,7 @@ namespace Oxide.Plugins
       public static MapMarker ForTown(Area area)
       {
         return new MapMarker {
-          IconUrl = UiMapIcon.Town,
+          IconUrl = Ui.MapIcon.Town,
           Label = Util.RemoveSpecialCharacters(area.Name),
           X = TranslatePosition(area.ClaimCupboard.transform.position.x),
           Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
@@ -5650,7 +5670,7 @@ namespace Oxide.Plugins
         string iconUrl = GetIconForMonument(monument);
         return new MapMarker {
           IconUrl = iconUrl,
-          Label = (iconUrl == UiMapIcon.Unknown) ? monument.name : null,
+          Label = (iconUrl == Ui.MapIcon.Unknown) ? monument.name : null,
           X = TranslatePosition(monument.transform.position.x),
           Z = TranslatePosition(monument.transform.position.z)
         };
@@ -5664,25 +5684,25 @@ namespace Oxide.Plugins
       
       static string GetIconForMonument(MonumentInfo monument)
       {
-        if (monument.Type == MonumentType.Cave) return UiMapIcon.Cave;
-        if (monument.name.Contains("airfield")) return UiMapIcon.Airfield;
-        if (monument.name.Contains("sphere_tank")) return UiMapIcon.Dome;
-        if (monument.name.Contains("harbor")) return UiMapIcon.Harbor;
-        if (monument.name.Contains("gas_station")) return UiMapIcon.GasStation;
-        if (monument.name.Contains("junkyard")) return UiMapIcon.Junkyard;
-        if (monument.name.Contains("launch_site")) return UiMapIcon.LaunchSite;
-        if (monument.name.Contains("lighthouse")) return UiMapIcon.Lighthouse;
-        if (monument.name.Contains("military_tunnel")) return UiMapIcon.MilitaryTunnel;
-        if (monument.name.Contains("warehouse")) return UiMapIcon.MiningOutpost;
-        if (monument.name.Contains("powerplant")) return UiMapIcon.PowerPlant;
-        if (monument.name.Contains("quarry")) return UiMapIcon.Quarry;
-        if (monument.name.Contains("satellite_dish")) return UiMapIcon.SatelliteDish;
-        if (monument.name.Contains("radtown_small_3")) return UiMapIcon.SewerBranch;
-        if (monument.name.Contains("power_sub")) return UiMapIcon.Substation;
-        if (monument.name.Contains("supermarket")) return UiMapIcon.Supermarket;
-        if (monument.name.Contains("trainyard")) return UiMapIcon.Trainyard;
-        if (monument.name.Contains("water_treatment_plant")) return UiMapIcon.WaterTreatmentPlant;
-        return UiMapIcon.Unknown;
+        if (monument.Type == MonumentType.Cave) return Ui.MapIcon.Cave;
+        if (monument.name.Contains("airfield")) return Ui.MapIcon.Airfield;
+        if (monument.name.Contains("sphere_tank")) return Ui.MapIcon.Dome;
+        if (monument.name.Contains("harbor")) return Ui.MapIcon.Harbor;
+        if (monument.name.Contains("gas_station")) return Ui.MapIcon.GasStation;
+        if (monument.name.Contains("junkyard")) return Ui.MapIcon.Junkyard;
+        if (monument.name.Contains("launch_site")) return Ui.MapIcon.LaunchSite;
+        if (monument.name.Contains("lighthouse")) return Ui.MapIcon.Lighthouse;
+        if (monument.name.Contains("military_tunnel")) return Ui.MapIcon.MilitaryTunnel;
+        if (monument.name.Contains("warehouse")) return Ui.MapIcon.MiningOutpost;
+        if (monument.name.Contains("powerplant")) return Ui.MapIcon.PowerPlant;
+        if (monument.name.Contains("quarry")) return Ui.MapIcon.Quarry;
+        if (monument.name.Contains("satellite_dish")) return Ui.MapIcon.SatelliteDish;
+        if (monument.name.Contains("radtown_small_3")) return Ui.MapIcon.SewerBranch;
+        if (monument.name.Contains("power_sub")) return Ui.MapIcon.Substation;
+        if (monument.name.Contains("supermarket")) return Ui.MapIcon.Supermarket;
+        if (monument.name.Contains("trainyard")) return Ui.MapIcon.Trainyard;
+        if (monument.name.Contains("water_treatment_plant")) return Ui.MapIcon.WaterTreatmentPlant;
+        return Ui.MapIcon.Unknown;
       }
     }
   }
@@ -5691,77 +5711,89 @@ namespace Oxide.Plugins
 {
   public partial class Imperium
   {
-    const string UI_TRANSPARENT_TEXTURE = "assets/content/textures/generic/fulltransparent.tga";
-
-    const string UiImageBaseUrl = "http://images.rustfactions.io.s3.amazonaws.com/";
-    const string UiMapOverlayImageUrl = "imperium://map-overlay.png";
-
-    static class UiElement
+    static class Ui
     {
-      public const string Hud = "Hud";
-      public const string HudPanel = "Imperium.HudPanel";
-      public const string HudPanelTop = "Imperium.HudPanel.Top";
-      public const string HudPanelMiddle = "Imperium.HudPanel.Middle";
-      public const string HudPanelBottom = "Imperium.HudPanel.Bottom";
-      public const string HudPanelText = "Imperium.HudPanel.Text";
-      public const string HudPanelIcon = "Imperium.HudPanel.Icon";
-      public const string Map = "Imperium.Map";
-      public const string MapCloseButton = "Imperium.Map.CloseButton";
-      public const string MapBackgroundImage = "Imperium.Map.BackgroundImage";
-      public const string MapClaimsImage = "Imperium.Map.ClaimsImage";
-      public const string MapOverlay = "Imperium.Map.Overlay";
-      public const string MapIcon = "Imperium.Map.Icon";
-      public const string MapLabel = "Imperium.Map.Label";
-    }
+      private static bool UpdatePending = false;
 
-    static class UiHudIcon
-    {
-      public const string Badlands = UiImageBaseUrl + "icons/hud/badlands.png";
-      public const string Claimed = UiImageBaseUrl + "icons/hud/claimed.png";
-      public const string Clock = UiImageBaseUrl + "icons/hud/clock.png";
-      public const string Defense = UiImageBaseUrl + "icons/hud/defense.png";
-      public const string Harvest = UiImageBaseUrl + "icons/hud/harvest.png";
-      public const string Headquarters = UiImageBaseUrl + "icons/hud/headquarters.png";
-      public const string Players = UiImageBaseUrl + "icons/hud/players.png";
-      public const string Sleepers = UiImageBaseUrl + "icons/hud/sleepers.png";
-      public const string Taxes = UiImageBaseUrl + "icons/hud/taxes.png";
-      public const string Town = UiImageBaseUrl + "icons/hud/town.png";
-      public const string Warzone = UiImageBaseUrl + "icons/hud/warzone.png";
-      public const string Wilderness = UiImageBaseUrl + "icons/hud/wilderness.png";
-    }
+      public const string ImageBaseUrl = "http://assets.rustimperium.com/";
+      public const string MapOverlayImageUrl = "imperium://map-overlay.png";
+      public const string TransparentTexture = "assets/content/textures/generic/fulltransparent.tga";
 
-    static class UiMapIcon
-    {
-      public const string Airfield = UiImageBaseUrl + "icons/map/airfield.png";
-      public const string Cave = UiImageBaseUrl + "icons/map/cave.png";
-      public const string Dome = UiImageBaseUrl + "icons/map/dome.png";
-      public const string GasStation = UiImageBaseUrl + "icons/map/gas-station.png";
-      public const string Harbor = UiImageBaseUrl + "icons/map/harbor.png";
-      public const string Headquarters = UiImageBaseUrl + "icons/map/headquarters.png";
-      public const string Junkyard = UiImageBaseUrl + "icons/map/junkyard.png";
-      public const string LaunchSite = UiImageBaseUrl + "icons/map/launch-site.png";
-      public const string Lighthouse = UiImageBaseUrl + "icons/map/lighthouse.png";
-      public const string MilitaryTunnel = UiImageBaseUrl + "icons/map/military-tunnel.png";
-      public const string MiningOutpost = UiImageBaseUrl + "icons/map/mining-outpost.png";
-      public const string Player = UiImageBaseUrl + "icons/map/player.png";
-      public const string PowerPlant = UiImageBaseUrl + "icons/map/power-plant.png";
-      public const string Quarry = UiImageBaseUrl + "icons/map/quarry.png";
-      public const string SatelliteDish = UiImageBaseUrl + "icons/map/satellite-dish.png";
-      public const string SewerBranch = UiImageBaseUrl + "icons/map/sewer-branch.png";
-      public const string Substation = UiImageBaseUrl + "icons/map/substation.png";
-      public const string Supermarket = UiImageBaseUrl + "icons/map/supermarket.png";
-      public const string Town = UiImageBaseUrl + "icons/map/town.png";
-      public const string Trainyard = UiImageBaseUrl + "icons/map/trainyard.png";
-      public const string Unknown = UiImageBaseUrl + "icons/map/unknown.png";
-      public const string WaterTreatmentPlant = UiImageBaseUrl + "icons/map/water-treatment-plant.png";
-    }
-
-    void RefreshUiForAllPlayers()
-    {
-      foreach (User user in Users.GetAll())
+      public static class Element
       {
-        user.Map.Refresh();
-        user.HudPanel.Refresh();
+        public const string Hud = "Hud";
+        public const string HudPanel = "Imperium.HudPanel";
+        public const string HudPanelTop = "Imperium.HudPanel.Top";
+        public const string HudPanelMiddle = "Imperium.HudPanel.Middle";
+        public const string HudPanelBottom = "Imperium.HudPanel.Bottom";
+        public const string HudPanelText = "Imperium.HudPanel.Text";
+        public const string HudPanelIcon = "Imperium.HudPanel.Icon";
+        public const string Map = "Imperium.Map";
+        public const string MapCloseButton = "Imperium.Map.CloseButton";
+        public const string MapBackgroundImage = "Imperium.Map.BackgroundImage";
+        public const string MapClaimsImage = "Imperium.Map.ClaimsImage";
+        public const string MapOverlay = "Imperium.Map.Overlay";
+        public const string MapIcon = "Imperium.Map.Icon";
+        public const string MapLabel = "Imperium.Map.Label";
+      }
+
+      public static class HudIcon
+      {
+        public const string Badlands = ImageBaseUrl + "icons/hud/badlands.png";
+        public const string Claimed = ImageBaseUrl + "icons/hud/claimed.png";
+        public const string Clock = ImageBaseUrl + "icons/hud/clock.png";
+        public const string Defense = ImageBaseUrl + "icons/hud/defense.png";
+        public const string Harvest = ImageBaseUrl + "icons/hud/harvest.png";
+        public const string Headquarters = ImageBaseUrl + "icons/hud/headquarters.png";
+        public const string Players = ImageBaseUrl + "icons/hud/players.png";
+        public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
+        public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
+        public const string Town = ImageBaseUrl + "icons/hud/town.png";
+        public const string Warzone = ImageBaseUrl + "icons/hud/warzone.png";
+        public const string Wilderness = ImageBaseUrl + "icons/hud/wilderness.png";
+      }
+
+      public static class MapIcon
+      {
+        public const string Airfield = ImageBaseUrl + "icons/map/airfield.png";
+        public const string Cave = ImageBaseUrl + "icons/map/cave.png";
+        public const string Dome = ImageBaseUrl + "icons/map/dome.png";
+        public const string GasStation = ImageBaseUrl + "icons/map/gas-station.png";
+        public const string Harbor = ImageBaseUrl + "icons/map/harbor.png";
+        public const string Headquarters = ImageBaseUrl + "icons/map/headquarters.png";
+        public const string Junkyard = ImageBaseUrl + "icons/map/junkyard.png";
+        public const string LaunchSite = ImageBaseUrl + "icons/map/launch-site.png";
+        public const string Lighthouse = ImageBaseUrl + "icons/map/lighthouse.png";
+        public const string MilitaryTunnel = ImageBaseUrl + "icons/map/military-tunnel.png";
+        public const string MiningOutpost = ImageBaseUrl + "icons/map/mining-outpost.png";
+        public const string Player = ImageBaseUrl + "icons/map/player.png";
+        public const string PowerPlant = ImageBaseUrl + "icons/map/power-plant.png";
+        public const string Quarry = ImageBaseUrl + "icons/map/quarry.png";
+        public const string SatelliteDish = ImageBaseUrl + "icons/map/satellite-dish.png";
+        public const string SewerBranch = ImageBaseUrl + "icons/map/sewer-branch.png";
+        public const string Substation = ImageBaseUrl + "icons/map/substation.png";
+        public const string Supermarket = ImageBaseUrl + "icons/map/supermarket.png";
+        public const string Town = ImageBaseUrl + "icons/map/town.png";
+        public const string Trainyard = ImageBaseUrl + "icons/map/trainyard.png";
+        public const string Unknown = ImageBaseUrl + "icons/map/unknown.png";
+        public const string WaterTreatmentPlant = ImageBaseUrl + "icons/map/water-treatment-plant.png";
+      }
+
+      public static void RefreshUiForAllPlayers()
+      {
+        if (UpdatePending)
+          return;
+
+        Instance.NextTick(() => {
+          foreach (User user in Instance.Users.GetAll())
+          {
+            user.Map.Refresh();
+            user.HudPanel.Refresh();
+          }
+          UpdatePending = false;
+        });
+
+        UpdatePending = true;
       }
     }
   }
@@ -5805,7 +5837,7 @@ namespace Oxide.Plugins
 
       public void Hide()
       {
-        CuiHelper.DestroyUi(User.Player, UiElement.HudPanel);
+        CuiHelper.DestroyUi(User.Player, Ui.Element.HudPanel);
       }
 
       public void Toggle()
@@ -5836,9 +5868,9 @@ namespace Oxide.Plugins
         var container = new CuiElementContainer();
 
         container.Add(new CuiPanel {
-          Image = { Color = "0 0 0 0", Sprite = UI_TRANSPARENT_TEXTURE },
+          Image = { Color = "0 0 0 0", Sprite = Ui.TransparentTexture },
           RectTransform = { AnchorMin = "0.008 0.015", AnchorMax = "0.217 0.113" }
-        }, UiElement.Hud, UiElement.HudPanel);
+        }, Ui.Element.Hud, Ui.Element.HudPanel);
 
         Area area = User.CurrentArea;
 
@@ -5847,49 +5879,49 @@ namespace Oxide.Plugins
           container.Add(new CuiPanel {
             Image = { Color = UserHudPanelColor.BackgroundNormal },
             RectTransform = { AnchorMin = "0 0.7", AnchorMax = "1 1" }
-          }, UiElement.HudPanel, UiElement.HudPanelTop);
+          }, Ui.Element.HudPanel, Ui.Element.HudPanelTop);
 
           if (area.IsClaimed)
           {
             string defensiveBonus = String.Format("{0}%", area.GetDefensiveBonus() * 100);
-            AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Defense, UserHudPanelColor.TextNormal, defensiveBonus);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, UserHudPanelColor.TextNormal, defensiveBonus);
           }
 
           if (area.IsTaxableClaim)
           {
             string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-            AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Taxes, UserHudPanelColor.TextNormal, taxRate, 0.33f);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, UserHudPanelColor.TextNormal, taxRate, 0.33f);
           }
 
           if (area.Type == AreaType.Badlands)
           {
             string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.BadlandsGatherBonus * 100);
-            AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Harvest, UserHudPanelColor.TextNormal, harvestBonus);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, UserHudPanelColor.TextNormal, harvestBonus);
           }
         }
 
         container.Add(new CuiPanel {
           Image = { Color = GetBackgroundColor(area) },
           RectTransform = { AnchorMin = "0 0.35", AnchorMax = "1 0.65" }
-        }, UiElement.HudPanel, UiElement.HudPanelMiddle);
+        }, Ui.Element.HudPanel, Ui.Element.HudPanelMiddle);
 
         string areaIcon = GetAreaIcon(area);
         string areaDescription = GetAreaDescription(area);
-        AddWidget(container, UiElement.HudPanelMiddle, areaIcon, GetTextColor(area), areaDescription);
+        AddWidget(container, Ui.Element.HudPanelMiddle, areaIcon, GetTextColor(area), areaDescription);
 
         container.Add(new CuiPanel {
           Image = { Color = UserHudPanelColor.BackgroundNormal },
           RectTransform = { AnchorMin = "0 0", AnchorMax = "1 0.3" }
-        }, UiElement.HudPanel, UiElement.HudPanelBottom);
+        }, Ui.Element.HudPanel, Ui.Element.HudPanelBottom);
 
         string currentTime = TOD_Sky.Instance.Cycle.DateTime.ToString("HH:mm");
-        AddWidget(container, UiElement.HudPanelBottom, UiHudIcon.Clock, UserHudPanelColor.TextNormal, currentTime);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, UserHudPanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, UiElement.HudPanelBottom, UiHudIcon.Players, UserHudPanelColor.TextNormal, activePlayers, 0.33f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, UserHudPanelColor.TextNormal, activePlayers, 0.33f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, UiElement.HudPanelBottom, UiHudIcon.Sleepers, UserHudPanelColor.TextNormal, sleepingPlayers, 0.66f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, UserHudPanelColor.TextNormal, sleepingPlayers, 0.66f);
 
         return container;
       }
@@ -5897,20 +5929,20 @@ namespace Oxide.Plugins
       string GetAreaIcon(Area area)
       {
         if (area.IsWarzone)
-          return UiHudIcon.Warzone;
+          return Ui.HudIcon.Warzone;
 
         switch (area.Type)
         {
           case AreaType.Badlands:
-            return UiHudIcon.Badlands;
+            return Ui.HudIcon.Badlands;
           case AreaType.Claimed:
-            return UiHudIcon.Claimed;
+            return Ui.HudIcon.Claimed;
           case AreaType.Headquarters:
-            return UiHudIcon.Headquarters;
+            return Ui.HudIcon.Headquarters;
           case AreaType.Town:
-            return UiHudIcon.Town;
+            return Ui.HudIcon.Town;
           default:
-            return UiHudIcon.Wilderness;
+            return Ui.HudIcon.Wilderness;
         }
       }
 
@@ -5974,7 +6006,7 @@ namespace Oxide.Plugins
         var guid = Guid.NewGuid().ToString();
 
         container.Add(new CuiElement {
-          Name = UiElement.HudPanelIcon + guid,
+          Name = Ui.Element.HudPanelIcon + guid,
           Parent = parent,
           Components = {
             Instance.Images.CreateImageComponent(iconName),
@@ -6000,7 +6032,7 @@ namespace Oxide.Plugins
             OffsetMin = "12 0",
             OffsetMax = "12 0"
           }
-        }, parent, UiElement.HudPanelText + guid);
+        }, parent, Ui.Element.HudPanelText + guid);
       }
     }
   }
@@ -6032,7 +6064,7 @@ namespace Oxide.Plugins
 
       public void Hide()
       {
-        CuiHelper.DestroyUi(User.Player, UiElement.Map);
+        CuiHelper.DestroyUi(User.Player, Ui.Element.Map);
         IsVisible = false;
       }
 
@@ -6048,7 +6080,7 @@ namespace Oxide.Plugins
       {
         if (IsVisible)
         {
-          CuiHelper.DestroyUi(User.Player, UiElement.Map);
+          CuiHelper.DestroyUi(User.Player, Ui.Element.Map);
           CuiHelper.AddUi(User.Player, Build());
         }
       }
@@ -6061,11 +6093,11 @@ namespace Oxide.Plugins
           Image = { Color = "0 0 0 1" },
           RectTransform = { AnchorMin = "0.188 0.037", AnchorMax = "0.813 0.963" },
           CursorEnabled = true
-        }, UiElement.Hud, UiElement.Map);
+        }, Ui.Element.Hud, Ui.Element.Map);
 
         container.Add(new CuiElement {
-          Name = UiElement.MapBackgroundImage,
-          Parent = UiElement.Map,
+          Name = Ui.Element.MapBackgroundImage,
+          Parent = Ui.Element.Map,
           Components = {
             Instance.Images.CreateImageComponent(Instance.Options.MapImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
@@ -6073,10 +6105,10 @@ namespace Oxide.Plugins
         });
 
         container.Add(new CuiElement {
-          Name = UiElement.MapClaimsImage,
-          Parent = UiElement.Map,
+          Name = Ui.Element.MapClaimsImage,
+          Parent = Ui.Element.Map,
           Components = {
-            Instance.Images.CreateImageComponent(UiMapOverlayImageUrl),
+            Instance.Images.CreateImageComponent(Ui.MapOverlayImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
@@ -6100,7 +6132,7 @@ namespace Oxide.Plugins
           Text = { Text = "X", FontSize = 14, Align = TextAnchor.MiddleCenter },
           Button = { Color = "0 0 0 1", Command = "imperium.map.toggle", FadeIn = 0 },
           RectTransform = { AnchorMin = "0.95 0.961", AnchorMax = "0.999 0.999" }
-        }, UiElement.Map, UiElement.MapCloseButton);
+        }, Ui.Element.Map, Ui.Element.MapCloseButton);
 
         return container;
       }
@@ -6108,8 +6140,8 @@ namespace Oxide.Plugins
       void AddMarker(CuiElementContainer container, MapMarker marker, float iconSize = 0.01f)
       {
         container.Add(new CuiElement {
-          Name = UiElement.MapIcon + Guid.NewGuid().ToString(),
-          Parent = UiElement.Map,
+          Name = Ui.Element.MapIcon + Guid.NewGuid().ToString(),
+          Parent = Ui.Element.Map,
           Components = {
             Instance.Images.CreateImageComponent(marker.IconUrl),
             new CuiRectTransformComponent {
@@ -6127,7 +6159,7 @@ namespace Oxide.Plugins
               AnchorMin = $"{marker.X - 0.1} {marker.Z - iconSize - 0.025}",
               AnchorMax = $"{marker.X + 0.1} {marker.Z - iconSize}"
             }
-          }, UiElement.Map, UiElement.MapLabel + Guid.NewGuid().ToString());
+          }, Ui.Element.Map, Ui.Element.MapLabel + Guid.NewGuid().ToString());
         }
       }
 

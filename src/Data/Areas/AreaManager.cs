@@ -124,45 +124,42 @@
 
       public void Claim(Area area, AreaType type, Faction faction, User claimant, BuildingPrivlidge cupboard)
       {
-        string previousFactionId = area.FactionId;
-
         area.Type = type;
         area.FactionId = faction.Id;
         area.ClaimantId = claimant.Id;
         area.ClaimCupboard = cupboard;
 
-        Instance.OnAreasChanged();
+        Api.HandleAreaChanged(area);
       }
 
       public void SetHeadquarters(Area area, Faction faction)
       {
         // Ensure that no other areas are considered headquarters.
         foreach (Area otherArea in GetAllClaimedByFaction(faction).Where(a => a.Type == AreaType.Headquarters))
+        {
           otherArea.Type = AreaType.Claimed;
+          Api.HandleAreaChanged(otherArea);
+        }
 
         area.Type = AreaType.Headquarters;
-        Instance.OnAreasChanged();
+        Api.HandleAreaChanged(area);
       }
 
-      public void AddToTown(string name, User mayor, params Area[] areas)
+      public void AddToTown(string name, User mayor, Area area)
       {
-        foreach (Area area in areas)
-        {
-          area.Type = AreaType.Town;
-          area.Name = name;
-          area.ClaimantId = mayor.Id;
-        }
-        Instance.OnAreasChanged();
+        area.Type = AreaType.Town;
+        area.Name = name;
+        area.ClaimantId = mayor.Id;
+
+        Api.HandleAreaChanged(area);
       }
 
-      public void RemoveFromTown(params Area[] areas)
+      public void RemoveFromTown(Area area)
       {
-        foreach (Area area in areas)
-        {
-          area.Type = AreaType.Claimed;
-          area.Name = null;
-        }
-        Instance.OnAreasChanged();
+        area.Type = AreaType.Claimed;
+        area.Name = null;
+
+        Api.HandleAreaChanged(area);
       }
 
       public void Unclaim(IEnumerable<Area> areas)
@@ -172,17 +169,15 @@
 
       public void Unclaim(params Area[] areas)
       {
-        string[] factionIds = areas.Select(a => a.FactionId).Distinct().ToArray();
-
         foreach (Area area in areas)
         {
           area.Type = AreaType.Wilderness;
           area.FactionId = null;
           area.ClaimantId = null;
           area.ClaimCupboard = null;
-        }
 
-        Instance.OnAreasChanged();
+          Api.HandleAreaChanged(area);
+        }
       }
 
       public void AddBadlands(params Area[] areas)
@@ -193,8 +188,9 @@
           area.FactionId = null;
           area.ClaimantId = null;
           area.ClaimCupboard = null;
+
+          Api.HandleAreaChanged(area);
         }
-        Instance.OnAreasChanged();
       }
 
       public void AddBadlands(IEnumerable<Area> areas)

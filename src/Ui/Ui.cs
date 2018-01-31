@@ -2,77 +2,89 @@
 {
   public partial class Imperium
   {
-    const string UI_TRANSPARENT_TEXTURE = "assets/content/textures/generic/fulltransparent.tga";
-
-    const string UiImageBaseUrl = "http://images.rustfactions.io.s3.amazonaws.com/";
-    const string UiMapOverlayImageUrl = "imperium://map-overlay.png";
-
-    static class UiElement
+    static class Ui
     {
-      public const string Hud = "Hud";
-      public const string HudPanel = "Imperium.HudPanel";
-      public const string HudPanelTop = "Imperium.HudPanel.Top";
-      public const string HudPanelMiddle = "Imperium.HudPanel.Middle";
-      public const string HudPanelBottom = "Imperium.HudPanel.Bottom";
-      public const string HudPanelText = "Imperium.HudPanel.Text";
-      public const string HudPanelIcon = "Imperium.HudPanel.Icon";
-      public const string Map = "Imperium.Map";
-      public const string MapCloseButton = "Imperium.Map.CloseButton";
-      public const string MapBackgroundImage = "Imperium.Map.BackgroundImage";
-      public const string MapClaimsImage = "Imperium.Map.ClaimsImage";
-      public const string MapOverlay = "Imperium.Map.Overlay";
-      public const string MapIcon = "Imperium.Map.Icon";
-      public const string MapLabel = "Imperium.Map.Label";
-    }
+      private static bool UpdatePending = false;
 
-    static class UiHudIcon
-    {
-      public const string Badlands = UiImageBaseUrl + "icons/hud/badlands.png";
-      public const string Claimed = UiImageBaseUrl + "icons/hud/claimed.png";
-      public const string Clock = UiImageBaseUrl + "icons/hud/clock.png";
-      public const string Defense = UiImageBaseUrl + "icons/hud/defense.png";
-      public const string Harvest = UiImageBaseUrl + "icons/hud/harvest.png";
-      public const string Headquarters = UiImageBaseUrl + "icons/hud/headquarters.png";
-      public const string Players = UiImageBaseUrl + "icons/hud/players.png";
-      public const string Sleepers = UiImageBaseUrl + "icons/hud/sleepers.png";
-      public const string Taxes = UiImageBaseUrl + "icons/hud/taxes.png";
-      public const string Town = UiImageBaseUrl + "icons/hud/town.png";
-      public const string Warzone = UiImageBaseUrl + "icons/hud/warzone.png";
-      public const string Wilderness = UiImageBaseUrl + "icons/hud/wilderness.png";
-    }
+      public const string ImageBaseUrl = "http://assets.rustimperium.com/";
+      public const string MapOverlayImageUrl = "imperium://map-overlay.png";
+      public const string TransparentTexture = "assets/content/textures/generic/fulltransparent.tga";
 
-    static class UiMapIcon
-    {
-      public const string Airfield = UiImageBaseUrl + "icons/map/airfield.png";
-      public const string Cave = UiImageBaseUrl + "icons/map/cave.png";
-      public const string Dome = UiImageBaseUrl + "icons/map/dome.png";
-      public const string GasStation = UiImageBaseUrl + "icons/map/gas-station.png";
-      public const string Harbor = UiImageBaseUrl + "icons/map/harbor.png";
-      public const string Headquarters = UiImageBaseUrl + "icons/map/headquarters.png";
-      public const string Junkyard = UiImageBaseUrl + "icons/map/junkyard.png";
-      public const string LaunchSite = UiImageBaseUrl + "icons/map/launch-site.png";
-      public const string Lighthouse = UiImageBaseUrl + "icons/map/lighthouse.png";
-      public const string MilitaryTunnel = UiImageBaseUrl + "icons/map/military-tunnel.png";
-      public const string MiningOutpost = UiImageBaseUrl + "icons/map/mining-outpost.png";
-      public const string Player = UiImageBaseUrl + "icons/map/player.png";
-      public const string PowerPlant = UiImageBaseUrl + "icons/map/power-plant.png";
-      public const string Quarry = UiImageBaseUrl + "icons/map/quarry.png";
-      public const string SatelliteDish = UiImageBaseUrl + "icons/map/satellite-dish.png";
-      public const string SewerBranch = UiImageBaseUrl + "icons/map/sewer-branch.png";
-      public const string Substation = UiImageBaseUrl + "icons/map/substation.png";
-      public const string Supermarket = UiImageBaseUrl + "icons/map/supermarket.png";
-      public const string Town = UiImageBaseUrl + "icons/map/town.png";
-      public const string Trainyard = UiImageBaseUrl + "icons/map/trainyard.png";
-      public const string Unknown = UiImageBaseUrl + "icons/map/unknown.png";
-      public const string WaterTreatmentPlant = UiImageBaseUrl + "icons/map/water-treatment-plant.png";
-    }
-
-    void RefreshUiForAllPlayers()
-    {
-      foreach (User user in Users.GetAll())
+      public static class Element
       {
-        user.Map.Refresh();
-        user.HudPanel.Refresh();
+        public const string Hud = "Hud";
+        public const string HudPanel = "Imperium.HudPanel";
+        public const string HudPanelTop = "Imperium.HudPanel.Top";
+        public const string HudPanelMiddle = "Imperium.HudPanel.Middle";
+        public const string HudPanelBottom = "Imperium.HudPanel.Bottom";
+        public const string HudPanelText = "Imperium.HudPanel.Text";
+        public const string HudPanelIcon = "Imperium.HudPanel.Icon";
+        public const string Map = "Imperium.Map";
+        public const string MapCloseButton = "Imperium.Map.CloseButton";
+        public const string MapBackgroundImage = "Imperium.Map.BackgroundImage";
+        public const string MapClaimsImage = "Imperium.Map.ClaimsImage";
+        public const string MapOverlay = "Imperium.Map.Overlay";
+        public const string MapIcon = "Imperium.Map.Icon";
+        public const string MapLabel = "Imperium.Map.Label";
+      }
+
+      public static class HudIcon
+      {
+        public const string Badlands = ImageBaseUrl + "icons/hud/badlands.png";
+        public const string Claimed = ImageBaseUrl + "icons/hud/claimed.png";
+        public const string Clock = ImageBaseUrl + "icons/hud/clock.png";
+        public const string Defense = ImageBaseUrl + "icons/hud/defense.png";
+        public const string Harvest = ImageBaseUrl + "icons/hud/harvest.png";
+        public const string Headquarters = ImageBaseUrl + "icons/hud/headquarters.png";
+        public const string Players = ImageBaseUrl + "icons/hud/players.png";
+        public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
+        public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
+        public const string Town = ImageBaseUrl + "icons/hud/town.png";
+        public const string Warzone = ImageBaseUrl + "icons/hud/warzone.png";
+        public const string Wilderness = ImageBaseUrl + "icons/hud/wilderness.png";
+      }
+
+      public static class MapIcon
+      {
+        public const string Airfield = ImageBaseUrl + "icons/map/airfield.png";
+        public const string Cave = ImageBaseUrl + "icons/map/cave.png";
+        public const string Dome = ImageBaseUrl + "icons/map/dome.png";
+        public const string GasStation = ImageBaseUrl + "icons/map/gas-station.png";
+        public const string Harbor = ImageBaseUrl + "icons/map/harbor.png";
+        public const string Headquarters = ImageBaseUrl + "icons/map/headquarters.png";
+        public const string Junkyard = ImageBaseUrl + "icons/map/junkyard.png";
+        public const string LaunchSite = ImageBaseUrl + "icons/map/launch-site.png";
+        public const string Lighthouse = ImageBaseUrl + "icons/map/lighthouse.png";
+        public const string MilitaryTunnel = ImageBaseUrl + "icons/map/military-tunnel.png";
+        public const string MiningOutpost = ImageBaseUrl + "icons/map/mining-outpost.png";
+        public const string Player = ImageBaseUrl + "icons/map/player.png";
+        public const string PowerPlant = ImageBaseUrl + "icons/map/power-plant.png";
+        public const string Quarry = ImageBaseUrl + "icons/map/quarry.png";
+        public const string SatelliteDish = ImageBaseUrl + "icons/map/satellite-dish.png";
+        public const string SewerBranch = ImageBaseUrl + "icons/map/sewer-branch.png";
+        public const string Substation = ImageBaseUrl + "icons/map/substation.png";
+        public const string Supermarket = ImageBaseUrl + "icons/map/supermarket.png";
+        public const string Town = ImageBaseUrl + "icons/map/town.png";
+        public const string Trainyard = ImageBaseUrl + "icons/map/trainyard.png";
+        public const string Unknown = ImageBaseUrl + "icons/map/unknown.png";
+        public const string WaterTreatmentPlant = ImageBaseUrl + "icons/map/water-treatment-plant.png";
+      }
+
+      public static void RefreshForAllPlayers()
+      {
+        if (UpdatePending)
+          return;
+
+        Instance.NextTick(() => {
+          foreach (User user in Instance.Users.GetAll())
+          {
+            user.Map.Refresh();
+            user.HudPanel.Refresh();
+          }
+          UpdatePending = false;
+        });
+
+        UpdatePending = true;
       }
     }
   }

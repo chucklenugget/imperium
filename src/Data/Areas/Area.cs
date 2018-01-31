@@ -124,14 +124,14 @@
       {
         var user = collider.GetComponentInParent<User>();
         if (user != null && user.CurrentArea != this)
-          Instance.OnUserEnterArea(this, user);
+          Api.HandleUserEnteredArea(this, user);
       }
 
       void OnTriggerExit(Collider collider)
       {
         var user = collider.GetComponentInParent<User>();
         if (user != null)
-          Instance.OnUserExitArea(this, user);
+          Api.HandleUserLeftArea(this, user);
       }
 
       public float GetDistanceFromEntity(BaseEntity entity)

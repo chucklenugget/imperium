@@ -33,28 +33,13 @@
         return faction;
       }
 
-      // TODO: Move some of this into a hook?
       public void Disband(Faction faction)
       {
-        Area[] areas = Instance.Areas.GetAllClaimedByFaction(faction);
-
-        if (areas.Length > 0)
-        {
-          foreach (Area area in areas)
-            Instance.PrintToChat(Messages.AreaClaimLostFactionDisbandedAnnouncement, area.FactionId, area.Id);
-
-          Instance.Areas.Unclaim(areas);
-        }
-
-        Instance.Wars.EndAllWarsForEliminatedFactions();
-
         foreach (User user in faction.GetAllActiveMembers())
           user.SetFaction(null);
 
         Factions.Remove(faction.Id);
         Api.HandleFactionDisbanded(faction);
-
-        Instance.OnFactionsChanged();
       }
 
       public Faction[] GetAll()
@@ -99,13 +84,13 @@
       public void SetTaxRate(Faction faction, float taxRate)
       {
         faction.TaxRate = taxRate;
-        Instance.OnFactionsChanged();
+        Api.HandleFactionTaxesChanged(faction);
       }
 
       public void SetTaxChest(Faction faction, StorageContainer taxChest)
       {
         faction.TaxChest = taxChest;
-        Instance.OnFactionsChanged();
+        Api.HandleFactionTaxesChanged(faction);
       }
 
       public void Init(IEnumerable<FactionInfo> factionInfos)

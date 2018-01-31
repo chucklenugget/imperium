@@ -36,7 +36,7 @@
 
       public void Hide()
       {
-        CuiHelper.DestroyUi(User.Player, UiElement.HudPanel);
+        CuiHelper.DestroyUi(User.Player, Ui.Element.HudPanel);
       }
 
       public void Toggle()
@@ -67,9 +67,9 @@
         var container = new CuiElementContainer();
 
         container.Add(new CuiPanel {
-          Image = { Color = "0 0 0 0", Sprite = UI_TRANSPARENT_TEXTURE },
+          Image = { Color = "0 0 0 0", Sprite = Ui.TransparentTexture },
           RectTransform = { AnchorMin = "0.008 0.015", AnchorMax = "0.217 0.113" }
-        }, UiElement.Hud, UiElement.HudPanel);
+        }, Ui.Element.Hud, Ui.Element.HudPanel);
 
         Area area = User.CurrentArea;
 
@@ -78,49 +78,49 @@
           container.Add(new CuiPanel {
             Image = { Color = UserHudPanelColor.BackgroundNormal },
             RectTransform = { AnchorMin = "0 0.7", AnchorMax = "1 1" }
-          }, UiElement.HudPanel, UiElement.HudPanelTop);
+          }, Ui.Element.HudPanel, Ui.Element.HudPanelTop);
 
           if (area.IsClaimed)
           {
             string defensiveBonus = String.Format("{0}%", area.GetDefensiveBonus() * 100);
-            AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Defense, UserHudPanelColor.TextNormal, defensiveBonus);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, UserHudPanelColor.TextNormal, defensiveBonus);
           }
 
           if (area.IsTaxableClaim)
           {
             string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-            AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Taxes, UserHudPanelColor.TextNormal, taxRate, 0.33f);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, UserHudPanelColor.TextNormal, taxRate, 0.33f);
           }
 
           if (area.Type == AreaType.Badlands)
           {
             string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.BadlandsGatherBonus * 100);
-            AddWidget(container, UiElement.HudPanelTop, UiHudIcon.Harvest, UserHudPanelColor.TextNormal, harvestBonus);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, UserHudPanelColor.TextNormal, harvestBonus);
           }
         }
 
         container.Add(new CuiPanel {
           Image = { Color = GetBackgroundColor(area) },
           RectTransform = { AnchorMin = "0 0.35", AnchorMax = "1 0.65" }
-        }, UiElement.HudPanel, UiElement.HudPanelMiddle);
+        }, Ui.Element.HudPanel, Ui.Element.HudPanelMiddle);
 
         string areaIcon = GetAreaIcon(area);
         string areaDescription = GetAreaDescription(area);
-        AddWidget(container, UiElement.HudPanelMiddle, areaIcon, GetTextColor(area), areaDescription);
+        AddWidget(container, Ui.Element.HudPanelMiddle, areaIcon, GetTextColor(area), areaDescription);
 
         container.Add(new CuiPanel {
           Image = { Color = UserHudPanelColor.BackgroundNormal },
           RectTransform = { AnchorMin = "0 0", AnchorMax = "1 0.3" }
-        }, UiElement.HudPanel, UiElement.HudPanelBottom);
+        }, Ui.Element.HudPanel, Ui.Element.HudPanelBottom);
 
         string currentTime = TOD_Sky.Instance.Cycle.DateTime.ToString("HH:mm");
-        AddWidget(container, UiElement.HudPanelBottom, UiHudIcon.Clock, UserHudPanelColor.TextNormal, currentTime);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, UserHudPanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, UiElement.HudPanelBottom, UiHudIcon.Players, UserHudPanelColor.TextNormal, activePlayers, 0.33f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, UserHudPanelColor.TextNormal, activePlayers, 0.33f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, UiElement.HudPanelBottom, UiHudIcon.Sleepers, UserHudPanelColor.TextNormal, sleepingPlayers, 0.66f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, UserHudPanelColor.TextNormal, sleepingPlayers, 0.66f);
 
         return container;
       }
@@ -128,20 +128,20 @@
       string GetAreaIcon(Area area)
       {
         if (area.IsWarzone)
-          return UiHudIcon.Warzone;
+          return Ui.HudIcon.Warzone;
 
         switch (area.Type)
         {
           case AreaType.Badlands:
-            return UiHudIcon.Badlands;
+            return Ui.HudIcon.Badlands;
           case AreaType.Claimed:
-            return UiHudIcon.Claimed;
+            return Ui.HudIcon.Claimed;
           case AreaType.Headquarters:
-            return UiHudIcon.Headquarters;
+            return Ui.HudIcon.Headquarters;
           case AreaType.Town:
-            return UiHudIcon.Town;
+            return Ui.HudIcon.Town;
           default:
-            return UiHudIcon.Wilderness;
+            return Ui.HudIcon.Wilderness;
         }
       }
 
@@ -205,7 +205,7 @@
         var guid = Guid.NewGuid().ToString();
 
         container.Add(new CuiElement {
-          Name = UiElement.HudPanelIcon + guid,
+          Name = Ui.Element.HudPanelIcon + guid,
           Parent = parent,
           Components = {
             Instance.Images.CreateImageComponent(iconName),
@@ -231,7 +231,7 @@
             OffsetMin = "12 0",
             OffsetMax = "12 0"
           }
-        }, parent, UiElement.HudPanelText + guid);
+        }, parent, Ui.Element.HudPanelText + guid);
       }
     }
   }

@@ -107,7 +107,7 @@
       AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
-    void OnUserEnterArea(Area area, User user)
+    void OnUserEnteredArea(Area area, User user)
     {
       Area previousArea = user.CurrentArea;
 
@@ -144,26 +144,42 @@
       }
     }
 
-    void OnUserExitArea(Area area, User user)
+    void OnFactionCreated(Faction faction)
     {
-      // TODO: If we don't need this hook, we should remove it.
+      Ui.RefreshForAllPlayers();
     }
 
-    void OnAreasChanged()
+    void OnFactionDisbanded(Faction faction)
+    {
+      Area[] areas = Instance.Areas.GetAllClaimedByFaction(faction);
+
+      if (areas.Length > 0)
+      {
+        foreach (Area area in areas)
+          PrintToChat(Messages.AreaClaimLostFactionDisbandedAnnouncement, area.FactionId, area.Id);
+
+        Areas.Unclaim(areas);
+      }
+
+      Wars.EndAllWarsForEliminatedFactions();
+      Ui.RefreshForAllPlayers();
+    }
+
+    void OnFactionTaxesChanged(Faction faction)
+    {
+      Ui.RefreshForAllPlayers();
+    }
+
+    void OnAreaChanged(Area area)
     {
       Wars.EndAllWarsForEliminatedFactions();
       Images.GenerateMapOverlayImage();
-      RefreshUiForAllPlayers();
-    }
-
-    void OnFactionsChanged()
-    {
-      RefreshUiForAllPlayers();
+      Ui.RefreshForAllPlayers();
     }
 
     void OnDiplomacyChanged()
     {
-      RefreshUiForAllPlayers();
+      Ui.RefreshForAllPlayers();
     }
   }
 }

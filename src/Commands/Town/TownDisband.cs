@@ -19,7 +19,8 @@
       PrintToChat(Messages.TownDisbandedAnnouncement, faction.Id, town.Name);
       Log($"{Util.Format(user)} disbanded the town faction {town.Name}");
 
-      Areas.RemoveFromTown(town.Areas);
+      foreach (Area area in town.Areas)
+        Areas.RemoveFromTown(area);
     }
   }
 }

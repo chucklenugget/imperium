@@ -66,9 +66,9 @@
         }
 
         if (image.Id != null)
-          return new CuiRawImageComponent { Png = image.Id, Sprite = UI_TRANSPARENT_TEXTURE };
+          return new CuiRawImageComponent { Png = image.Id, Sprite = Ui.TransparentTexture };
         else
-          return new CuiRawImageComponent { Url = image.Url, Sprite = UI_TRANSPARENT_TEXTURE };
+          return new CuiRawImageComponent { Url = image.Url, Sprite = Ui.TransparentTexture };
       }
 
       public void GenerateMapOverlayImage()
@@ -86,8 +86,8 @@
         if (!String.IsNullOrEmpty(Instance.Options.MapImageUrl))
           RegisterImage(Instance.Options.MapImageUrl);
 
-        RegisterDefaultImages(typeof(UiHudIcon));
-        RegisterDefaultImages(typeof(UiMapIcon));
+        RegisterDefaultImages(typeof(Ui.HudIcon));
+        RegisterDefaultImages(typeof(Ui.MapIcon));
       }
 
       public ImageInfo[] Serialize()
