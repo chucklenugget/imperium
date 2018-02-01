@@ -40,7 +40,7 @@
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
         public const string Town = ImageBaseUrl + "icons/hud/town.png";
-        public const string Warzone = ImageBaseUrl + "icons/hud/warzone.png";
+        public const string WarZone = ImageBaseUrl + "icons/hud/warzone.png";
         public const string Wilderness = ImageBaseUrl + "icons/hud/wilderness.png";
       }
 

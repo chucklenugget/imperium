@@ -1,6 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
   using System;
+  using System.Collections.Generic;
   using System.Text;
   using UnityEngine;
 
@@ -15,6 +16,7 @@
       public UserHudPanel HudPanel { get; private set; }
 
       public Area CurrentArea { get; set; }
+      public HashSet<Zone> CurrentZones { get; private set; }
       public Faction Faction { get; private set; }
       public Interaction CurrentInteraction { get; private set; }
       public DateTime CommandCooldownExpirationTime { get; set; }
@@ -39,6 +41,7 @@
         Player = player;
         CommandCooldownExpirationTime = DateTime.MinValue;
         OriginalName = player.displayName;
+        CurrentZones = new HashSet<Zone>();
 
         Map = new UserMap(this);
         HudPanel = new UserHudPanel(this);
@@ -125,8 +128,8 @@
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
-          Api.HandleUserLeftArea(currentArea, this);
-          Api.HandleUserEnteredArea(correctArea, this);
+          Api.HandleUserLeftArea(this, currentArea);
+          Api.HandleUserEnteredArea(this, correctArea);
         }
       }
     }

@@ -30,7 +30,12 @@
         get { return Type == AreaType.Claimed || Type == AreaType.Headquarters; }
       }
 
-      public bool IsWarzone
+      public bool IsDangerZone // LANA!
+      {
+        get { return Type == AreaType.Badlands || IsWarZone; }
+      }
+
+      public bool IsWarZone
       {
         get { return GetActiveWars().Length > 0; }
       }
@@ -47,7 +52,7 @@
           TryLoadInfo(info);
 
         gameObject.layer = (int)Layer.Reserved1;
-        gameObject.name = $"Imperium Area {id}";
+        gameObject.name = $"imperium_area_{id}";
         transform.position = position;
         transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
 
@@ -122,16 +127,24 @@
 
       void OnTriggerEnter(Collider collider)
       {
+        if (collider.gameObject.layer != (int)Layer.Player_Server)
+          return;
+
         var user = collider.GetComponentInParent<User>();
+
         if (user != null && user.CurrentArea != this)
-          Api.HandleUserEnteredArea(this, user);
+          Api.HandleUserEnteredArea(user, this);
       }
 
       void OnTriggerExit(Collider collider)
       {
+        if (collider.gameObject.layer != (int)Layer.Player_Server)
+          return;
+
         var user = collider.GetComponentInParent<User>();
+
         if (user != null)
-          Api.HandleUserLeftArea(this, user);
+          Api.HandleUserLeftArea(user, this);
       }
 
       public float GetDistanceFromEntity(BaseEntity entity)

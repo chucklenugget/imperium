@@ -11,14 +11,24 @@
         Interface.Call("OnAreaChanged", area);
       }
 
-      public static void HandleUserEnteredArea(Area area, User user)
+      public static void HandleUserEnteredArea(User user, Area area)
       {
-        Interface.Call("OnUserEnteredArea", area, user);
+        Interface.Call("OnUserEnteredArea", user, area);
       }
 
-      public static void HandleUserLeftArea(Area area, User user)
+      public static void HandleUserLeftArea(User user, Area area)
       {
-        Interface.Call("OnUserLeftArea", area, user);
+        Interface.Call("OnUserLeftArea", user, area);
+      }
+
+      public static void HandleUserEnteredZone(User user, Zone zone)
+      {
+        Interface.Call("OnUserEnteredZone", user, zone);
+      }
+
+      public static void HandleUserLeftZone(User user, Zone zone)
+      {
+        Interface.Call("OnUserLeftZone", user, zone);
       }
 
       public static void HandleFactionCreated(Faction faction)

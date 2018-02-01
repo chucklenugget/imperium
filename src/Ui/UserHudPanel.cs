@@ -6,19 +6,19 @@
 
   public partial class Imperium
   {
-    static class UserHudPanelColor
-    {
-      public const string BackgroundNormal = "1 0.95 0.875 0.025";
-      public const string BackgroundDanger = "0.77 0.25 0.17 0.5";
-      public const string BackgroundSafe = "0.31 0.37 0.20 0.75";
-      public const string TextNormal = "0.85 0.85 0.85 0.75";
-      public const string TextDanger = "0.85 0.65 0.65 1";
-      public const string TextSafe = "0.67 0.89 0.32 1";
-    }
-
     class UserHudPanel
     {
       const float IconSize = 0.075f;
+
+      static class PanelColor
+      {
+        public const string BackgroundNormal = "1 0.95 0.875 0.025";
+        public const string BackgroundDanger = "0.77 0.25 0.17 0.5";
+        public const string BackgroundSafe = "0.31 0.37 0.20 0.75";
+        public const string TextNormal = "0.85 0.85 0.85 0.75";
+        public const string TextDanger = "0.85 0.65 0.65 1";
+        public const string TextSafe = "0.67 0.89 0.32 1";
+      }
 
       public User User { get; }
       public bool IsDisabled { get; set; }
@@ -76,26 +76,26 @@
         if (area.Type != AreaType.Wilderness)
         {
           container.Add(new CuiPanel {
-            Image = { Color = UserHudPanelColor.BackgroundNormal },
+            Image = { Color = PanelColor.BackgroundNormal },
             RectTransform = { AnchorMin = "0 0.7", AnchorMax = "1 1" }
           }, Ui.Element.HudPanel, Ui.Element.HudPanelTop);
 
           if (area.IsClaimed)
           {
             string defensiveBonus = String.Format("{0}%", area.GetDefensiveBonus() * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, UserHudPanelColor.TextNormal, defensiveBonus);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, PanelColor.TextNormal, defensiveBonus);
           }
 
           if (area.IsTaxableClaim)
           {
             string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, UserHudPanelColor.TextNormal, taxRate, 0.33f);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, PanelColor.TextNormal, taxRate, 0.33f);
           }
 
           if (area.Type == AreaType.Badlands)
           {
             string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.BadlandsGatherBonus * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, UserHudPanelColor.TextNormal, harvestBonus);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, PanelColor.TextNormal, harvestBonus);
           }
         }
 
@@ -109,26 +109,26 @@
         AddWidget(container, Ui.Element.HudPanelMiddle, areaIcon, GetTextColor(area), areaDescription);
 
         container.Add(new CuiPanel {
-          Image = { Color = UserHudPanelColor.BackgroundNormal },
+          Image = { Color = PanelColor.BackgroundNormal },
           RectTransform = { AnchorMin = "0 0", AnchorMax = "1 0.3" }
         }, Ui.Element.HudPanel, Ui.Element.HudPanelBottom);
 
         string currentTime = TOD_Sky.Instance.Cycle.DateTime.ToString("HH:mm");
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, UserHudPanelColor.TextNormal, currentTime);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, UserHudPanelColor.TextNormal, activePlayers, 0.33f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.33f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, UserHudPanelColor.TextNormal, sleepingPlayers, 0.66f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.66f);
 
         return container;
       }
 
       string GetAreaIcon(Area area)
       {
-        if (area.IsWarzone)
-          return Ui.HudIcon.Warzone;
+        if (area.IsWarZone)
+          return Ui.HudIcon.WarZone;
 
         switch (area.Type)
         {
@@ -170,33 +170,33 @@
 
       string GetBackgroundColor(Area area)
       {
-        if (area.IsWarzone)
-          return UserHudPanelColor.BackgroundDanger;
+        if (area.IsWarZone)
+          return PanelColor.BackgroundDanger;
 
         switch (area.Type)
         {
           case AreaType.Badlands:
-            return UserHudPanelColor.BackgroundDanger;
+            return PanelColor.BackgroundDanger;
           case AreaType.Town:
-            return UserHudPanelColor.BackgroundSafe;
+            return PanelColor.BackgroundSafe;
           default:
-            return UserHudPanelColor.BackgroundNormal;
+            return PanelColor.BackgroundNormal;
         }
       }
 
       string GetTextColor(Area area)
       {
-        if (area.IsWarzone)
-          return UserHudPanelColor.TextDanger;
+        if (area.IsWarZone)
+          return PanelColor.TextDanger;
 
         switch (area.Type)
         {
           case AreaType.Badlands:
-            return UserHudPanelColor.TextDanger;
+            return PanelColor.TextDanger;
           case AreaType.Town:
-            return UserHudPanelColor.TextSafe;
+            return PanelColor.TextSafe;
           default:
-            return UserHudPanelColor.TextNormal;
+            return PanelColor.TextNormal;
         }
       }
 

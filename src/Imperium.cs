@@ -28,7 +28,7 @@ namespace Oxide.Plugins
   using UnityEngine;
   using System.Collections.Generic;
 
-  [Info("Imperium", "chucklenugget", "1.3.0")]
+  [Info("Imperium", "chucklenugget", "1.4.0")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -47,6 +47,7 @@ namespace Oxide.Plugins
     WarManager Wars;
     UserManager Users;
     ImageManager Images;
+    ZoneManager Zones;
 
     const string PERM_CHANGE_FACTIONS = "imperium.factions";
     const string PERM_CHANGE_CLAIMS = "imperium.claims";
@@ -68,6 +69,7 @@ namespace Oxide.Plugins
       Wars = new WarManager();
       Images = new ImageManager();
       Users = new UserManager();
+      Zones = new ZoneManager();
 
       PrintToChat($"{Title} v{Version} initialized.");
     }
@@ -90,6 +92,7 @@ namespace Oxide.Plugins
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
       Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
       Puts("Defensive bonuses are " + (Options.EnableDefensiveBonuses ? "enabled" : "disabled"));
+      Puts("Restricted PVP is " + (Options.EnableRestrictedPVP ? "enabled" : "disabled"));
       Puts("Decay reduction is " + (Options.EnableDecayReduction ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.EnableUpkeep ? "enabled" : "disabled"));
     }
@@ -105,6 +108,7 @@ namespace Oxide.Plugins
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
       Images.Init(TryLoad<ImageInfo>(ImagesFile));
+      Zones.Init();
 
       Images.GenerateMapOverlayImage();
 
@@ -122,6 +126,7 @@ namespace Oxide.Plugins
 
     void Unload()
     {
+      Zones.Destroy();
       Images.Destroy();
       Users.Destroy();
       Wars.Destroy();

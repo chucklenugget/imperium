@@ -1,6 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
   using Network;
+  using UnityEngine;
 
   public partial class Imperium : RustPlugin
   {
@@ -39,31 +40,56 @@
 
     object OnEntityTakeDamage(BaseCombatEntity entity, HitInfo hit)
     {
-      if (!Options.EnableDefensiveBonuses)
-        return null;
-
       if (entity == null || hit == null)
         return null;
 
-      if (hit.damageTypes.Has(Rust.DamageType.Decay))
-        return ScaleDamageForDecay(entity, hit);
+      return Logistics.AlterDamage(entity, hit);
+    }
 
-      User user = Users.Get(hit.InitiatorPlayer);
-      if (user == null)
+    object OnTrapTrigger(BaseTrap trap, GameObject obj)
+    {
+      var player = obj.GetComponent<BasePlayer>();
+
+      if (trap == null || player == null)
         return null;
 
-      return ScaleDamageForDefensiveBonus(entity, hit, user);
+      User defender = Users.Get(player);
+      return Logistics.AlterTrapTrigger(trap, defender);
+    }
+
+    object CanBeTargeted(BaseCombatEntity target, MonoBehaviour turret)
+    {
+      if (target == null || turret == null)
+        return null;
+
+      // Don't interfere with the helicopter.
+      if (turret is HelicopterTurret)
+        return null;
+
+      var player = target as BasePlayer;
+
+      if (player == null)
+        return null;
+
+      User defender = Users.Get(player);
+      var entity = turret as BaseCombatEntity;
+
+      return Logistics.AlterTurretTrigger(entity, defender);
     }
 
     void OnEntityKill(BaseNetworkable entity)
     {
-      // If a player dies in an area, remove them from the area.
+      // If a player dies in an area or a zone, remove them.
       var player = entity as BasePlayer;
       if (player != null)
       {
         User user = Users.Get(player);
-        if (user != null && user.CurrentArea != null)
+        if (user != null)
+        {
           user.CurrentArea = null;
+          user.CurrentZones.Clear();
+        }
+        return;
       }
 
       // If a claim TC is destroyed, remove the claim from the area.
@@ -77,21 +103,27 @@
           Log($"{area.FactionId} lost their claim on {area.Id} because the tool cupboard was destroyed (hook function)");
           Areas.Unclaim(area);
         }
+        return;
       }
 
       // If a tax chest is destroyed, remove it from the faction data.
-      if (Options.EnableTaxation)
+      var container = entity as StorageContainer;
+      if (Options.EnableTaxation && container != null)
       {
-        var container = entity as StorageContainer;
-        if (container != null)
+        Faction faction = Factions.GetByTaxChest(container);
+        if (faction != null)
         {
-          Faction faction = Factions.GetByTaxChest(container);
-          if (faction != null)
-          {
-            Log($"{faction.Id}'s tax chest was destroyed (hook function)");
-            faction.TaxChest = null;
-          }
+          Log($"{faction.Id}'s tax chest was destroyed (hook function)");
+          faction.TaxChest = null;
         }
+        return;
+      }
+
+      // If a helicopter is destroyed, create an event zone around it.
+      var helicopter = entity as BaseHelicopter;
+      if (helicopter != null)
+      {
+        Zones.Create(helicopter);
       }
     }
 
@@ -107,7 +139,7 @@
       AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
-    void OnUserEnteredArea(Area area, User user)
+    void OnUserEnteredArea(User user, Area area)
     {
       Area previousArea = user.CurrentArea;
 
@@ -142,6 +174,11 @@
         // The player has crossed a border between the territory of two factions.
         user.SendChatMessage(Messages.EnteredClaimedArea, area.FactionId);
       }
+    }
+
+    void OnUserEnteredZone(User user, Zone zone)
+    {
+      user.SendChatMessage($"Entered zone {zone.name}");
     }
 
     void OnFactionCreated(Faction faction)

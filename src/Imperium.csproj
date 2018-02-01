@@ -31,6 +31,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\Badlands\BadlandsHelp.cs" />
+    <Compile Include="Data\Zone\Zone.cs" />
+    <Compile Include="Data\Zone\ZoneManager.cs" />
     <Compile Include="Data\Areas\AreaInfo.cs" />
     <Compile Include="Data\Areas\AreaType.cs" />
     <Compile Include="Commands\Badlands\Badlands.cs" />

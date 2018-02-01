@@ -10,6 +10,7 @@
       public bool EnableBadlands;
       public bool EnableDecayReduction;
       public bool EnableDefensiveBonuses;
+      public bool EnableRestrictedPVP;
       public bool EnableTaxation;
       public bool EnableTowns;
       public bool EnableUpkeep;
@@ -24,9 +25,13 @@
       public float BadlandsGatherBonus;
       public float ClaimedLandDecayReduction;
       public float TownDecayReduction;
-      public List<int> ClaimCosts;
-      public List<int> UpkeepCosts;
-      public List<float> DefensiveBonuses;
+      public List<int> ClaimCosts = new List<int>();
+      public List<int> UpkeepCosts = new List<int>();
+      public List<float> DefensiveBonuses = new List<float>();
+      public HashSet<string> DangerousMonuments = new HashSet<string>();
+      public int ZoneDomeDarkness;
+      public float EventZoneRadius;
+      public float EventZoneLifespanSeconds;
       public int UpkeepCheckIntervalMinutes;
       public int UpkeepCollectionPeriodHours;
       public int UpkeepGracePeriodHours;
@@ -44,6 +49,7 @@
         EnableBadlands = true,
         EnableDecayReduction = true,
         EnableDefensiveBonuses = true,
+        EnableRestrictedPVP = false,
         EnableTaxation = true,
         EnableTowns = true,
         EnableUpkeep = true,
@@ -64,6 +70,20 @@
         UpkeepCollectionPeriodHours = 24,
         UpkeepGracePeriodHours = 12,
         DefensiveBonuses = new List<float> { 0, 0.5f, 1f },
+        DangerousMonuments = new HashSet<string> {
+          "airfield",
+          "sphere_tank",
+          "junkyard",
+          "launch_site",
+          "military_tunnel",
+          "powerplant",
+          "satellite_dish",
+          "trainyard",
+          "water_treatment_plant"
+        },
+        ZoneDomeDarkness = 3,
+        EventZoneRadius = 100f,
+        EventZoneLifespanSeconds = 600f,
         MapImageUrl = "",
         MapImageSize = 1440,
         CommandCooldownSeconds = 10

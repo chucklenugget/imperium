@@ -28,7 +28,7 @@ namespace Oxide.Plugins
   using UnityEngine;
   using System.Collections.Generic;
 
-  [Info("Imperium", "chucklenugget", "1.3.0")]
+  [Info("Imperium", "chucklenugget", "1.4.0")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -47,6 +47,7 @@ namespace Oxide.Plugins
     WarManager Wars;
     UserManager Users;
     ImageManager Images;
+    ZoneManager Zones;
 
     const string PERM_CHANGE_FACTIONS = "imperium.factions";
     const string PERM_CHANGE_CLAIMS = "imperium.claims";
@@ -68,6 +69,7 @@ namespace Oxide.Plugins
       Wars = new WarManager();
       Images = new ImageManager();
       Users = new UserManager();
+      Zones = new ZoneManager();
 
       PrintToChat($"{Title} v{Version} initialized.");
     }
@@ -90,6 +92,7 @@ namespace Oxide.Plugins
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
       Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
       Puts("Defensive bonuses are " + (Options.EnableDefensiveBonuses ? "enabled" : "disabled"));
+      Puts("Restricted PVP is " + (Options.EnableRestrictedPVP ? "enabled" : "disabled"));
       Puts("Decay reduction is " + (Options.EnableDecayReduction ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.EnableUpkeep ? "enabled" : "disabled"));
     }
@@ -105,6 +108,7 @@ namespace Oxide.Plugins
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
       Images.Init(TryLoad<ImageInfo>(ImagesFile));
+      Zones.Init();
 
       Images.GenerateMapOverlayImage();
 
@@ -122,6 +126,7 @@ namespace Oxide.Plugins
 
     void Unload()
     {
+      Zones.Destroy();
       Images.Destroy();
       Users.Destroy();
       Wars.Destroy();
@@ -2229,14 +2234,24 @@ namespace Oxide.Plugins
         Interface.Call("OnAreaChanged", area);
       }
 
-      public static void HandleUserEnteredArea(Area area, User user)
+      public static void HandleUserEnteredArea(User user, Area area)
       {
-        Interface.Call("OnUserEnteredArea", area, user);
+        Interface.Call("OnUserEnteredArea", user, area);
       }
 
-      public static void HandleUserLeftArea(Area area, User user)
+      public static void HandleUserLeftArea(User user, Area area)
       {
-        Interface.Call("OnUserLeftArea", area, user);
+        Interface.Call("OnUserLeftArea", user, area);
+      }
+
+      public static void HandleUserEnteredZone(User user, Zone zone)
+      {
+        Interface.Call("OnUserEnteredZone", user, zone);
+      }
+
+      public static void HandleUserLeftZone(User user, Zone zone)
+      {
+        Interface.Call("OnUserLeftZone", user, zone);
       }
 
       public static void HandleFactionCreated(Faction faction)
@@ -2438,6 +2453,7 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using Network;
+  using UnityEngine;
 
   public partial class Imperium : RustPlugin
   {
@@ -2476,31 +2492,56 @@ namespace Oxide.Plugins
 
     object OnEntityTakeDamage(BaseCombatEntity entity, HitInfo hit)
     {
-      if (!Options.EnableDefensiveBonuses)
-        return null;
-
       if (entity == null || hit == null)
         return null;
 
-      if (hit.damageTypes.Has(Rust.DamageType.Decay))
-        return ScaleDamageForDecay(entity, hit);
+      return Logistics.AlterDamage(entity, hit);
+    }
 
-      User user = Users.Get(hit.InitiatorPlayer);
-      if (user == null)
+    object OnTrapTrigger(BaseTrap trap, GameObject obj)
+    {
+      var player = obj.GetComponent<BasePlayer>();
+
+      if (trap == null || player == null)
         return null;
 
-      return ScaleDamageForDefensiveBonus(entity, hit, user);
+      User defender = Users.Get(player);
+      return Logistics.AlterTrapTrigger(trap, defender);
+    }
+
+    object CanBeTargeted(BaseCombatEntity target, MonoBehaviour turret)
+    {
+      if (target == null || turret == null)
+        return null;
+
+      // Don't interfere with the helicopter.
+      if (turret is HelicopterTurret)
+        return null;
+
+      var player = target as BasePlayer;
+
+      if (player == null)
+        return null;
+
+      User defender = Users.Get(player);
+      var entity = turret as BaseCombatEntity;
+
+      return Logistics.AlterTurretTrigger(entity, defender);
     }
 
     void OnEntityKill(BaseNetworkable entity)
     {
-      // If a player dies in an area, remove them from the area.
+      // If a player dies in an area or a zone, remove them.
       var player = entity as BasePlayer;
       if (player != null)
       {
         User user = Users.Get(player);
-        if (user != null && user.CurrentArea != null)
+        if (user != null)
+        {
           user.CurrentArea = null;
+          user.CurrentZones.Clear();
+        }
+        return;
       }
 
       // If a claim TC is destroyed, remove the claim from the area.
@@ -2514,21 +2555,27 @@ namespace Oxide.Plugins
           Log($"{area.FactionId} lost their claim on {area.Id} because the tool cupboard was destroyed (hook function)");
           Areas.Unclaim(area);
         }
+        return;
       }
 
       // If a tax chest is destroyed, remove it from the faction data.
-      if (Options.EnableTaxation)
+      var container = entity as StorageContainer;
+      if (Options.EnableTaxation && container != null)
       {
-        var container = entity as StorageContainer;
-        if (container != null)
+        Faction faction = Factions.GetByTaxChest(container);
+        if (faction != null)
         {
-          Faction faction = Factions.GetByTaxChest(container);
-          if (faction != null)
-          {
-            Log($"{faction.Id}'s tax chest was destroyed (hook function)");
-            faction.TaxChest = null;
-          }
+          Log($"{faction.Id}'s tax chest was destroyed (hook function)");
+          faction.TaxChest = null;
         }
+        return;
+      }
+
+      // If a helicopter is destroyed, create an event zone around it.
+      var helicopter = entity as BaseHelicopter;
+      if (helicopter != null)
+      {
+        Zones.Create(helicopter);
       }
     }
 
@@ -2544,7 +2591,7 @@ namespace Oxide.Plugins
       AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
-    void OnUserEnteredArea(Area area, User user)
+    void OnUserEnteredArea(User user, Area area)
     {
       Area previousArea = user.CurrentArea;
 
@@ -2581,9 +2628,14 @@ namespace Oxide.Plugins
       }
     }
 
+    void OnUserEnteredZone(User user, Zone zone)
+    {
+      user.SendChatMessage($"Entered zone {zone.name}");
+    }
+
     void OnFactionCreated(Faction faction)
     {
-      Ui.RefreshUiForAllPlayers();
+      Ui.RefreshForAllPlayers();
     }
 
     void OnFactionDisbanded(Faction faction)
@@ -2599,24 +2651,24 @@ namespace Oxide.Plugins
       }
 
       Wars.EndAllWarsForEliminatedFactions();
-      Ui.RefreshUiForAllPlayers();
+      Ui.RefreshForAllPlayers();
     }
 
     void OnFactionTaxesChanged(Faction faction)
     {
-      Ui.RefreshUiForAllPlayers();
+      Ui.RefreshForAllPlayers();
     }
 
     void OnAreaChanged(Area area)
     {
       Wars.EndAllWarsForEliminatedFactions();
       Images.GenerateMapOverlayImage();
-      Ui.RefreshUiForAllPlayers();
+      Ui.RefreshForAllPlayers();
     }
 
     void OnDiplomacyChanged()
     {
-      Ui.RefreshUiForAllPlayers();
+      Ui.RefreshForAllPlayers();
     }
   }
 }
@@ -2784,96 +2836,193 @@ namespace Oxide.Plugins
 
   public partial class Imperium
   {
-    public static string[] ProtectedPrefabs = new[]
+    static class Logistics
     {
-      "door.hinged",
-      "door.double.hinged",
-      "window.bars",
-      "wall.window",
-      "floor.ladder.hatch",
-      "floor.frame",
-      "wall.frame",
-      "shutter",
-      "wall.external",
-      "gates.external",
-      "cupboard"
-    };
-
-    object ScaleDamageForDecay(BaseEntity entity, HitInfo hit)
-    {
-      Area area = Areas.GetByEntityPosition(entity, true);
-      float reduction = 0;
-
-      if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
-        reduction = Options.ClaimedLandDecayReduction;
-
-      if (area.Type == AreaType.Town)
-        reduction = Options.TownDecayReduction;
-
-      if (reduction >= 1)
-        return false;
-
-      if (reduction > 0)
-        hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
-
-      return null;
-    }
-
-    object ScaleDamageForDefensiveBonus(BaseEntity entity, HitInfo hit, User attacker)
-    {
-      if (!ShouldAwardDefensiveBonus(entity))
-        return null;
-
-      // If someone is damaging their own entity, don't alter the damage.
-      if (attacker.Player.userID == entity.OwnerID)
-        return null;
-
-      Area area = Areas.GetByEntityPosition(entity, true);
-
-      if (area == null)
+      static string[] ProtectedPrefabs = new[]
       {
-        PrintWarning("An entity was damaged in an unknown area. This shouldn't happen.");
+        "door.hinged",
+        "door.double.hinged",
+        "window.bars",
+        "wall.window",
+        "floor.ladder.hatch",
+        "floor.frame",
+        "wall.frame",
+        "shutter",
+        "wall.external",
+        "gates.external",
+        "cupboard",
+        "waterbarrel"
+      };
+
+      public static object AlterDamage(BaseCombatEntity entity, HitInfo hit)
+      {
+        if (hit.damageTypes.Has(Rust.DamageType.Decay))
+          return AlterDecayDamage(entity, hit);
+
+        User attacker = Instance.Users.Get(hit.InitiatorPlayer);
+        var defendingPlayer = entity as BasePlayer;
+
+        if (attacker == null)
+          return null;
+
+        if (defendingPlayer != null)
+        {
+          // One player is damaging another.
+          User defender = Instance.Users.Get(defendingPlayer);
+          return AlterDamageBetweenPlayers(attacker, defender, hit);
+        }
+
+        // A player is damaging a structure.
+        return AlterDamageAgainstStructure(attacker, entity, hit);
+      }
+
+      public static object AlterTrapTrigger(BaseTrap trap, User defender)
+      {
+        if (!Instance.Options.EnableRestrictedPVP)
+          return null;
+
+        // A player can trigger their own traps, to prevent exploiting this mechanic.
+        if (defender.Player.userID == trap.OwnerID)
+          return null;
+
+        Area trapArea = Instance.Areas.GetByEntityPosition(trap, true);
+        Area defenderArea = Instance.Areas.GetByEntityPosition(defender.Player);
+
+        // A player can trigger a trap if both are in a danger zone.
+        if (trapArea.IsDangerZone && defenderArea.IsDangerZone)
+          return null;
+
+        return false;
+      }
+
+      public static object AlterTurretTrigger(BaseCombatEntity turret, User defender)
+      {
+        if (!Instance.Options.EnableRestrictedPVP)
+          return null;
+
+        // A player can be targeted by their own turrets, to prevent exploiting this mechanic.
+        if (defender.Player.userID == turret.OwnerID)
+          return null;
+
+        Area turretArea = Instance.Areas.GetByEntityPosition(turret, true);
+        Area defenderArea = Instance.Areas.GetByEntityPosition(defender.Player);
+
+        // A player can be targeted by a turret if both are in a danger zone.
+        if (turretArea.IsDangerZone && defenderArea.IsDangerZone)
+          return null;
+
+        return false;
+      }
+
+      static object AlterDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
+      {
+        if (!Instance.Options.EnableRestrictedPVP)
+          return null;
+
+        // Allow players to take the easy way out.
+        if (hit.damageTypes.Has(Rust.DamageType.Suicide))
+          return null;
+
+        if (attacker.CurrentArea == null)
+        {
+          Instance.PrintWarning("A player damaged another player from an unknown area. This shouldn't happen.");
+          return null;
+        }
+
+        if (defender.CurrentArea == null)
+        {
+          Instance.PrintWarning("A player was damaged in an unknown area. This shouldn't happen.");
+          return null;
+        }
+
+        // If both the attacker and the defender are in a danger zone, they can damage one another.
+        if (attacker.CurrentArea.IsDangerZone && attacker.CurrentArea.IsDangerZone)
+          return null;
+
+        // If both the attacker and defender are in an event zone, they can damage one another.
+        if (attacker.CurrentZones.Count > 0 && defender.CurrentZones.Count > 0)
+          return null;
+
+        // Stop the damage.
+        return false;
+      }
+
+      static object AlterDamageAgainstStructure(User attacker, BaseCombatEntity entity, HitInfo hit)
+      {
+        if (!Instance.Options.EnableDefensiveBonuses || !ShouldAwardDefensiveBonus(entity))
+          return null;
+
+        // If someone is damaging their own entity, don't alter the damage.
+        if (attacker.Player.userID == entity.OwnerID)
+          return null;
+
+        Area area = Instance.Areas.GetByEntityPosition(entity, true);
+
+        if (area == null)
+        {
+          Instance.PrintWarning("An entity was damaged in an unknown area. This shouldn't happen.");
+          return null;
+        }
+
+        // If the area isn't owned by a faction, it conveys no defensive bonuses.
+        if (!area.IsClaimed)
+          return null;
+
+        // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
+        if (attacker.Faction != null && attacker.Faction.Id == area.FactionId)
+          return null;
+
+        // Structures cannot be damaged, except during war.
+        if (!area.IsWarZone)
+          return false;
+
+        float reduction = area.GetDefensiveBonus();
+
+        if (reduction >= 1)
+          return false;
+
+        if (reduction > 0)
+          hit.damageTypes.ScaleAll(reduction);
+
         return null;
       }
 
-      // If the area isn't owned by a faction, it conveys no defensive bonuses.
-      if (!area.IsClaimed)
+      static object AlterDecayDamage(BaseEntity entity, HitInfo hit)
+      {
+        if (!Instance.Options.EnableDecayReduction)
+          return null;
+
+        Area area = Instance.Areas.GetByEntityPosition(entity, true);
+        float reduction = 0;
+
+        if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
+          reduction = Instance.Options.ClaimedLandDecayReduction;
+
+        if (area.Type == AreaType.Town)
+          reduction = Instance.Options.TownDecayReduction;
+
+        if (reduction >= 1)
+          return false;
+
+        if (reduction > 0)
+          hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
+
         return null;
+      }
 
-      Faction faction = Factions.GetByMember(attacker);
+      static bool ShouldAwardDefensiveBonus(BaseEntity entity)
+      {
+        var buildingBlock = entity as BuildingBlock;
 
-      // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
-      if (faction != null && faction.Id == area.FactionId)
-        return null;
+        if (buildingBlock != null)
+          return buildingBlock.grade != BuildingGrade.Enum.Twigs;
 
-      // Structures cannot be damaged, except during war.
-      if (!area.IsWarzone)
+        if (ProtectedPrefabs.Any(prefab => entity.ShortPrefabName.Contains(prefab)))
+          return true;
+
         return false;
-
-      float reduction = area.GetDefensiveBonus();
-
-      if (reduction >= 1)
-        return false;
-
-      if (reduction > 0)
-        hit.damageTypes.ScaleAll(reduction);
-
-      return null;
+      }
     }
-
-    bool ShouldAwardDefensiveBonus(BaseEntity entity)
-    {
-      var buildingBlock = entity as BuildingBlock;
-
-      if (buildingBlock != null)
-        return buildingBlock.grade != BuildingGrade.Enum.Twigs;
-
-      if (ProtectedPrefabs.Any(prefab => entity.ShortPrefabName.Contains(prefab)))
-        return true;
-
-      return false;
-    }
-
   }
 }
 ﻿namespace Oxide.Plugins
@@ -2888,6 +3037,7 @@ namespace Oxide.Plugins
       public bool EnableBadlands;
       public bool EnableDecayReduction;
       public bool EnableDefensiveBonuses;
+      public bool EnableRestrictedPVP;
       public bool EnableTaxation;
       public bool EnableTowns;
       public bool EnableUpkeep;
@@ -2902,9 +3052,13 @@ namespace Oxide.Plugins
       public float BadlandsGatherBonus;
       public float ClaimedLandDecayReduction;
       public float TownDecayReduction;
-      public List<int> ClaimCosts;
-      public List<int> UpkeepCosts;
-      public List<float> DefensiveBonuses;
+      public List<int> ClaimCosts = new List<int>();
+      public List<int> UpkeepCosts = new List<int>();
+      public List<float> DefensiveBonuses = new List<float>();
+      public HashSet<string> DangerousMonuments = new HashSet<string>();
+      public int ZoneDomeDarkness;
+      public float EventZoneRadius;
+      public float EventZoneLifespanSeconds;
       public int UpkeepCheckIntervalMinutes;
       public int UpkeepCollectionPeriodHours;
       public int UpkeepGracePeriodHours;
@@ -2922,6 +3076,7 @@ namespace Oxide.Plugins
         EnableBadlands = true,
         EnableDecayReduction = true,
         EnableDefensiveBonuses = true,
+        EnableRestrictedPVP = false,
         EnableTaxation = true,
         EnableTowns = true,
         EnableUpkeep = true,
@@ -2942,6 +3097,20 @@ namespace Oxide.Plugins
         UpkeepCollectionPeriodHours = 24,
         UpkeepGracePeriodHours = 12,
         DefensiveBonuses = new List<float> { 0, 0.5f, 1f },
+        DangerousMonuments = new HashSet<string> {
+          "airfield",
+          "sphere_tank",
+          "junkyard",
+          "launch_site",
+          "military_tunnel",
+          "powerplant",
+          "satellite_dish",
+          "trainyard",
+          "water_treatment_plant"
+        },
+        ZoneDomeDarkness = 3,
+        EventZoneRadius = 100f,
+        EventZoneLifespanSeconds = 600f,
         MapImageUrl = "",
         MapImageSize = 1440,
         CommandCooldownSeconds = 10
@@ -2983,7 +3152,12 @@ namespace Oxide.Plugins
         get { return Type == AreaType.Claimed || Type == AreaType.Headquarters; }
       }
 
-      public bool IsWarzone
+      public bool IsDangerZone // LANA!
+      {
+        get { return Type == AreaType.Badlands || IsWarZone; }
+      }
+
+      public bool IsWarZone
       {
         get { return GetActiveWars().Length > 0; }
       }
@@ -3000,7 +3174,7 @@ namespace Oxide.Plugins
           TryLoadInfo(info);
 
         gameObject.layer = (int)Layer.Reserved1;
-        gameObject.name = $"Imperium Area {id}";
+        gameObject.name = $"imperium_area_{id}";
         transform.position = position;
         transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
 
@@ -3075,16 +3249,24 @@ namespace Oxide.Plugins
 
       void OnTriggerEnter(Collider collider)
       {
+        if (collider.gameObject.layer != (int)Layer.Player_Server)
+          return;
+
         var user = collider.GetComponentInParent<User>();
+
         if (user != null && user.CurrentArea != this)
-          Api.HandleUserEnteredArea(this, user);
+          Api.HandleUserEnteredArea(user, this);
       }
 
       void OnTriggerExit(Collider collider)
       {
+        if (collider.gameObject.layer != (int)Layer.Player_Server)
+          return;
+
         var user = collider.GetComponentInParent<User>();
+
         if (user != null)
-          Api.HandleUserLeftArea(this, user);
+          Api.HandleUserLeftArea(user, this);
       }
 
       public float GetDistanceFromEntity(BaseEntity entity)
@@ -4341,6 +4523,7 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using System;
+  using System.Collections.Generic;
   using System.Text;
   using UnityEngine;
 
@@ -4355,6 +4538,7 @@ namespace Oxide.Plugins
       public UserHudPanel HudPanel { get; private set; }
 
       public Area CurrentArea { get; set; }
+      public HashSet<Zone> CurrentZones { get; private set; }
       public Faction Faction { get; private set; }
       public Interaction CurrentInteraction { get; private set; }
       public DateTime CommandCooldownExpirationTime { get; set; }
@@ -4379,6 +4563,7 @@ namespace Oxide.Plugins
         Player = player;
         CommandCooldownExpirationTime = DateTime.MinValue;
         OriginalName = player.displayName;
+        CurrentZones = new HashSet<Zone>();
 
         Map = new UserMap(this);
         HudPanel = new UserHudPanel(this);
@@ -4465,8 +4650,8 @@ namespace Oxide.Plugins
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
-          Api.HandleUserLeftArea(currentArea, this);
-          Api.HandleUserEnteredArea(correctArea, this);
+          Api.HandleUserLeftArea(this, currentArea);
+          Api.HandleUserEnteredArea(this, correctArea);
         }
       }
     }
@@ -4833,6 +5018,201 @@ namespace Oxide.Plugins
     }
   }
 }﻿namespace Oxide.Plugins
+{
+  using Rust;
+  using System.Collections.Generic;
+  using UnityEngine;
+
+  public partial class Imperium
+  {
+    class Zone : MonoBehaviour
+    {
+      const string SpherePrefab = "assets/prefabs/visualization/sphere.prefab";
+
+      List<BaseEntity> Spheres = new List<BaseEntity>();
+
+      public MonoBehaviour Owner { get; private set; }
+
+      public void Init(MonoBehaviour owner, string name, Vector3 position, float radius, int darkness, float? lifespan = null)
+      {
+        Owner = owner;
+
+        gameObject.layer = (int)Layer.Reserved1;
+        gameObject.name = $"imperium_zone_{name}";
+        transform.position = position;
+        transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
+
+        for (var idx = 0; idx < darkness; idx++)
+        {
+          var sphere = GameManager.server.CreateEntity(SpherePrefab, position);
+
+          SphereEntity entity = sphere.GetComponent<SphereEntity>();
+          entity.currentRadius = radius * 2;
+          entity.lerpSpeed = 0f;
+
+          sphere.Spawn();
+          Spheres.Add(sphere);
+        }
+
+        var collider = gameObject.AddComponent<SphereCollider>();
+        collider.radius = radius;
+        collider.isTrigger = true;
+        collider.enabled = true;
+
+        if (lifespan != null)
+          Invoke("DelayedDestroy", (int)lifespan);
+      }
+
+      void OnDestroy()
+      {
+        var collider = GetComponent<SphereCollider>();
+
+        if (collider != null)
+          Destroy(collider);
+
+        foreach (BaseEntity sphere in Spheres)
+          sphere.KillMessage();
+      }
+
+      void OnTriggerEnter(Collider collider)
+      {
+        if (collider.gameObject.layer != (int)Layer.Player_Server)
+          return;
+
+        var user = collider.GetComponentInParent<User>();
+
+        if (user != null && !user.CurrentZones.Contains(this))
+          Api.HandleUserEnteredZone(user, this);
+      }
+
+      void OnTriggerExit(Collider collider)
+      {
+        if (collider.gameObject.layer != (int)Layer.Player_Server)
+          return;
+
+        var user = collider.GetComponentInParent<User>();
+
+        if (user != null && user.CurrentZones.Contains(this))
+          Api.HandleUserLeftZone(user, this);
+      }
+
+      void DelayedDestroy()
+      {
+        Instance.Zones.Remove(this);
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System.Collections.Generic;
+  using System.Linq;
+  using UnityEngine;
+
+  public partial class Imperium
+  {
+    class ZoneManager
+    {
+      Dictionary<MonoBehaviour, Zone> Zones = new Dictionary<MonoBehaviour, Zone>();
+
+      public void Init()
+      {
+        MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
+        foreach (MonumentInfo monument in monuments.Where(IsDangerousMonument))
+          Create(monument);
+
+        SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
+        foreach (SupplyDrop drop in drops)
+          Create(drop);
+      }
+
+      public Zone Create(MonumentInfo monument)
+      {
+        Vector3 position = monument.transform.position;
+        float radius = monument.Bounds.size.x / 2;
+        return Create(monument, GetMonumentZoneName(monument), position, radius);
+      }
+
+      public Zone Create(SupplyDrop drop)
+      {
+        Vector3 position = GetGroundPosition(drop.transform.position);
+        float radius = Instance.Options.EventZoneRadius;
+        float lifespan = Instance.Options.EventZoneLifespanSeconds;
+        return Create(drop, drop.ShortPrefabName, position, radius, lifespan);
+      }
+
+      public Zone Create(BaseHelicopter helicopter)
+      {
+        Vector3 position = GetGroundPosition(helicopter.transform.position);
+        float radius = Instance.Options.EventZoneRadius;
+        float lifespan = Instance.Options.EventZoneLifespanSeconds;
+        return Create(helicopter, helicopter.ShortPrefabName, position, radius, lifespan);
+      }
+
+      public void Remove(Zone zone)
+      {
+        Instance.Puts($"Destroying zone {zone.name}");
+        UnityEngine.Object.Destroy(zone);
+        Zones.Remove(zone.Owner);
+      }
+
+      public void Destroy()
+      {
+        Zone[] zones = UnityEngine.Object.FindObjectsOfType<Zone>();
+
+        if (zones != null)
+        {
+          Instance.Puts($"Destroying {zones.Length} zone objects...");
+          foreach (Zone zone in zones)
+            UnityEngine.Object.DestroyImmediate(zone);
+        }
+
+        Zones.Clear();
+
+        Instance.Puts("Zone objects destroyed.");
+      }
+
+      Zone Create(MonoBehaviour owner, string name, Vector3 position, float radius, float? lifespan = null)
+      {
+        var zone = new GameObject().AddComponent<Zone>();
+        zone.Init(owner, name, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
+
+        Instance.Puts($"Created zone {zone.name} at {position} with radius {radius}");
+
+        if (lifespan != null)
+          Instance.Puts($"Zone {zone.name} will be destroyed in {lifespan} seconds");
+
+        Zones[owner] = zone;
+
+        return zone;
+      }
+
+      bool IsDangerousMonument(MonumentInfo monument)
+      {
+        if (monument.Type == MonumentType.Cave)
+          return false;
+
+        if (Instance.Options.DangerousMonuments == null)
+          return false;
+
+        return Instance.Options.DangerousMonuments.Any(pattern => monument.name.Contains(pattern));
+      }
+
+      string GetMonumentZoneName(MonumentInfo monument)
+      {
+        int begin = monument.name.LastIndexOf('/');
+        int end = monument.name.LastIndexOf('.');
+        return monument.name.Substring(begin + 1, end - begin - 1);
+      }
+
+      Vector3 GetGroundPosition(Vector3 pos)
+      {
+        return new Vector3(pos.x, TerrainMeta.HeightMap.GetHeight(pos), pos.z);
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
 
@@ -5749,7 +6129,7 @@ namespace Oxide.Plugins
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
         public const string Town = ImageBaseUrl + "icons/hud/town.png";
-        public const string Warzone = ImageBaseUrl + "icons/hud/warzone.png";
+        public const string WarZone = ImageBaseUrl + "icons/hud/warzone.png";
         public const string Wilderness = ImageBaseUrl + "icons/hud/wilderness.png";
       }
 
@@ -5779,7 +6159,7 @@ namespace Oxide.Plugins
         public const string WaterTreatmentPlant = ImageBaseUrl + "icons/map/water-treatment-plant.png";
       }
 
-      public static void RefreshUiForAllPlayers()
+      public static void RefreshForAllPlayers()
       {
         if (UpdatePending)
           return;
@@ -5807,19 +6187,19 @@ namespace Oxide.Plugins
 
   public partial class Imperium
   {
-    static class UserHudPanelColor
-    {
-      public const string BackgroundNormal = "1 0.95 0.875 0.025";
-      public const string BackgroundDanger = "0.77 0.25 0.17 0.5";
-      public const string BackgroundSafe = "0.31 0.37 0.20 0.75";
-      public const string TextNormal = "0.85 0.85 0.85 0.75";
-      public const string TextDanger = "0.85 0.65 0.65 1";
-      public const string TextSafe = "0.67 0.89 0.32 1";
-    }
-
     class UserHudPanel
     {
       const float IconSize = 0.075f;
+
+      static class PanelColor
+      {
+        public const string BackgroundNormal = "1 0.95 0.875 0.025";
+        public const string BackgroundDanger = "0.77 0.25 0.17 0.5";
+        public const string BackgroundSafe = "0.31 0.37 0.20 0.75";
+        public const string TextNormal = "0.85 0.85 0.85 0.75";
+        public const string TextDanger = "0.85 0.65 0.65 1";
+        public const string TextSafe = "0.67 0.89 0.32 1";
+      }
 
       public User User { get; }
       public bool IsDisabled { get; set; }
@@ -5877,26 +6257,26 @@ namespace Oxide.Plugins
         if (area.Type != AreaType.Wilderness)
         {
           container.Add(new CuiPanel {
-            Image = { Color = UserHudPanelColor.BackgroundNormal },
+            Image = { Color = PanelColor.BackgroundNormal },
             RectTransform = { AnchorMin = "0 0.7", AnchorMax = "1 1" }
           }, Ui.Element.HudPanel, Ui.Element.HudPanelTop);
 
           if (area.IsClaimed)
           {
             string defensiveBonus = String.Format("{0}%", area.GetDefensiveBonus() * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, UserHudPanelColor.TextNormal, defensiveBonus);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, PanelColor.TextNormal, defensiveBonus);
           }
 
           if (area.IsTaxableClaim)
           {
             string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, UserHudPanelColor.TextNormal, taxRate, 0.33f);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, PanelColor.TextNormal, taxRate, 0.33f);
           }
 
           if (area.Type == AreaType.Badlands)
           {
             string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.BadlandsGatherBonus * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, UserHudPanelColor.TextNormal, harvestBonus);
+            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, PanelColor.TextNormal, harvestBonus);
           }
         }
 
@@ -5910,26 +6290,26 @@ namespace Oxide.Plugins
         AddWidget(container, Ui.Element.HudPanelMiddle, areaIcon, GetTextColor(area), areaDescription);
 
         container.Add(new CuiPanel {
-          Image = { Color = UserHudPanelColor.BackgroundNormal },
+          Image = { Color = PanelColor.BackgroundNormal },
           RectTransform = { AnchorMin = "0 0", AnchorMax = "1 0.3" }
         }, Ui.Element.HudPanel, Ui.Element.HudPanelBottom);
 
         string currentTime = TOD_Sky.Instance.Cycle.DateTime.ToString("HH:mm");
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, UserHudPanelColor.TextNormal, currentTime);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, UserHudPanelColor.TextNormal, activePlayers, 0.33f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.33f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, UserHudPanelColor.TextNormal, sleepingPlayers, 0.66f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.66f);
 
         return container;
       }
 
       string GetAreaIcon(Area area)
       {
-        if (area.IsWarzone)
-          return Ui.HudIcon.Warzone;
+        if (area.IsWarZone)
+          return Ui.HudIcon.WarZone;
 
         switch (area.Type)
         {
@@ -5971,33 +6351,33 @@ namespace Oxide.Plugins
 
       string GetBackgroundColor(Area area)
       {
-        if (area.IsWarzone)
-          return UserHudPanelColor.BackgroundDanger;
+        if (area.IsWarZone)
+          return PanelColor.BackgroundDanger;
 
         switch (area.Type)
         {
           case AreaType.Badlands:
-            return UserHudPanelColor.BackgroundDanger;
+            return PanelColor.BackgroundDanger;
           case AreaType.Town:
-            return UserHudPanelColor.BackgroundSafe;
+            return PanelColor.BackgroundSafe;
           default:
-            return UserHudPanelColor.BackgroundNormal;
+            return PanelColor.BackgroundNormal;
         }
       }
 
       string GetTextColor(Area area)
       {
-        if (area.IsWarzone)
-          return UserHudPanelColor.TextDanger;
+        if (area.IsWarZone)
+          return PanelColor.TextDanger;
 
         switch (area.Type)
         {
           case AreaType.Badlands:
-            return UserHudPanelColor.TextDanger;
+            return PanelColor.TextDanger;
           case AreaType.Town:
-            return UserHudPanelColor.TextSafe;
+            return PanelColor.TextSafe;
           default:
-            return UserHudPanelColor.TextNormal;
+            return PanelColor.TextNormal;
         }
       }
 
