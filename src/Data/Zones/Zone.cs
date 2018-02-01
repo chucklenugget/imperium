@@ -12,10 +12,12 @@
 
       List<BaseEntity> Spheres = new List<BaseEntity>();
 
+      public ZoneType Type { get; private set; }
       public MonoBehaviour Owner { get; private set; }
 
-      public void Init(MonoBehaviour owner, string name, Vector3 position, float radius, int darkness, float? lifespan = null)
+      public void Init(ZoneType type, MonoBehaviour owner, string name, Vector3 position, float radius, int darkness, float? lifespan = null)
       {
+        Type = type;
         Owner = owner;
 
         gameObject.layer = (int)Layer.Reserved1;

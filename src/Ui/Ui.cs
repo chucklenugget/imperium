@@ -33,11 +33,13 @@
         public const string Badlands = ImageBaseUrl + "icons/hud/badlands.png";
         public const string Claimed = ImageBaseUrl + "icons/hud/claimed.png";
         public const string Clock = ImageBaseUrl + "icons/hud/clock.png";
+        public const string Debris = ImageBaseUrl + "icons/hud/debris.png";
         public const string Defense = ImageBaseUrl + "icons/hud/defense.png";
         public const string Harvest = ImageBaseUrl + "icons/hud/harvest.png";
         public const string Headquarters = ImageBaseUrl + "icons/hud/headquarters.png";
         public const string Players = ImageBaseUrl + "icons/hud/players.png";
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
+        public const string SupplyDrop = ImageBaseUrl + "icons/hud/supplydrop.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
         public const string Town = ImageBaseUrl + "icons/hud/town.png";
         public const string WarZone = ImageBaseUrl + "icons/hud/warzone.png";

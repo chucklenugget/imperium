@@ -28,7 +28,7 @@
       public List<int> ClaimCosts = new List<int>();
       public List<int> UpkeepCosts = new List<int>();
       public List<float> DefensiveBonuses = new List<float>();
-      public HashSet<string> DangerousMonuments = new HashSet<string>();
+      public Dictionary<string, float> MonumentZones = new Dictionary<string, float>();
       public int ZoneDomeDarkness;
       public float EventZoneRadius;
       public float EventZoneLifespanSeconds;
@@ -70,16 +70,16 @@
         UpkeepCollectionPeriodHours = 24,
         UpkeepGracePeriodHours = 12,
         DefensiveBonuses = new List<float> { 0, 0.5f, 1f },
-        DangerousMonuments = new HashSet<string> {
-          "airfield",
-          "sphere_tank",
-          "junkyard",
-          "launch_site",
-          "military_tunnel",
-          "powerplant",
-          "satellite_dish",
-          "trainyard",
-          "water_treatment_plant"
+        MonumentZones = new Dictionary<string, float> {
+          { "airfield", 200 },
+          { "sphere_tank", 200 },
+          { "junkyard", 200 },
+          { "launch_site", 200 },
+          { "military_tunnel", 200 },
+          { "powerplant", 200 },
+          { "satellite_dish", 200 },
+          { "trainyard", 200 },
+          { "water_treatment_plant", 200 }
         },
         ZoneDomeDarkness = 3,
         EventZoneRadius = 100f,

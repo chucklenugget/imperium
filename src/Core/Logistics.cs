@@ -57,7 +57,7 @@
         Area defenderArea = Instance.Areas.GetByEntityPosition(defender.Player);
 
         // A player can trigger a trap if both are in a danger zone.
-        if (trapArea.IsDangerZone && defenderArea.IsDangerZone)
+        if (trapArea.IsDangerous && defenderArea.IsDangerous)
           return null;
 
         return false;
@@ -76,7 +76,7 @@
         Area defenderArea = Instance.Areas.GetByEntityPosition(defender.Player);
 
         // A player can be targeted by a turret if both are in a danger zone.
-        if (turretArea.IsDangerZone && defenderArea.IsDangerZone)
+        if (turretArea.IsDangerous && defenderArea.IsDangerous)
           return null;
 
         return false;
@@ -104,7 +104,7 @@
         }
 
         // If both the attacker and the defender are in a danger zone, they can damage one another.
-        if (attacker.CurrentArea.IsDangerZone && attacker.CurrentArea.IsDangerZone)
+        if (attacker.CurrentArea.IsDangerous && attacker.CurrentArea.IsDangerous)
           return null;
 
         // If both the attacker and defender are in an event zone, they can damage one another.

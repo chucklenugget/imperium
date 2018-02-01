@@ -178,7 +178,14 @@
 
     void OnUserEnteredZone(User user, Zone zone)
     {
-      user.SendChatMessage($"Entered zone {zone.name}");
+      user.CurrentZones.Add(zone);
+      user.HudPanel.Refresh();
+    }
+
+    void OnUserLeftZone(User user, Zone zone)
+    {
+      user.CurrentZones.Remove(zone);
+      user.HudPanel.Refresh();
     }
 
     void OnFactionCreated(Faction faction)

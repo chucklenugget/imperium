@@ -30,7 +30,7 @@
         get { return Type == AreaType.Claimed || Type == AreaType.Headquarters; }
       }
 
-      public bool IsDangerZone // LANA!
+      public bool IsDangerous
       {
         get { return Type == AreaType.Badlands || IsWarZone; }
       }

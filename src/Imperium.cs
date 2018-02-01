@@ -110,7 +110,9 @@ namespace Oxide.Plugins
       Images.Init(TryLoad<ImageInfo>(ImagesFile));
       Zones.Init();
 
-      Images.GenerateMapOverlayImage();
+      NextTick(() => {
+        Images.GenerateMapOverlayImage();
+      });
 
       if (Options.EnableUpkeep)
         UpkeepCollectionTimer = timer.Every(Options.UpkeepCheckIntervalMinutes * 60, CollectUpkeepForAllFactions);

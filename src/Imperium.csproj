@@ -31,8 +31,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\Badlands\BadlandsHelp.cs" />
-    <Compile Include="Data\Zone\Zone.cs" />
-    <Compile Include="Data\Zone\ZoneManager.cs" />
+    <Compile Include="Data\Zones\Zone.cs" />
+    <Compile Include="Data\Zones\ZoneManager.cs" />
     <Compile Include="Data\Areas\AreaInfo.cs" />
     <Compile Include="Data\Areas\AreaType.cs" />
     <Compile Include="Commands\Badlands\Badlands.cs" />
@@ -93,6 +93,7 @@
     <Compile Include="Data\Factions\FactionEntityMonitor.cs" />
     <Compile Include="Data\Wars\WarEndReason.cs" />
     <Compile Include="Data\Wars\WarInfo.cs" />
+    <Compile Include="Data\Zones\ZoneType.cs" />
     <Compile Include="Framework\Util.cs" />
     <Compile Include="Imperium.cs" />
     <Compile Include="Core\Economics.cs" />

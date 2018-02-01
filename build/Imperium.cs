@@ -110,7 +110,9 @@ namespace Oxide.Plugins
       Images.Init(TryLoad<ImageInfo>(ImagesFile));
       Zones.Init();
 
-      Images.GenerateMapOverlayImage();
+      NextTick(() => {
+        Images.GenerateMapOverlayImage();
+      });
 
       if (Options.EnableUpkeep)
         UpkeepCollectionTimer = timer.Every(Options.UpkeepCheckIntervalMinutes * 60, CollectUpkeepForAllFactions);
@@ -2630,7 +2632,14 @@ namespace Oxide.Plugins
 
     void OnUserEnteredZone(User user, Zone zone)
     {
-      user.SendChatMessage($"Entered zone {zone.name}");
+      user.CurrentZones.Add(zone);
+      user.HudPanel.Refresh();
+    }
+
+    void OnUserLeftZone(User user, Zone zone)
+    {
+      user.CurrentZones.Remove(zone);
+      user.HudPanel.Refresh();
     }
 
     void OnFactionCreated(Faction faction)
@@ -2889,7 +2898,7 @@ namespace Oxide.Plugins
         Area defenderArea = Instance.Areas.GetByEntityPosition(defender.Player);
 
         // A player can trigger a trap if both are in a danger zone.
-        if (trapArea.IsDangerZone && defenderArea.IsDangerZone)
+        if (trapArea.IsDangerous && defenderArea.IsDangerous)
           return null;
 
         return false;
@@ -2908,7 +2917,7 @@ namespace Oxide.Plugins
         Area defenderArea = Instance.Areas.GetByEntityPosition(defender.Player);
 
         // A player can be targeted by a turret if both are in a danger zone.
-        if (turretArea.IsDangerZone && defenderArea.IsDangerZone)
+        if (turretArea.IsDangerous && defenderArea.IsDangerous)
           return null;
 
         return false;
@@ -2936,7 +2945,7 @@ namespace Oxide.Plugins
         }
 
         // If both the attacker and the defender are in a danger zone, they can damage one another.
-        if (attacker.CurrentArea.IsDangerZone && attacker.CurrentArea.IsDangerZone)
+        if (attacker.CurrentArea.IsDangerous && attacker.CurrentArea.IsDangerous)
           return null;
 
         // If both the attacker and defender are in an event zone, they can damage one another.
@@ -3055,7 +3064,7 @@ namespace Oxide.Plugins
       public List<int> ClaimCosts = new List<int>();
       public List<int> UpkeepCosts = new List<int>();
       public List<float> DefensiveBonuses = new List<float>();
-      public HashSet<string> DangerousMonuments = new HashSet<string>();
+      public Dictionary<string, float> MonumentZones = new Dictionary<string, float>();
       public int ZoneDomeDarkness;
       public float EventZoneRadius;
       public float EventZoneLifespanSeconds;
@@ -3097,16 +3106,16 @@ namespace Oxide.Plugins
         UpkeepCollectionPeriodHours = 24,
         UpkeepGracePeriodHours = 12,
         DefensiveBonuses = new List<float> { 0, 0.5f, 1f },
-        DangerousMonuments = new HashSet<string> {
-          "airfield",
-          "sphere_tank",
-          "junkyard",
-          "launch_site",
-          "military_tunnel",
-          "powerplant",
-          "satellite_dish",
-          "trainyard",
-          "water_treatment_plant"
+        MonumentZones = new Dictionary<string, float> {
+          { "airfield", 200 },
+          { "sphere_tank", 200 },
+          { "junkyard", 200 },
+          { "launch_site", 200 },
+          { "military_tunnel", 200 },
+          { "powerplant", 200 },
+          { "satellite_dish", 200 },
+          { "trainyard", 200 },
+          { "water_treatment_plant", 200 }
         },
         ZoneDomeDarkness = 3,
         EventZoneRadius = 100f,
@@ -3152,7 +3161,7 @@ namespace Oxide.Plugins
         get { return Type == AreaType.Claimed || Type == AreaType.Headquarters; }
       }
 
-      public bool IsDangerZone // LANA!
+      public bool IsDangerous
       {
         get { return Type == AreaType.Badlands || IsWarZone; }
       }
@@ -5031,10 +5040,12 @@ namespace Oxide.Plugins
 
       List<BaseEntity> Spheres = new List<BaseEntity>();
 
+      public ZoneType Type { get; private set; }
       public MonoBehaviour Owner { get; private set; }
 
-      public void Init(MonoBehaviour owner, string name, Vector3 position, float radius, int darkness, float? lifespan = null)
+      public void Init(ZoneType type, MonoBehaviour owner, string name, Vector3 position, float radius, int darkness, float? lifespan = null)
       {
+        Type = type;
         Owner = owner;
 
         gameObject.layer = (int)Layer.Reserved1;
@@ -5106,7 +5117,6 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
-  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -5117,20 +5127,27 @@ namespace Oxide.Plugins
 
       public void Init()
       {
-        MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
-        foreach (MonumentInfo monument in monuments.Where(IsDangerousMonument))
-          Create(monument);
+        if (Instance.Options.MonumentZones != null)
+        {
+          MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
+          foreach (MonumentInfo monument in monuments)
+          {
+            float? radius = GetMonumentZoneRadius(monument);
+            if (radius != null)
+              Create(monument, (float)radius);
+          }
+        }
 
         SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
         foreach (SupplyDrop drop in drops)
           Create(drop);
       }
 
-      public Zone Create(MonumentInfo monument)
+      public Zone Create(MonumentInfo monument, float radius)
       {
         Vector3 position = monument.transform.position;
-        float radius = monument.Bounds.size.x / 2;
-        return Create(monument, GetMonumentZoneName(monument), position, radius);
+        Vector3 size = monument.Bounds.size;
+        return Create(ZoneType.Monument, monument, GetMonumentZoneName(monument), position, radius);
       }
 
       public Zone Create(SupplyDrop drop)
@@ -5138,7 +5155,7 @@ namespace Oxide.Plugins
         Vector3 position = GetGroundPosition(drop.transform.position);
         float radius = Instance.Options.EventZoneRadius;
         float lifespan = Instance.Options.EventZoneLifespanSeconds;
-        return Create(drop, drop.ShortPrefabName, position, radius, lifespan);
+        return Create(ZoneType.SupplyDrop, drop, drop.ShortPrefabName, position, radius, lifespan);
       }
 
       public Zone Create(BaseHelicopter helicopter)
@@ -5146,7 +5163,7 @@ namespace Oxide.Plugins
         Vector3 position = GetGroundPosition(helicopter.transform.position);
         float radius = Instance.Options.EventZoneRadius;
         float lifespan = Instance.Options.EventZoneLifespanSeconds;
-        return Create(helicopter, helicopter.ShortPrefabName, position, radius, lifespan);
+        return Create(ZoneType.Debris, helicopter, helicopter.ShortPrefabName, position, radius, lifespan);
       }
 
       public void Remove(Zone zone)
@@ -5172,10 +5189,10 @@ namespace Oxide.Plugins
         Instance.Puts("Zone objects destroyed.");
       }
 
-      Zone Create(MonoBehaviour owner, string name, Vector3 position, float radius, float? lifespan = null)
+      Zone Create(ZoneType type, MonoBehaviour owner, string name, Vector3 position, float radius, float? lifespan = null)
       {
         var zone = new GameObject().AddComponent<Zone>();
-        zone.Init(owner, name, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
+        zone.Init(type, owner, name, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
 
         Instance.Puts($"Created zone {zone.name} at {position} with radius {radius}");
 
@@ -5187,15 +5204,18 @@ namespace Oxide.Plugins
         return zone;
       }
 
-      bool IsDangerousMonument(MonumentInfo monument)
+      float? GetMonumentZoneRadius(MonumentInfo monument)
       {
         if (monument.Type == MonumentType.Cave)
-          return false;
+          return null;
 
-        if (Instance.Options.DangerousMonuments == null)
-          return false;
+        foreach (var entry in Instance.Options.MonumentZones)
+        {
+          if (monument.name.Contains(entry.Key))
+            return entry.Value;
+        }
 
-        return Instance.Options.DangerousMonuments.Any(pattern => monument.name.Contains(pattern));
+        return null;
       }
 
       string GetMonumentZoneName(MonumentInfo monument)
@@ -5209,6 +5229,18 @@ namespace Oxide.Plugins
       {
         return new Vector3(pos.x, TerrainMeta.HeightMap.GetHeight(pos), pos.z);
       }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    public enum ZoneType
+    {
+      Monument,
+      SupplyDrop,
+      Debris
     }
   }
 }
@@ -6122,11 +6154,13 @@ namespace Oxide.Plugins
         public const string Badlands = ImageBaseUrl + "icons/hud/badlands.png";
         public const string Claimed = ImageBaseUrl + "icons/hud/claimed.png";
         public const string Clock = ImageBaseUrl + "icons/hud/clock.png";
+        public const string Debris = ImageBaseUrl + "icons/hud/debris.png";
         public const string Defense = ImageBaseUrl + "icons/hud/defense.png";
         public const string Harvest = ImageBaseUrl + "icons/hud/harvest.png";
         public const string Headquarters = ImageBaseUrl + "icons/hud/headquarters.png";
         public const string Players = ImageBaseUrl + "icons/hud/players.png";
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
+        public const string SupplyDrop = ImageBaseUrl + "icons/hud/supplydrop.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
         public const string Town = ImageBaseUrl + "icons/hud/town.png";
         public const string WarZone = ImageBaseUrl + "icons/hud/warzone.png";
@@ -6183,6 +6217,7 @@ namespace Oxide.Plugins
 {
   using Oxide.Game.Rust.Cui;
   using System;
+  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -6281,13 +6316,11 @@ namespace Oxide.Plugins
         }
 
         container.Add(new CuiPanel {
-          Image = { Color = GetBackgroundColor(area) },
+          Image = { Color = GetLocationBackgroundColor() },
           RectTransform = { AnchorMin = "0 0.35", AnchorMax = "1 0.65" }
         }, Ui.Element.HudPanel, Ui.Element.HudPanelMiddle);
 
-        string areaIcon = GetAreaIcon(area);
-        string areaDescription = GetAreaDescription(area);
-        AddWidget(container, Ui.Element.HudPanelMiddle, areaIcon, GetTextColor(area), areaDescription);
+        AddWidget(container, Ui.Element.HudPanelMiddle, GetLocationIcon(), GetLocationTextColor(), GetLocationDescription());
 
         container.Add(new CuiPanel {
           Image = { Color = PanelColor.BackgroundNormal },
@@ -6306,8 +6339,25 @@ namespace Oxide.Plugins
         return container;
       }
 
-      string GetAreaIcon(Area area)
+      string GetLocationIcon()
       {
+        Zone zone = User.CurrentZones.FirstOrDefault();
+
+        if (zone != null)
+        {
+          switch (zone.Type)
+          {
+            case ZoneType.SupplyDrop:
+              return Ui.HudIcon.SupplyDrop;
+            case ZoneType.Debris:
+              return Ui.HudIcon.Debris;
+            case ZoneType.Monument:
+              return Ui.HudIcon.Badlands;
+          }
+        }
+
+        Area area = User.CurrentArea;
+
         if (area.IsWarZone)
           return Ui.HudIcon.WarZone;
 
@@ -6326,8 +6376,24 @@ namespace Oxide.Plugins
         }
       }
 
-      string GetAreaDescription(Area area)
+      string GetLocationDescription()
       {
+        Area area = User.CurrentArea;
+        Zone zone = User.CurrentZones.FirstOrDefault();
+
+        if (zone != null)
+        {
+          switch (zone.Type)
+          {
+            case ZoneType.SupplyDrop:
+              return $"{area.Id}: Supply Drop Area";
+            case ZoneType.Debris:
+              return $"{area.Id}: Debris Field";
+            case ZoneType.Monument:
+              return $"{area.Id}: Monument";
+          }
+        }
+
         switch (area.Type)
         {
           case AreaType.Badlands:
@@ -6349,8 +6415,13 @@ namespace Oxide.Plugins
         }
       }
 
-      string GetBackgroundColor(Area area)
+      string GetLocationBackgroundColor()
       {
+        if (User.CurrentZones.Count > 0)
+          return PanelColor.BackgroundDanger;
+
+        Area area = User.CurrentArea;
+
         if (area.IsWarZone)
           return PanelColor.BackgroundDanger;
 
@@ -6365,8 +6436,13 @@ namespace Oxide.Plugins
         }
       }
 
-      string GetTextColor(Area area)
+      string GetLocationTextColor()
       {
+        if (User.CurrentZones.Count > 0)
+          return PanelColor.TextDanger;
+
+        Area area = User.CurrentArea;
+
         if (area.IsWarZone)
           return PanelColor.TextDanger;
 

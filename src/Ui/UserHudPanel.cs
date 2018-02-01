@@ -2,6 +2,7 @@
 {
   using Oxide.Game.Rust.Cui;
   using System;
+  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -100,13 +101,11 @@
         }
 
         container.Add(new CuiPanel {
-          Image = { Color = GetBackgroundColor(area) },
+          Image = { Color = GetLocationBackgroundColor() },
           RectTransform = { AnchorMin = "0 0.35", AnchorMax = "1 0.65" }
         }, Ui.Element.HudPanel, Ui.Element.HudPanelMiddle);
 
-        string areaIcon = GetAreaIcon(area);
-        string areaDescription = GetAreaDescription(area);
-        AddWidget(container, Ui.Element.HudPanelMiddle, areaIcon, GetTextColor(area), areaDescription);
+        AddWidget(container, Ui.Element.HudPanelMiddle, GetLocationIcon(), GetLocationTextColor(), GetLocationDescription());
 
         container.Add(new CuiPanel {
           Image = { Color = PanelColor.BackgroundNormal },
@@ -125,8 +124,25 @@
         return container;
       }
 
-      string GetAreaIcon(Area area)
+      string GetLocationIcon()
       {
+        Zone zone = User.CurrentZones.FirstOrDefault();
+
+        if (zone != null)
+        {
+          switch (zone.Type)
+          {
+            case ZoneType.SupplyDrop:
+              return Ui.HudIcon.SupplyDrop;
+            case ZoneType.Debris:
+              return Ui.HudIcon.Debris;
+            case ZoneType.Monument:
+              return Ui.HudIcon.Badlands;
+          }
+        }
+
+        Area area = User.CurrentArea;
+
         if (area.IsWarZone)
           return Ui.HudIcon.WarZone;
 
@@ -145,8 +161,24 @@
         }
       }
 
-      string GetAreaDescription(Area area)
+      string GetLocationDescription()
       {
+        Area area = User.CurrentArea;
+        Zone zone = User.CurrentZones.FirstOrDefault();
+
+        if (zone != null)
+        {
+          switch (zone.Type)
+          {
+            case ZoneType.SupplyDrop:
+              return $"{area.Id}: Supply Drop Area";
+            case ZoneType.Debris:
+              return $"{area.Id}: Debris Field";
+            case ZoneType.Monument:
+              return $"{area.Id}: Monument";
+          }
+        }
+
         switch (area.Type)
         {
           case AreaType.Badlands:
@@ -168,8 +200,13 @@
         }
       }
 
-      string GetBackgroundColor(Area area)
+      string GetLocationBackgroundColor()
       {
+        if (User.CurrentZones.Count > 0)
+          return PanelColor.BackgroundDanger;
+
+        Area area = User.CurrentArea;
+
         if (area.IsWarZone)
           return PanelColor.BackgroundDanger;
 
@@ -184,8 +221,13 @@
         }
       }
 
-      string GetTextColor(Area area)
+      string GetLocationTextColor()
       {
+        if (User.CurrentZones.Count > 0)
+          return PanelColor.TextDanger;
+
+        Area area = User.CurrentArea;
+
         if (area.IsWarZone)
           return PanelColor.TextDanger;
 

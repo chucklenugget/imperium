@@ -1,7 +1,6 @@
 ﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
-  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -12,20 +11,27 @@
 
       public void Init()
       {
-        MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
-        foreach (MonumentInfo monument in monuments.Where(IsDangerousMonument))
-          Create(monument);
+        if (Instance.Options.MonumentZones != null)
+        {
+          MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
+          foreach (MonumentInfo monument in monuments)
+          {
+            float? radius = GetMonumentZoneRadius(monument);
+            if (radius != null)
+              Create(monument, (float)radius);
+          }
+        }
 
         SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
         foreach (SupplyDrop drop in drops)
           Create(drop);
       }
 
-      public Zone Create(MonumentInfo monument)
+      public Zone Create(MonumentInfo monument, float radius)
       {
         Vector3 position = monument.transform.position;
-        float radius = monument.Bounds.size.x / 2;
-        return Create(monument, GetMonumentZoneName(monument), position, radius);
+        Vector3 size = monument.Bounds.size;
+        return Create(ZoneType.Monument, monument, GetMonumentZoneName(monument), position, radius);
       }
 
       public Zone Create(SupplyDrop drop)
@@ -33,7 +39,7 @@
         Vector3 position = GetGroundPosition(drop.transform.position);
         float radius = Instance.Options.EventZoneRadius;
         float lifespan = Instance.Options.EventZoneLifespanSeconds;
-        return Create(drop, drop.ShortPrefabName, position, radius, lifespan);
+        return Create(ZoneType.SupplyDrop, drop, drop.ShortPrefabName, position, radius, lifespan);
       }
 
       public Zone Create(BaseHelicopter helicopter)
@@ -41,7 +47,7 @@
         Vector3 position = GetGroundPosition(helicopter.transform.position);
         float radius = Instance.Options.EventZoneRadius;
         float lifespan = Instance.Options.EventZoneLifespanSeconds;
-        return Create(helicopter, helicopter.ShortPrefabName, position, radius, lifespan);
+        return Create(ZoneType.Debris, helicopter, helicopter.ShortPrefabName, position, radius, lifespan);
       }
 
       public void Remove(Zone zone)
@@ -67,10 +73,10 @@
         Instance.Puts("Zone objects destroyed.");
       }
 
-      Zone Create(MonoBehaviour owner, string name, Vector3 position, float radius, float? lifespan = null)
+      Zone Create(ZoneType type, MonoBehaviour owner, string name, Vector3 position, float radius, float? lifespan = null)
       {
         var zone = new GameObject().AddComponent<Zone>();
-        zone.Init(owner, name, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
+        zone.Init(type, owner, name, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
 
         Instance.Puts($"Created zone {zone.name} at {position} with radius {radius}");
 
@@ -82,15 +88,18 @@
         return zone;
       }
 
-      bool IsDangerousMonument(MonumentInfo monument)
+      float? GetMonumentZoneRadius(MonumentInfo monument)
       {
         if (monument.Type == MonumentType.Cave)
-          return false;
+          return null;
 
-        if (Instance.Options.DangerousMonuments == null)
-          return false;
+        foreach (var entry in Instance.Options.MonumentZones)
+        {
+          if (monument.name.Contains(entry.Key))
+            return entry.Value;
+        }
 
-        return Instance.Options.DangerousMonuments.Any(pattern => monument.name.Contains(pattern));
+        return null;
       }
 
       string GetMonumentZoneName(MonumentInfo monument)
