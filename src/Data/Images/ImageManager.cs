@@ -76,13 +76,8 @@
         MapOverlayGenerator.Generate();
       }
 
-      public void Init(IEnumerable<ImageInfo> imageInfos)
+      public void Init()
       {
-        foreach (ImageInfo info in imageInfos)
-          Images.Add(info.Url, new Image(info));
-
-        Instance.Puts($"Loaded {Images.Values.Count} cached images.");
-
         if (!String.IsNullOrEmpty(Instance.Options.MapImageUrl))
           RegisterImage(Instance.Options.MapImageUrl);
 
@@ -90,15 +85,14 @@
         RegisterDefaultImages(typeof(Ui.MapIcon));
       }
 
-      public ImageInfo[] Serialize()
-      {
-        return Images.Values.Select(image => image.Serialize()).ToArray();
-      }
-
       public void Destroy()
       {
         UnityEngine.Object.DestroyImmediate(ImageDownloader);
         UnityEngine.Object.DestroyImmediate(MapOverlayGenerator);
+
+        foreach (Image image in Images.Values)
+          image.Delete();
+
         Images.Clear();
       }
 

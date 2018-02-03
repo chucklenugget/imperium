@@ -28,7 +28,7 @@ namespace Oxide.Plugins
   using UnityEngine;
   using System.Collections.Generic;
 
-  [Info("Imperium", "chucklenugget", "1.4.0")]
+  [Info("Imperium", "chucklenugget", "1.4.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -36,7 +36,6 @@ namespace Oxide.Plugins
     DynamicConfigFile AreasFile;
     DynamicConfigFile FactionsFile;
     DynamicConfigFile WarsFile;
-    DynamicConfigFile ImagesFile;
 
     GameObject GameObject;
     ImperiumOptions Options;
@@ -62,7 +61,6 @@ namespace Oxide.Plugins
       AreasFile = GetDataFile("areas");
       FactionsFile = GetDataFile("factions");
       WarsFile = GetDataFile("wars");
-      ImagesFile = GetDataFile("images");
 
       Areas = new AreaManager();
       Factions = new FactionManager();
@@ -109,7 +107,7 @@ namespace Oxide.Plugins
       Areas.Init(TryLoad<AreaInfo>(AreasFile));
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
-      Images.Init(TryLoad<ImageInfo>(ImagesFile));
+      Images.Init();
       Zones.Init();
 
       NextTick(() => {
@@ -125,7 +123,6 @@ namespace Oxide.Plugins
       AreasFile.WriteObject(Areas.Serialize());
       FactionsFile.WriteObject(Factions.Serialize());
       WarsFile.WriteObject(Wars.Serialize());
-      ImagesFile.WriteObject(Images.Serialize());
     }
 
     void Unload()

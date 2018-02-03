@@ -124,7 +124,6 @@
     <Compile Include="Data\Images\FactionColorPicker.cs" />
     <Compile Include="Data\Images\Image.cs" />
     <Compile Include="Data\Images\ImageDownloader.cs" />
-    <Compile Include="Data\Images\ImageInfo.cs" />
     <Compile Include="Ui\MapGrid.cs" />
     <Compile Include="Ui\MapMarker.cs" />
     <Compile Include="Data\Images\MapOverlayGenerator.cs" />

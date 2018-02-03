@@ -28,7 +28,7 @@ namespace Oxide.Plugins
   using UnityEngine;
   using System.Collections.Generic;
 
-  [Info("Imperium", "chucklenugget", "1.4.0")]
+  [Info("Imperium", "chucklenugget", "1.4.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -36,7 +36,6 @@ namespace Oxide.Plugins
     DynamicConfigFile AreasFile;
     DynamicConfigFile FactionsFile;
     DynamicConfigFile WarsFile;
-    DynamicConfigFile ImagesFile;
 
     GameObject GameObject;
     ImperiumOptions Options;
@@ -62,7 +61,6 @@ namespace Oxide.Plugins
       AreasFile = GetDataFile("areas");
       FactionsFile = GetDataFile("factions");
       WarsFile = GetDataFile("wars");
-      ImagesFile = GetDataFile("images");
 
       Areas = new AreaManager();
       Factions = new FactionManager();
@@ -109,7 +107,7 @@ namespace Oxide.Plugins
       Areas.Init(TryLoad<AreaInfo>(AreasFile));
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
-      Images.Init(TryLoad<ImageInfo>(ImagesFile));
+      Images.Init();
       Zones.Init();
 
       NextTick(() => {
@@ -125,7 +123,6 @@ namespace Oxide.Plugins
       AreasFile.WriteObject(Areas.Serialize());
       FactionsFile.WriteObject(Factions.Serialize());
       WarsFile.WriteObject(Wars.Serialize());
-      ImagesFile.WriteObject(Images.Serialize());
     }
 
     void Unload()
@@ -2550,12 +2547,10 @@ namespace Oxide.Plugins
       if (player == null)
         return null;
 
-      // If a player died in an area or a zone, remove them.
-      Puts($"Player died");
+      // When a player dies, remove them from the area and any zones they were in.
       User user = Users.Get(player);
       if (user != null)
       {
-        Puts($"Removing {user.UserName} from areas and zones");
         user.CurrentArea = null;
         user.CurrentZones.Clear();
       }
@@ -4217,32 +4212,18 @@ namespace Oxide.Plugins
         Id = id;
       }
 
-      public Image(ImageInfo info)
-      {
-        Url = info.Url;
-        Id = info.Id;
-      }
-
       public string Save(byte[] data)
       {
         if (IsDownloaded) Delete();
-        Id = FileStorage.server.Store(data, FileStorage.Type.png, UInt32.MaxValue, 0).ToString();
+        Id = FileStorage.server.Store(data, FileStorage.Type.png, CommunityEntity.ServerInstance.net.ID, 0).ToString();
         return Id;
       }
 
       public void Delete()
       {
         if (!IsDownloaded) return;
-        FileStorage.server.Remove(Convert.ToUInt32(Id), FileStorage.Type.png, UInt32.MaxValue);
+        FileStorage.server.Remove(Convert.ToUInt32(Id), FileStorage.Type.png, CommunityEntity.ServerInstance.net.ID);
         Id = null;
-      }
-
-      public ImageInfo Serialize()
-      {
-        return new ImageInfo {
-          Url = Url,
-          Id = Id
-        };
       }
     }
   }
@@ -4304,22 +4285,6 @@ namespace Oxide.Plugins
           DownloadNext();
         }
       }
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using Newtonsoft.Json;
-
-  public partial class Imperium
-  {
-    class ImageInfo
-    {
-      [JsonProperty("url")]
-      public string Url;
-
-      [JsonProperty("id")]
-      public string Id;
     }
   }
 }
@@ -4401,13 +4366,8 @@ namespace Oxide.Plugins
         MapOverlayGenerator.Generate();
       }
 
-      public void Init(IEnumerable<ImageInfo> imageInfos)
+      public void Init()
       {
-        foreach (ImageInfo info in imageInfos)
-          Images.Add(info.Url, new Image(info));
-
-        Instance.Puts($"Loaded {Images.Values.Count} cached images.");
-
         if (!String.IsNullOrEmpty(Instance.Options.MapImageUrl))
           RegisterImage(Instance.Options.MapImageUrl);
 
@@ -4415,15 +4375,14 @@ namespace Oxide.Plugins
         RegisterDefaultImages(typeof(Ui.MapIcon));
       }
 
-      public ImageInfo[] Serialize()
-      {
-        return Images.Values.Select(image => image.Serialize()).ToArray();
-      }
-
       public void Destroy()
       {
         UnityEngine.Object.DestroyImmediate(ImageDownloader);
         UnityEngine.Object.DestroyImmediate(MapOverlayGenerator);
+
+        foreach (Image image in Images.Values)
+          image.Delete();
+
         Images.Clear();
       }
 
