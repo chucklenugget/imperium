@@ -1,6 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
   using System;
+  using System.Collections.Generic;
 
   public partial class Imperium
   {

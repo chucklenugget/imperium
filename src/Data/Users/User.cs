@@ -13,7 +13,7 @@
 
       public BasePlayer Player { get; private set; }
       public UserMap Map { get; private set; }
-      public UserHudPanel HudPanel { get; private set; }
+      public UserHud Hud { get; private set; }
 
       public Area CurrentArea { get; set; }
       public HashSet<Zone> CurrentZones { get; private set; }
@@ -44,7 +44,7 @@
         CurrentZones = new HashSet<Zone>();
 
         Map = new UserMap(this);
-        HudPanel = new UserHudPanel(this);
+        Hud = new UserHud(this);
 
         InvokeRepeating("UpdateHud", 5f, 5f);
         InvokeRepeating("CheckArea", 2f, 2f);
@@ -53,7 +53,7 @@
       void OnDestroy()
       {
         Map.Hide();
-        HudPanel.Hide();
+        Hud.Hide();
 
         if (IsInvoking("UpdateHud")) CancelInvoke("UpdateHud");
         if (IsInvoking("CheckArea")) CancelInvoke("CheckArea");
@@ -114,7 +114,7 @@
 
       void UpdateHud()
       {
-        HudPanel.Refresh();
+        Hud.Refresh();
       }
 
       public int GetSecondsUntilNextCommand()

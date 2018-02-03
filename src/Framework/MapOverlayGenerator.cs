@@ -76,7 +76,7 @@
           var converter = new ImageConverter();
           var imageData = (byte[])converter.ConvertTo(bitmap, typeof(byte[]));
 
-          Image image = Instance.Images.RegisterImage(Ui.MapOverlayImageUrl, imageData, true);
+          Image image = Instance.Hud.RegisterImage(Ui.MapOverlayImageUrl, imageData, true);
 
           Instance.Puts($"Generated new map overlay image {image.Id}.");
           Instance.Log($"Created new map overlay image {image.Id}.");

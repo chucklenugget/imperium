@@ -43,9 +43,9 @@ namespace Oxide.Plugins
 
     AreaManager Areas;
     FactionManager Factions;
-    WarManager Wars;
+    HudManager Hud;
     UserManager Users;
-    ImageManager Images;
+    WarManager Wars;
     ZoneManager Zones;
 
     const string PERM_CHANGE_FACTIONS = "imperium.factions";
@@ -64,9 +64,9 @@ namespace Oxide.Plugins
 
       Areas = new AreaManager();
       Factions = new FactionManager();
-      Wars = new WarManager();
-      Images = new ImageManager();
+      Hud = new HudManager();
       Users = new UserManager();
+      Wars = new WarManager();
       Zones = new ZoneManager();
 
       PrintToChat($"{Title} v{Version} initialized.");
@@ -107,11 +107,11 @@ namespace Oxide.Plugins
       Areas.Init(TryLoad<AreaInfo>(AreasFile));
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
-      Images.Init();
       Zones.Init();
+      Hud.Init();
 
       NextTick(() => {
-        Images.GenerateMapOverlayImage();
+        Hud.GenerateMapOverlayImage();
       });
 
       if (Options.EnableUpkeep)
@@ -127,8 +127,8 @@ namespace Oxide.Plugins
 
     void Unload()
     {
+      Hud.Destroy();
       Zones.Destroy();
-      Images.Destroy();
       Users.Destroy();
       Wars.Destroy();
       Areas.Destroy();
@@ -137,7 +137,9 @@ namespace Oxide.Plugins
       if (UpkeepCollectionTimer != null && !UpkeepCollectionTimer.Destroyed)
         UpkeepCollectionTimer.Destroy();
 
-      UnityEngine.Object.Destroy(GameObject);
+      if (GameObject != null)
+        UnityEngine.Object.Destroy(GameObject);
+
       Instance = null;
     }
 

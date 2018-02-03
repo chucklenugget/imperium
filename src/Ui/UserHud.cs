@@ -7,7 +7,7 @@
 
   public partial class Imperium
   {
-    class UserHudPanel
+    class UserHud
     {
       const float IconSize = 0.075f;
 
@@ -24,7 +24,7 @@
       public User User { get; }
       public bool IsDisabled { get; set; }
 
-      public UserHudPanel(User user)
+      public UserHud(User user)
       {
         User = user;
       }
@@ -116,10 +116,16 @@
         AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.33f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.3f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.66f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.53f);
+
+        string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
+        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.78f);
+
+        string heliIcon = Instance.Hud.GameEvents.IsHelicopterActive ? Ui.HudIcon.HelicopterIndicatorOn : Ui.HudIcon.HelicopterIndicatorOff;
+        AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.88f);
 
         return container;
       }
@@ -167,17 +173,7 @@
         Zone zone = User.CurrentZones.FirstOrDefault();
 
         if (zone != null)
-        {
-          switch (zone.Type)
-          {
-            case ZoneType.SupplyDrop:
-              return $"{area.Id}: Supply Drop Area";
-            case ZoneType.Debris:
-              return $"{area.Id}: Debris Field";
-            case ZoneType.Monument:
-              return $"{area.Id}: Monument";
-          }
-        }
+          return $"{area.Id}: {zone.Name}";
 
         switch (area.Type)
         {
@@ -250,7 +246,7 @@
           Name = Ui.Element.HudPanelIcon + guid,
           Parent = parent,
           Components = {
-            Instance.Images.CreateImageComponent(iconName),
+            Instance.Hud.CreateImageComponent(iconName),
             new CuiRectTransformComponent {
               AnchorMin = $"{left} {IconSize}",
               AnchorMax = $"{left + IconSize} {1 - IconSize}",
@@ -274,6 +270,25 @@
             OffsetMax = "12 0"
           }
         }, parent, Ui.Element.HudPanelText + guid);
+      }
+
+      void AddWidget(CuiElementContainer container, string parent, string iconName, float left = 0f)
+      {
+        var guid = Guid.NewGuid().ToString();
+
+        container.Add(new CuiElement {
+          Name = Ui.Element.HudPanelIcon + guid,
+          Parent = parent,
+          Components = {
+            Instance.Hud.CreateImageComponent(iconName),
+            new CuiRectTransformComponent {
+              AnchorMin = $"{left} {IconSize}",
+              AnchorMax = $"{left + IconSize} {1 - IconSize}",
+              OffsetMin = "6 0",
+              OffsetMax = "6 0"
+            }
+          }
+        });
       }
     }
   }

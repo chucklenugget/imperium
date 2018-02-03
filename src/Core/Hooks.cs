@@ -82,27 +82,17 @@
 
     void OnEntitySpawned(BaseNetworkable entity)
     {
-      var drop = entity as SupplyDrop;
+      var heli = entity as BaseHelicopter;
+      if (heli != null)
+        Hud.GameEvents.BeginEvent(heli);
 
-      // If a supply drop was spawned, create a zone around it.
+      var plane = entity as CargoPlane;
+      if (plane != null)
+        Hud.GameEvents.BeginEvent(plane);
+
+      var drop = entity as SupplyDrop;
       if (Options.EnableEventZones && drop != null)
         Zones.Create(drop);
-    }
-
-    object OnPlayerDie(BasePlayer player, HitInfo hit)
-    {
-      if (player == null)
-        return null;
-
-      // When a player dies, remove them from the area and any zones they were in.
-      User user = Users.Get(player);
-      if (user != null)
-      {
-        user.CurrentArea = null;
-        user.CurrentZones.Clear();
-      }
-
-      return null;
     }
 
     void OnEntityKill(BaseNetworkable networkable)
@@ -157,12 +147,28 @@
       AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
+    object OnPlayerDie(BasePlayer player, HitInfo hit)
+    {
+      if (player == null)
+        return null;
+
+      // When a player dies, remove them from the area and any zones they were in.
+      User user = Users.Get(player);
+      if (user != null)
+      {
+        user.CurrentArea = null;
+        user.CurrentZones.Clear();
+      }
+
+      return null;
+    }
+
     void OnUserEnteredArea(User user, Area area)
     {
       Area previousArea = user.CurrentArea;
 
       user.CurrentArea = area;
-      user.HudPanel.Refresh();
+      user.Hud.Refresh();
 
       if (previousArea == null)
         return;
@@ -197,18 +203,18 @@
     void OnUserEnteredZone(User user, Zone zone)
     {
       user.CurrentZones.Add(zone);
-      user.HudPanel.Refresh();
+      user.Hud.Refresh();
     }
 
     void OnUserLeftZone(User user, Zone zone)
     {
       user.CurrentZones.Remove(zone);
-      user.HudPanel.Refresh();
+      user.Hud.Refresh();
     }
 
     void OnFactionCreated(Faction faction)
     {
-      Ui.RefreshForAllPlayers();
+      Hud.RefreshForAllPlayers();
     }
 
     void OnFactionDisbanded(Faction faction)
@@ -224,24 +230,24 @@
       }
 
       Wars.EndAllWarsForEliminatedFactions();
-      Ui.RefreshForAllPlayers();
+      Hud.RefreshForAllPlayers();
     }
 
     void OnFactionTaxesChanged(Faction faction)
     {
-      Ui.RefreshForAllPlayers();
+      Hud.RefreshForAllPlayers();
     }
 
     void OnAreaChanged(Area area)
     {
       Wars.EndAllWarsForEliminatedFactions();
-      Images.GenerateMapOverlayImage();
-      Ui.RefreshForAllPlayers();
+      Hud.GenerateMapOverlayImage();
+      Hud.RefreshForAllPlayers();
     }
 
     void OnDiplomacyChanged()
     {
-      Ui.RefreshForAllPlayers();
+      Hud.RefreshForAllPlayers();
     }
   }
 }

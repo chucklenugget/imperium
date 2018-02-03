@@ -13,15 +13,17 @@
       List<BaseEntity> Spheres = new List<BaseEntity>();
 
       public ZoneType Type { get; private set; }
+      public string Name { get; private set; }
       public MonoBehaviour Owner { get; private set; }
 
-      public void Init(ZoneType type, MonoBehaviour owner, string name, Vector3 position, float radius, int darkness, float? lifespan = null)
+      public void Init(ZoneType type, string name, MonoBehaviour owner, Vector3 position, float radius, int darkness, float? lifespan = null)
       {
         Type = type;
         Owner = owner;
+        Name = name;
 
         gameObject.layer = (int)Layer.Reserved1;
-        gameObject.name = $"imperium_zone_{name}";
+        gameObject.name = $"imperium_zone_{name.ToLowerInvariant()}";
         transform.position = position;
         transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
 

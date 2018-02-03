@@ -14,7 +14,7 @@
       if (!EnforceCommandCooldown(user))
         return;
 
-      user.HudPanel.Toggle();
+      user.Hud.Toggle();
     }
   }
 }

@@ -7,7 +7,7 @@
     {
       if (!arg.IsAdmin) return;
       arg.ReplyWith("Refreshing images...");
-      Images.RefreshAllImages();
+      Hud.RefreshAllImages();
     }
   }
 }

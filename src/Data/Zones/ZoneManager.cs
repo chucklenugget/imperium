@@ -34,7 +34,7 @@
       {
         Vector3 position = monument.transform.position;
         Vector3 size = monument.Bounds.size;
-        return Create(ZoneType.Monument, monument, GetMonumentZoneName(monument), position, radius);
+        return Create(ZoneType.Monument, monument.displayPhrase.english, monument, position, radius);
       }
 
       public Zone Create(SupplyDrop drop)
@@ -42,7 +42,7 @@
         Vector3 position = GetGroundPosition(drop.transform.position);
         float radius = Instance.Options.EventZoneRadius;
         float lifespan = Instance.Options.EventZoneLifespanSeconds;
-        return Create(ZoneType.SupplyDrop, drop, drop.ShortPrefabName, position, radius, lifespan);
+        return Create(ZoneType.SupplyDrop, "Supply Drop", drop, position, radius, lifespan);
       }
 
       public Zone Create(BaseHelicopter helicopter)
@@ -50,14 +50,19 @@
         Vector3 position = GetGroundPosition(helicopter.transform.position);
         float radius = Instance.Options.EventZoneRadius;
         float lifespan = Instance.Options.EventZoneLifespanSeconds;
-        return Create(ZoneType.Debris, helicopter, helicopter.ShortPrefabName, position, radius, lifespan);
+        return Create(ZoneType.Debris, "Debris Field", helicopter, position, radius, lifespan);
       }
 
       public void Remove(Zone zone)
       {
         Instance.Puts($"Destroying zone {zone.name}");
-        UnityEngine.Object.Destroy(zone);
+
+        foreach (User user in Instance.Users.GetAll())
+          user.CurrentZones.Remove(zone);
+
         Zones.Remove(zone.Owner);
+
+        UnityEngine.Object.Destroy(zone);
       }
 
       public void Destroy()
@@ -76,15 +81,15 @@
         Instance.Puts("Zone objects destroyed.");
       }
 
-      Zone Create(ZoneType type, MonoBehaviour owner, string name, Vector3 position, float radius, float? lifespan = null)
+      Zone Create(ZoneType type, string name, MonoBehaviour owner, Vector3 position, float radius, float? lifespan = null)
       {
         var zone = new GameObject().AddComponent<Zone>();
-        zone.Init(type, owner, name, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
+        zone.Init(type, name, owner, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
 
-        Instance.Puts($"Created zone {zone.name} at {position} with radius {radius}");
+        Instance.Puts($"Created zone {zone.Name} at {position} with radius {radius}");
 
         if (lifespan != null)
-          Instance.Puts($"Zone {zone.name} will be destroyed in {lifespan} seconds");
+          Instance.Puts($"Zone {zone.Name} will be destroyed in {lifespan} seconds");
 
         Zones[owner] = zone;
 
@@ -103,13 +108,6 @@
         }
 
         return null;
-      }
-
-      string GetMonumentZoneName(MonumentInfo monument)
-      {
-        int begin = monument.name.LastIndexOf('/');
-        int end = monument.name.LastIndexOf('.');
-        return monument.name.Substring(begin + 1, end - begin - 1);
       }
 
       Vector3 GetGroundPosition(Vector3 pos)

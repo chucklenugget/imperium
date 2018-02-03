@@ -43,9 +43,9 @@ namespace Oxide.Plugins
 
     AreaManager Areas;
     FactionManager Factions;
-    WarManager Wars;
+    HudManager Hud;
     UserManager Users;
-    ImageManager Images;
+    WarManager Wars;
     ZoneManager Zones;
 
     const string PERM_CHANGE_FACTIONS = "imperium.factions";
@@ -64,9 +64,9 @@ namespace Oxide.Plugins
 
       Areas = new AreaManager();
       Factions = new FactionManager();
-      Wars = new WarManager();
-      Images = new ImageManager();
+      Hud = new HudManager();
       Users = new UserManager();
+      Wars = new WarManager();
       Zones = new ZoneManager();
 
       PrintToChat($"{Title} v{Version} initialized.");
@@ -107,11 +107,11 @@ namespace Oxide.Plugins
       Areas.Init(TryLoad<AreaInfo>(AreasFile));
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
-      Images.Init();
       Zones.Init();
+      Hud.Init();
 
       NextTick(() => {
-        Images.GenerateMapOverlayImage();
+        Hud.GenerateMapOverlayImage();
       });
 
       if (Options.EnableUpkeep)
@@ -127,8 +127,8 @@ namespace Oxide.Plugins
 
     void Unload()
     {
+      Hud.Destroy();
       Zones.Destroy();
-      Images.Destroy();
       Users.Destroy();
       Wars.Destroy();
       Areas.Destroy();
@@ -137,7 +137,9 @@ namespace Oxide.Plugins
       if (UpkeepCollectionTimer != null && !UpkeepCollectionTimer.Destroyed)
         UpkeepCollectionTimer.Destroy();
 
-      UnityEngine.Object.Destroy(GameObject);
+      if (GameObject != null)
+        UnityEngine.Object.Destroy(GameObject);
+
       Instance = null;
     }
 
@@ -1560,7 +1562,7 @@ namespace Oxide.Plugins
     {
       if (!arg.IsAdmin) return;
       arg.ReplyWith("Refreshing images...");
-      Images.RefreshAllImages();
+      Hud.RefreshAllImages();
     }
   }
 }
@@ -1938,7 +1940,7 @@ namespace Oxide.Plugins
       if (!EnforceCommandCooldown(user))
         return;
 
-      user.HudPanel.Toggle();
+      user.Hud.Toggle();
     }
   }
 }
@@ -2535,27 +2537,17 @@ namespace Oxide.Plugins
 
     void OnEntitySpawned(BaseNetworkable entity)
     {
-      var drop = entity as SupplyDrop;
+      var heli = entity as BaseHelicopter;
+      if (heli != null)
+        Hud.GameEvents.BeginEvent(heli);
 
-      // If a supply drop was spawned, create a zone around it.
+      var plane = entity as CargoPlane;
+      if (plane != null)
+        Hud.GameEvents.BeginEvent(plane);
+
+      var drop = entity as SupplyDrop;
       if (Options.EnableEventZones && drop != null)
         Zones.Create(drop);
-    }
-
-    object OnPlayerDie(BasePlayer player, HitInfo hit)
-    {
-      if (player == null)
-        return null;
-
-      // When a player dies, remove them from the area and any zones they were in.
-      User user = Users.Get(player);
-      if (user != null)
-      {
-        user.CurrentArea = null;
-        user.CurrentZones.Clear();
-      }
-
-      return null;
     }
 
     void OnEntityKill(BaseNetworkable networkable)
@@ -2610,12 +2602,28 @@ namespace Oxide.Plugins
       AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
+    object OnPlayerDie(BasePlayer player, HitInfo hit)
+    {
+      if (player == null)
+        return null;
+
+      // When a player dies, remove them from the area and any zones they were in.
+      User user = Users.Get(player);
+      if (user != null)
+      {
+        user.CurrentArea = null;
+        user.CurrentZones.Clear();
+      }
+
+      return null;
+    }
+
     void OnUserEnteredArea(User user, Area area)
     {
       Area previousArea = user.CurrentArea;
 
       user.CurrentArea = area;
-      user.HudPanel.Refresh();
+      user.Hud.Refresh();
 
       if (previousArea == null)
         return;
@@ -2650,18 +2658,18 @@ namespace Oxide.Plugins
     void OnUserEnteredZone(User user, Zone zone)
     {
       user.CurrentZones.Add(zone);
-      user.HudPanel.Refresh();
+      user.Hud.Refresh();
     }
 
     void OnUserLeftZone(User user, Zone zone)
     {
       user.CurrentZones.Remove(zone);
-      user.HudPanel.Refresh();
+      user.Hud.Refresh();
     }
 
     void OnFactionCreated(Faction faction)
     {
-      Ui.RefreshForAllPlayers();
+      Hud.RefreshForAllPlayers();
     }
 
     void OnFactionDisbanded(Faction faction)
@@ -2677,24 +2685,24 @@ namespace Oxide.Plugins
       }
 
       Wars.EndAllWarsForEliminatedFactions();
-      Ui.RefreshForAllPlayers();
+      Hud.RefreshForAllPlayers();
     }
 
     void OnFactionTaxesChanged(Faction faction)
     {
-      Ui.RefreshForAllPlayers();
+      Hud.RefreshForAllPlayers();
     }
 
     void OnAreaChanged(Area area)
     {
       Wars.EndAllWarsForEliminatedFactions();
-      Images.GenerateMapOverlayImage();
-      Ui.RefreshForAllPlayers();
+      Hud.GenerateMapOverlayImage();
+      Hud.RefreshForAllPlayers();
     }
 
     void OnDiplomacyChanged()
     {
-      Ui.RefreshForAllPlayers();
+      Hud.RefreshForAllPlayers();
     }
   }
 }
@@ -4136,357 +4144,6 @@ namespace Oxide.Plugins
 }﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
-  using System.Drawing;
-
-  public partial class Imperium
-  {
-    class FactionColorPicker
-    {
-      static string[] Colors = new[]
-      {
-        "#00FF00", "#0000FF", "#FF0000", "#01FFFE", "#FFA6FE",
-        "#FFDB66", "#006401", "#010067", "#95003A", "#007DB5",
-        "#FF00F6", "#FFEEE8", "#774D00", "#90FB92", "#0076FF",
-        "#D5FF00", "#FF937E", "#6A826C", "#FF029D", "#FE8900",
-        "#7A4782", "#7E2DD2", "#85A900", "#FF0056", "#A42400",
-        "#00AE7E", "#683D3B", "#BDC6FF", "#263400", "#BDD393",
-        "#00B917", "#9E008E", "#001544", "#C28C9F", "#FF74A3",
-        "#01D0FF", "#004754", "#E56FFE", "#788231", "#0E4CA1",
-        "#91D0CB", "#BE9970", "#968AE8", "#BB8800", "#43002C",
-        "#DEFF74", "#00FFC6", "#FFE502", "#620E00", "#008F9C",
-        "#98FF52", "#7544B1", "#B500FF", "#00FF78", "#FF6E41",
-        "#005F39", "#6B6882", "#5FAD4E", "#A75740", "#A5FFD2",
-        "#FFB167", "#009BFF", "#E85EBE"
-      };
-
-      Dictionary<string, Color> AssignedColors;
-      int NextColor = 0;
-
-      public FactionColorPicker()
-      {
-        AssignedColors = new Dictionary<string, Color>();
-      }
-
-      public Color GetColorForFaction(string factionId)
-      {
-        Color color;
-
-        if (!AssignedColors.TryGetValue(factionId, out color))
-        {
-          color = Color.FromArgb(128, ColorTranslator.FromHtml(Colors[NextColor]));
-          AssignedColors.Add(factionId, color);
-          NextColor = (NextColor + 1) % Colors.Length;
-        }
-
-        return color;
-      }
-    }
-
-  }
-
-}
-﻿namespace Oxide.Plugins
-{
-  using System;
-
-  public partial class Imperium
-  {
-    class Image
-    {
-      public string Url { get; private set; }
-      public string Id { get; private set; }
-
-      public bool IsDownloaded
-      {
-        get { return Id != null; }
-      }
-
-      public bool IsGenerated
-      {
-        get { return Url != null && !Url.StartsWith("http", StringComparison.Ordinal); }
-      }
-
-      public Image(string url, string id = null)
-      {
-        Url = url;
-        Id = id;
-      }
-
-      public string Save(byte[] data)
-      {
-        if (IsDownloaded) Delete();
-        Id = FileStorage.server.Store(data, FileStorage.Type.png, CommunityEntity.ServerInstance.net.ID, 0).ToString();
-        return Id;
-      }
-
-      public void Delete()
-      {
-        if (!IsDownloaded) return;
-        FileStorage.server.Remove(Convert.ToUInt32(Id), FileStorage.Type.png, CommunityEntity.ServerInstance.net.ID);
-        Id = null;
-      }
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using System;
-  using System.Collections;
-  using System.Collections.Generic;
-  using UnityEngine;
-
-  public partial class Imperium
-  {
-    class ImageDownloader : MonoBehaviour
-    {
-      Queue<Image> PendingImages = new Queue<Image>();
-
-      public bool IsDownloading { get; private set; }
-
-      public void Download(Image image)
-      {
-        PendingImages.Enqueue(image);
-        if (!IsDownloading) DownloadNext();
-      }
-
-      void DownloadNext()
-      {
-        if (PendingImages.Count == 0)
-        {
-          IsDownloading = false;
-          return;
-        }
-
-        Image image = PendingImages.Dequeue();
-        StartCoroutine(DownloadImage(image));
-
-        IsDownloading = true;
-      }
-
-      IEnumerator DownloadImage(Image image)
-      {
-        var www = new WWW(image.Url);
-        yield return www;
-
-        if (!String.IsNullOrEmpty(www.error))
-        {
-          Instance.Puts($"Error while downloading image {image.Url}: {www.error}");
-        }
-        else if (www.bytes == null || www.bytes.Length == 0)
-        {
-          Instance.Puts($"Error while downloading image {image.Url}: No data received");
-        }
-        else
-        {
-          byte[] data = www.texture.EncodeToPNG();
-          image.Save(data);
-          DestroyImmediate(www.texture);
-          Instance.Puts($"Stored {image.Url} as id {image.Id}");
-          DownloadNext();
-        }
-      }
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using System;
-  using System.Collections.Generic;
-  using System.Linq;
-  using System.Reflection;
-  using Oxide.Game.Rust.Cui;
-
-  public partial class Imperium
-  {
-    class ImageManager
-    {
-      Dictionary<string, Image> Images;
-      ImageDownloader ImageDownloader;
-      MapOverlayGenerator MapOverlayGenerator;
-
-      public ImageManager()
-      {
-        Images = new Dictionary<string, Image>();
-        ImageDownloader = Instance.GameObject.AddComponent<ImageDownloader>();
-        MapOverlayGenerator = Instance.GameObject.AddComponent<MapOverlayGenerator>();
-      }
-
-      public Image RegisterImage(string url, byte[] imageData = null, bool overwrite = false)
-      {
-        Image image;
-
-        if (Images.TryGetValue(url, out image) && !overwrite)
-          return image;
-        else
-          image = new Image(url);
-
-        Images[url] = image;
-
-        if (imageData != null)
-          image.Save(imageData);
-        else
-          ImageDownloader.Download(image);
-
-        return image;
-      }
-
-      public void RefreshAllImages()
-      {
-        foreach (Image image in Images.Values.Where(image => !image.IsGenerated))
-        {
-          image.Delete();
-          ImageDownloader.Download(image);
-        }
-      }
-
-      public CuiRawImageComponent CreateImageComponent(string imageUrl)
-      {
-        Image image;
-
-        if (String.IsNullOrEmpty(imageUrl))
-        {
-          Instance.PrintError($"CuiRawImageComponent requested for an image with a null URL. Did you forget to set MapImageUrl in the configuration?");
-          return null;
-        }
-
-        if (!Images.TryGetValue(imageUrl, out image))
-        {
-          Instance.PrintError($"CuiRawImageComponent requested for image with an unregistered URL {imageUrl}. This shouldn't happen.");
-          return null;
-        }
-
-        if (image.Id != null)
-          return new CuiRawImageComponent { Png = image.Id, Sprite = Ui.TransparentTexture };
-        else
-          return new CuiRawImageComponent { Url = image.Url, Sprite = Ui.TransparentTexture };
-      }
-
-      public void GenerateMapOverlayImage()
-      {
-        MapOverlayGenerator.Generate();
-      }
-
-      public void Init()
-      {
-        if (!String.IsNullOrEmpty(Instance.Options.MapImageUrl))
-          RegisterImage(Instance.Options.MapImageUrl);
-
-        RegisterDefaultImages(typeof(Ui.HudIcon));
-        RegisterDefaultImages(typeof(Ui.MapIcon));
-      }
-
-      public void Destroy()
-      {
-        UnityEngine.Object.DestroyImmediate(ImageDownloader);
-        UnityEngine.Object.DestroyImmediate(MapOverlayGenerator);
-
-        foreach (Image image in Images.Values)
-          image.Delete();
-
-        Images.Clear();
-      }
-
-      void RegisterDefaultImages(Type type)
-      {
-        foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
-          RegisterImage((string)field.GetRawConstantValue());
-      }
-    }
-  }
-}
- 
- ﻿namespace Oxide.Plugins
-{
-  using System.Collections;
-  using System.Drawing;
-  using System.Drawing.Drawing2D;
-
-  public partial class Imperium
-  {
-    class MapOverlayGenerator : UnityEngine.MonoBehaviour
-    {
-      public bool IsGenerating { get; private set; }
-
-      public void Generate()
-      {
-        if (!IsGenerating)
-          StartCoroutine(GenerateOverlayImage());
-      }
-
-      IEnumerator GenerateOverlayImage()
-      {
-        IsGenerating = true;
-        Instance.Puts("Generating new map overlay image...");
-
-        using (var bitmap = new Bitmap(Instance.Options.MapImageSize, Instance.Options.MapImageSize))
-        using (var graphics = Graphics.FromImage(bitmap))
-        {
-          var mapSize = ConVar.Server.worldsize;
-          var tileSize = (int)(Instance.Options.MapImageSize / (mapSize / 150f));
-          var grid = new MapGrid(mapSize);
-
-          var colorPicker = new FactionColorPicker();
-          var textBrush = new SolidBrush(Color.FromArgb(255, 255, 255, 255));
-
-          for (int row = 0; row < grid.NumberOfCells; row++)
-          {
-            for (int col = 0; col < grid.NumberOfCells; col++)
-            {
-              Area area = Instance.Areas.Get(grid.GetAreaId(row, col));
-              var x = (col * tileSize);
-              var y = (row * tileSize);
-              var rect = new Rectangle(x, y, tileSize, tileSize);
-
-              if (area.Type == AreaType.Badlands)
-              {
-                // If the tile is badlands, color it in black.
-                var brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.FromArgb(32, 0, 0, 0), Color.FromArgb(255, 0, 0, 0));
-                graphics.FillRectangle(brush, rect);
-              }
-              else if (area.Type != AreaType.Wilderness)
-              {
-                // If the tile is claimed, fill it with a color indicating the faction.
-                var brush = new SolidBrush(colorPicker.GetColorForFaction(area.FactionId));
-                graphics.FillRectangle(brush, rect);
-              }
-
-              yield return null;
-            }
-          }
-
-          var gridLabelFont = new Font("Consolas", 14, FontStyle.Bold);
-          var gridLabelOffset = 5;
-          var gridLinePen = new Pen(Color.FromArgb(192, 0, 0, 0), 2);
-
-          for (int row = 0; row < grid.NumberOfCells; row++)
-          {
-            graphics.DrawLine(gridLinePen, 0, (row * tileSize), (grid.NumberOfCells * tileSize), (row * tileSize));
-            graphics.DrawString(grid.GetRowId(row), gridLabelFont, textBrush, gridLabelOffset, (row * tileSize) + gridLabelOffset);
-          }
-
-          for (int col = 1; col < grid.NumberOfCells; col++)
-          {
-            graphics.DrawLine(gridLinePen, (col * tileSize), 0, (col * tileSize), (grid.NumberOfCells * tileSize));
-            graphics.DrawString(grid.GetColumnId(col), gridLabelFont, textBrush, (col * tileSize) + gridLabelOffset, gridLabelOffset);
-          }
-
-          var converter = new ImageConverter();
-          var imageData = (byte[])converter.ConvertTo(bitmap, typeof(byte[]));
-
-          Image image = Instance.Images.RegisterImage(Ui.MapOverlayImageUrl, imageData, true);
-
-          Instance.Puts($"Generated new map overlay image {image.Id}.");
-          Instance.Log($"Created new map overlay image {image.Id}.");
-
-          IsGenerating = false;
-        }
-      }
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using System.Collections.Generic;
   using System.Linq;
 
   public partial class Imperium
@@ -4533,7 +4190,7 @@ namespace Oxide.Plugins
 
       public BasePlayer Player { get; private set; }
       public UserMap Map { get; private set; }
-      public UserHudPanel HudPanel { get; private set; }
+      public UserHud Hud { get; private set; }
 
       public Area CurrentArea { get; set; }
       public HashSet<Zone> CurrentZones { get; private set; }
@@ -4564,7 +4221,7 @@ namespace Oxide.Plugins
         CurrentZones = new HashSet<Zone>();
 
         Map = new UserMap(this);
-        HudPanel = new UserHudPanel(this);
+        Hud = new UserHud(this);
 
         InvokeRepeating("UpdateHud", 5f, 5f);
         InvokeRepeating("CheckArea", 2f, 2f);
@@ -4573,7 +4230,7 @@ namespace Oxide.Plugins
       void OnDestroy()
       {
         Map.Hide();
-        HudPanel.Hide();
+        Hud.Hide();
 
         if (IsInvoking("UpdateHud")) CancelInvoke("UpdateHud");
         if (IsInvoking("CheckArea")) CancelInvoke("CheckArea");
@@ -4634,7 +4291,7 @@ namespace Oxide.Plugins
 
       void UpdateHud()
       {
-        HudPanel.Refresh();
+        Hud.Refresh();
       }
 
       public int GetSecondsUntilNextCommand()
@@ -5035,15 +4692,17 @@ namespace Oxide.Plugins
       List<BaseEntity> Spheres = new List<BaseEntity>();
 
       public ZoneType Type { get; private set; }
+      public string Name { get; private set; }
       public MonoBehaviour Owner { get; private set; }
 
-      public void Init(ZoneType type, MonoBehaviour owner, string name, Vector3 position, float radius, int darkness, float? lifespan = null)
+      public void Init(ZoneType type, string name, MonoBehaviour owner, Vector3 position, float radius, int darkness, float? lifespan = null)
       {
         Type = type;
         Owner = owner;
+        Name = name;
 
         gameObject.layer = (int)Layer.Reserved1;
-        gameObject.name = $"imperium_zone_{name}";
+        gameObject.name = $"imperium_zone_{name.ToLowerInvariant()}";
         transform.position = position;
         transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
 
@@ -5144,7 +4803,7 @@ namespace Oxide.Plugins
       {
         Vector3 position = monument.transform.position;
         Vector3 size = monument.Bounds.size;
-        return Create(ZoneType.Monument, monument, GetMonumentZoneName(monument), position, radius);
+        return Create(ZoneType.Monument, monument.displayPhrase.english, monument, position, radius);
       }
 
       public Zone Create(SupplyDrop drop)
@@ -5152,7 +4811,7 @@ namespace Oxide.Plugins
         Vector3 position = GetGroundPosition(drop.transform.position);
         float radius = Instance.Options.EventZoneRadius;
         float lifespan = Instance.Options.EventZoneLifespanSeconds;
-        return Create(ZoneType.SupplyDrop, drop, drop.ShortPrefabName, position, radius, lifespan);
+        return Create(ZoneType.SupplyDrop, "Supply Drop", drop, position, radius, lifespan);
       }
 
       public Zone Create(BaseHelicopter helicopter)
@@ -5160,14 +4819,19 @@ namespace Oxide.Plugins
         Vector3 position = GetGroundPosition(helicopter.transform.position);
         float radius = Instance.Options.EventZoneRadius;
         float lifespan = Instance.Options.EventZoneLifespanSeconds;
-        return Create(ZoneType.Debris, helicopter, helicopter.ShortPrefabName, position, radius, lifespan);
+        return Create(ZoneType.Debris, "Debris Field", helicopter, position, radius, lifespan);
       }
 
       public void Remove(Zone zone)
       {
         Instance.Puts($"Destroying zone {zone.name}");
-        UnityEngine.Object.Destroy(zone);
+
+        foreach (User user in Instance.Users.GetAll())
+          user.CurrentZones.Remove(zone);
+
         Zones.Remove(zone.Owner);
+
+        UnityEngine.Object.Destroy(zone);
       }
 
       public void Destroy()
@@ -5186,15 +4850,15 @@ namespace Oxide.Plugins
         Instance.Puts("Zone objects destroyed.");
       }
 
-      Zone Create(ZoneType type, MonoBehaviour owner, string name, Vector3 position, float radius, float? lifespan = null)
+      Zone Create(ZoneType type, string name, MonoBehaviour owner, Vector3 position, float radius, float? lifespan = null)
       {
         var zone = new GameObject().AddComponent<Zone>();
-        zone.Init(type, owner, name, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
+        zone.Init(type, name, owner, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
 
-        Instance.Puts($"Created zone {zone.name} at {position} with radius {radius}");
+        Instance.Puts($"Created zone {zone.Name} at {position} with radius {radius}");
 
         if (lifespan != null)
-          Instance.Puts($"Zone {zone.name} will be destroyed in {lifespan} seconds");
+          Instance.Puts($"Zone {zone.Name} will be destroyed in {lifespan} seconds");
 
         Zones[owner] = zone;
 
@@ -5215,13 +4879,6 @@ namespace Oxide.Plugins
         return null;
       }
 
-      string GetMonumentZoneName(MonumentInfo monument)
-      {
-        int begin = monument.name.LastIndexOf('/');
-        int end = monument.name.LastIndexOf('.');
-        return monument.name.Substring(begin + 1, end - begin - 1);
-      }
-
       Vector3 GetGroundPosition(Vector3 pos)
       {
         return new Vector3(pos.x, TerrainMeta.HeightMap.GetHeight(pos), pos.z);
@@ -5240,6 +4897,58 @@ namespace Oxide.Plugins
       Debris
     }
   }
+}
+﻿namespace Oxide.Plugins
+{
+  using System.Collections.Generic;
+  using System.Drawing;
+
+  public partial class Imperium
+  {
+    class FactionColorPicker
+    {
+      static string[] Colors = new[]
+      {
+        "#00FF00", "#0000FF", "#FF0000", "#01FFFE", "#FFA6FE",
+        "#FFDB66", "#006401", "#010067", "#95003A", "#007DB5",
+        "#FF00F6", "#FFEEE8", "#774D00", "#90FB92", "#0076FF",
+        "#D5FF00", "#FF937E", "#6A826C", "#FF029D", "#FE8900",
+        "#7A4782", "#7E2DD2", "#85A900", "#FF0056", "#A42400",
+        "#00AE7E", "#683D3B", "#BDC6FF", "#263400", "#BDD393",
+        "#00B917", "#9E008E", "#001544", "#C28C9F", "#FF74A3",
+        "#01D0FF", "#004754", "#E56FFE", "#788231", "#0E4CA1",
+        "#91D0CB", "#BE9970", "#968AE8", "#BB8800", "#43002C",
+        "#DEFF74", "#00FFC6", "#FFE502", "#620E00", "#008F9C",
+        "#98FF52", "#7544B1", "#B500FF", "#00FF78", "#FF6E41",
+        "#005F39", "#6B6882", "#5FAD4E", "#A75740", "#A5FFD2",
+        "#FFB167", "#009BFF", "#E85EBE"
+      };
+
+      Dictionary<string, Color> AssignedColors;
+      int NextColor = 0;
+
+      public FactionColorPicker()
+      {
+        AssignedColors = new Dictionary<string, Color>();
+      }
+
+      public Color GetColorForFaction(string factionId)
+      {
+        Color color;
+
+        if (!AssignedColors.TryGetValue(factionId, out color))
+        {
+          color = Color.FromArgb(128, ColorTranslator.FromHtml(Colors[NextColor]));
+          AssignedColors.Add(factionId, color);
+          NextColor = (NextColor + 1) % Colors.Length;
+        }
+
+        return color;
+      }
+    }
+
+  }
+
 }
 ﻿namespace Oxide.Plugins
 {
@@ -5338,6 +5047,219 @@ namespace Oxide.Plugins
           Value = value;
         }
       }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+  using UnityEngine;
+
+  public partial class Imperium
+  {
+    public class MapGrid
+    {
+      public const int GridCellSize = 150;
+
+      public int MapSize { get; private set; }
+      public int NumberOfCells { get; private set; }
+
+      string[] RowIds;
+      string[] ColumnIds;
+      string[,] AreaIds;
+      Vector3[,] Positions;
+
+      public MapGrid(int mapSize)
+      {
+        MapSize = mapSize;
+        NumberOfCells = (int)Math.Ceiling(mapSize / (float)GridCellSize);
+        RowIds = new string[NumberOfCells];
+        ColumnIds = new string[NumberOfCells];
+        AreaIds = new string[NumberOfCells, NumberOfCells];
+        Positions = new Vector3[NumberOfCells, NumberOfCells];
+        Build();
+      }
+
+      public string GetRowId(int row)
+      {
+        return RowIds[row];
+      }
+
+      public string GetColumnId(int col)
+      {
+        return ColumnIds[col];
+      }
+
+      public string GetAreaId(int row, int col)
+      {
+        return AreaIds[row, col];
+      }
+
+      public Vector3 GetPosition(int row, int col)
+      {
+        return Positions[row, col];
+      }
+
+      void Build()
+      {
+        string prefix = "";
+        char letter = 'A';
+
+        for (int row = 0; row < NumberOfCells; row++)
+        {
+          RowIds[row] = prefix + letter;
+          if (letter == 'Z')
+          {
+            prefix = "A";
+            letter = 'A';
+          }
+          else
+          {
+            letter++;
+          }
+        }
+
+        for (int col = 0; col < NumberOfCells; col++)
+          ColumnIds[col] = col.ToString();
+
+        int z = (MapSize / 2) - GridCellSize;
+        for (int row = 0; row < NumberOfCells; row++)
+        {
+          int x = -(MapSize / 2);
+          for (int col = 0; col < NumberOfCells; col++)
+          {
+            var areaId = RowIds[row] + ColumnIds[col];
+            AreaIds[row, col] = areaId;
+            Positions[row, col] = new Vector3(x + (GridCellSize / 2), 0, z + (GridCellSize / 2));
+            x += GridCellSize;
+          }
+          z -= GridCellSize;
+        }
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System.Collections;
+  using System.Drawing;
+  using System.Drawing.Drawing2D;
+
+  public partial class Imperium
+  {
+    class MapOverlayGenerator : UnityEngine.MonoBehaviour
+    {
+      public bool IsGenerating { get; private set; }
+
+      public void Generate()
+      {
+        if (!IsGenerating)
+          StartCoroutine(GenerateOverlayImage());
+      }
+
+      IEnumerator GenerateOverlayImage()
+      {
+        IsGenerating = true;
+        Instance.Puts("Generating new map overlay image...");
+
+        using (var bitmap = new Bitmap(Instance.Options.MapImageSize, Instance.Options.MapImageSize))
+        using (var graphics = Graphics.FromImage(bitmap))
+        {
+          var mapSize = ConVar.Server.worldsize;
+          var tileSize = (int)(Instance.Options.MapImageSize / (mapSize / 150f));
+          var grid = new MapGrid(mapSize);
+
+          var colorPicker = new FactionColorPicker();
+          var textBrush = new SolidBrush(Color.FromArgb(255, 255, 255, 255));
+
+          for (int row = 0; row < grid.NumberOfCells; row++)
+          {
+            for (int col = 0; col < grid.NumberOfCells; col++)
+            {
+              Area area = Instance.Areas.Get(grid.GetAreaId(row, col));
+              var x = (col * tileSize);
+              var y = (row * tileSize);
+              var rect = new Rectangle(x, y, tileSize, tileSize);
+
+              if (area.Type == AreaType.Badlands)
+              {
+                // If the tile is badlands, color it in black.
+                var brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.FromArgb(32, 0, 0, 0), Color.FromArgb(255, 0, 0, 0));
+                graphics.FillRectangle(brush, rect);
+              }
+              else if (area.Type != AreaType.Wilderness)
+              {
+                // If the tile is claimed, fill it with a color indicating the faction.
+                var brush = new SolidBrush(colorPicker.GetColorForFaction(area.FactionId));
+                graphics.FillRectangle(brush, rect);
+              }
+
+              yield return null;
+            }
+          }
+
+          var gridLabelFont = new Font("Consolas", 14, FontStyle.Bold);
+          var gridLabelOffset = 5;
+          var gridLinePen = new Pen(Color.FromArgb(192, 0, 0, 0), 2);
+
+          for (int row = 0; row < grid.NumberOfCells; row++)
+          {
+            graphics.DrawLine(gridLinePen, 0, (row * tileSize), (grid.NumberOfCells * tileSize), (row * tileSize));
+            graphics.DrawString(grid.GetRowId(row), gridLabelFont, textBrush, gridLabelOffset, (row * tileSize) + gridLabelOffset);
+          }
+
+          for (int col = 1; col < grid.NumberOfCells; col++)
+          {
+            graphics.DrawLine(gridLinePen, (col * tileSize), 0, (col * tileSize), (grid.NumberOfCells * tileSize));
+            graphics.DrawString(grid.GetColumnId(col), gridLabelFont, textBrush, (col * tileSize) + gridLabelOffset, gridLabelOffset);
+          }
+
+          var converter = new ImageConverter();
+          var imageData = (byte[])converter.ConvertTo(bitmap, typeof(byte[]));
+
+          Image image = Instance.Hud.RegisterImage(Ui.MapOverlayImageUrl, imageData, true);
+
+          Instance.Puts($"Generated new map overlay image {image.Id}.");
+          Instance.Log($"Created new map overlay image {image.Id}.");
+
+          IsGenerating = false;
+        }
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    public static class MonumentPrefab
+    {
+      const string PrefabPrefix = "assets/bundled/prefabs/autospawn/monument/";
+
+      public const string Airfield = PrefabPrefix + "large/airfield_1.prefab";
+      public const string Dome = PrefabPrefix + "small/sphere_tank.prefab";
+      public const string Harbor1 = PrefabPrefix + "harbor/harbor_1.prefab";
+      public const string Harbor2 = PrefabPrefix + "harbor/harbor_2.prefab";
+      public const string GasStation = PrefabPrefix + "small/gas_station_1.prefab";
+      public const string Junkyard = PrefabPrefix + "large/junkyard_1.prefab";
+      public const string LaunchSite = PrefabPrefix + "large/launch_site_1.prefab";
+      public const string Lighthouse = PrefabPrefix + "lighthouse/lighthouse.prefab";
+      public const string MilitaryTunnel = PrefabPrefix + "large/military_tunnel_1.prefab";
+      public const string MiningOutpost = PrefabPrefix + "small/warehouse.prefab";
+      public const string QuarryStone = PrefabPrefix + "small/mining_quarry_a.prefab";
+      public const string QuarrySulfur = PrefabPrefix + "small/mining_quarry_b.prefab";
+      public const string QuaryHqm = PrefabPrefix + "small/mining_quarry_c.prefab";
+      public const string PowerPlant = PrefabPrefix + "large/powerplant_1.prefab";
+      public const string Trainyard = PrefabPrefix + "large/trainyard_1.prefab";
+      public const string SatelliteDish = PrefabPrefix + "small/satellite_dish.prefab";
+      public const string SewerBranch = PrefabPrefix + "medium/radtown_small_3.prefab";
+      public const string Supermarket = PrefabPrefix + "small/supermarket_1.prefab";
+      public const string WaterTreatmentPlant = PrefabPrefix + "large/water_treatment_plant_1.prefab";
+      public const string WaterWellA = PrefabPrefix + "tiny/water_well_a.prefab";
+      public const string WaterWellB = PrefabPrefix + "tiny/water_well_b.prefab";
+      public const string WaterWellC = PrefabPrefix + "tiny/water_well_c.prefab";
+      public const string WaterWellD = PrefabPrefix + "tiny/water_well_d.prefab";
+      public const string WaterWellE = PrefabPrefix + "tiny/water_well_e.prefab";
     }
   }
 }
@@ -5944,88 +5866,299 @@ namespace Oxide.Plugins
 }
 ﻿namespace Oxide.Plugins
 {
-  using System;
+  using System.Collections.Generic;
   using UnityEngine;
 
   public partial class Imperium
   {
-    public class MapGrid
+    class GameEventWatcher : MonoBehaviour
     {
-      public const int GridCellSize = 150;
+      const float CheckIntervalSeconds = 5f;
 
-      public int MapSize { get; private set; }
-      public int NumberOfCells { get; private set; }
+      HashSet<BaseHelicopter> Helicopters = new HashSet<BaseHelicopter>();
+      HashSet<CargoPlane> CargoPlanes = new HashSet<CargoPlane>();
 
-      string[] RowIds;
-      string[] ColumnIds;
-      string[,] AreaIds;
-      Vector3[,] Positions;
-
-      public MapGrid(int mapSize)
+      public bool IsHelicopterActive
       {
-        MapSize = mapSize;
-        NumberOfCells = (int)Math.Ceiling(mapSize / (float)GridCellSize);
-        RowIds = new string[NumberOfCells];
-        ColumnIds = new string[NumberOfCells];
-        AreaIds = new string[NumberOfCells, NumberOfCells];
-        Positions = new Vector3[NumberOfCells, NumberOfCells];
-        Build();
+        get { return Helicopters.Count > 0; }
       }
 
-      public string GetRowId(int row)
+      public bool IsCargoPlaneActive
       {
-        return RowIds[row];
+        get { return CargoPlanes.Count > 0; }
       }
 
-      public string GetColumnId(int col)
+      void Awake()
       {
-        return ColumnIds[col];
+        foreach (BaseHelicopter heli in FindObjectsOfType<BaseHelicopter>())
+          BeginEvent(heli);
+
+        foreach (CargoPlane plane in FindObjectsOfType<CargoPlane>())
+          BeginEvent(plane);
+
+        InvokeRepeating("CheckEvents", CheckIntervalSeconds, CheckIntervalSeconds);
       }
 
-      public string GetAreaId(int row, int col)
+      void OnDestroy()
       {
-        return AreaIds[row, col];
+        if (IsInvoking("CheckEvents"))
+          CancelInvoke("CheckEvents");
       }
 
-      public Vector3 GetPosition(int row, int col)
+      public void BeginEvent(BaseHelicopter heli)
       {
-        return Positions[row, col];
+        Instance.Puts($"Beginning helicopter event, heli at @ {heli.transform.position}");
+        Helicopters.Add(heli);
       }
 
-      void Build()
+      public void BeginEvent(CargoPlane plane)
       {
-        string prefix = "";
-        char letter = 'A';
+        Instance.Puts($"Beginning cargoplane event, plane at @ {plane.transform.position}");
+        CargoPlanes.Add(plane);
+      }
 
-        for (int row = 0; row < NumberOfCells; row++)
+      void CheckEvents()
+      {
+        var endedEvents = Helicopters.RemoveWhere(IsEntityGone) + CargoPlanes.RemoveWhere(IsEntityGone);
+        if (endedEvents > 0)
+          Instance.Hud.RefreshForAllPlayers();
+      }
+
+      bool IsEntityGone(BaseEntity entity)
+      {
+        return !entity.IsValid() || !entity.gameObject.activeInHierarchy;
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
+  using System.Reflection;
+  using Oxide.Game.Rust.Cui;
+
+  public partial class Imperium
+  {
+    class HudManager
+    {
+      Dictionary<string, Image> Images;
+      bool UpdatePending;
+
+      public GameEventWatcher GameEvents { get; private set; }
+
+      ImageDownloader ImageDownloader;
+      MapOverlayGenerator MapOverlayGenerator;
+
+      public HudManager()
+      {
+        Images = new Dictionary<string, Image>();
+        GameEvents = Instance.GameObject.AddComponent<GameEventWatcher>();
+        ImageDownloader = Instance.GameObject.AddComponent<ImageDownloader>();
+        MapOverlayGenerator = Instance.GameObject.AddComponent<MapOverlayGenerator>();
+      }
+
+      public void RefreshForAllPlayers()
+      {
+        if (UpdatePending)
+          return;
+
+        Instance.NextTick(() => {
+          foreach (User user in Instance.Users.GetAll())
+          {
+            user.Map.Refresh();
+            user.Hud.Refresh();
+          }
+          UpdatePending = false;
+        });
+
+        UpdatePending = true;
+      }
+
+      public Image RegisterImage(string url, byte[] imageData = null, bool overwrite = false)
+      {
+        Image image;
+
+        if (Images.TryGetValue(url, out image) && !overwrite)
+          return image;
+        else
+          image = new Image(url);
+
+        Images[url] = image;
+
+        if (imageData != null)
+          image.Save(imageData);
+        else
+          ImageDownloader.Download(image);
+
+        return image;
+      }
+
+      public void RefreshAllImages()
+      {
+        foreach (Image image in Images.Values.Where(image => !image.IsGenerated))
         {
-          RowIds[row] = prefix + letter;
-          if (letter == 'Z')
-          {
-            prefix = "A";
-            letter = 'A';
-          }
-          else
-          {
-            letter++;
-          }
+          image.Delete();
+          ImageDownloader.Download(image);
+        }
+      }
+
+      public CuiRawImageComponent CreateImageComponent(string imageUrl)
+      {
+        Image image;
+
+        if (String.IsNullOrEmpty(imageUrl))
+        {
+          Instance.PrintError($"CuiRawImageComponent requested for an image with a null URL. Did you forget to set MapImageUrl in the configuration?");
+          return null;
         }
 
-        for (int col = 0; col < NumberOfCells; col++)
-          ColumnIds[col] = col.ToString();
-
-        int z = (MapSize / 2) - GridCellSize;
-        for (int row = 0; row < NumberOfCells; row++)
+        if (!Images.TryGetValue(imageUrl, out image))
         {
-          int x = -(MapSize / 2);
-          for (int col = 0; col < NumberOfCells; col++)
-          {
-            var areaId = RowIds[row] + ColumnIds[col];
-            AreaIds[row, col] = areaId;
-            Positions[row, col] = new Vector3(x + (GridCellSize / 2), 0, z + (GridCellSize / 2));
-            x += GridCellSize;
-          }
-          z -= GridCellSize;
+          Instance.PrintError($"CuiRawImageComponent requested for image with an unregistered URL {imageUrl}. This shouldn't happen.");
+          return null;
+        }
+
+        if (image.Id != null)
+          return new CuiRawImageComponent { Png = image.Id, Sprite = Ui.TransparentTexture };
+        else
+          return new CuiRawImageComponent { Url = image.Url, Sprite = Ui.TransparentTexture };
+      }
+
+      public void GenerateMapOverlayImage()
+      {
+        MapOverlayGenerator.Generate();
+      }
+
+      public void Init()
+      {
+        if (!String.IsNullOrEmpty(Instance.Options.MapImageUrl))
+          RegisterImage(Instance.Options.MapImageUrl);
+
+        RegisterDefaultImages(typeof(Ui.HudIcon));
+        RegisterDefaultImages(typeof(Ui.MapIcon));
+      }
+
+      public void Destroy()
+      {
+        UnityEngine.Object.DestroyImmediate(ImageDownloader);
+        UnityEngine.Object.DestroyImmediate(MapOverlayGenerator);
+        UnityEngine.Object.DestroyImmediate(GameEvents);
+
+        foreach (Image image in Images.Values)
+          image.Delete();
+
+        Images.Clear();
+      }
+
+      void RegisterDefaultImages(Type type)
+      {
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
+          RegisterImage((string)field.GetRawConstantValue());
+      }
+    }
+  }
+}
+ 
+ ﻿namespace Oxide.Plugins
+{
+  using System;
+
+  public partial class Imperium
+  {
+    class Image
+    {
+      public string Url { get; private set; }
+      public string Id { get; private set; }
+
+      public bool IsDownloaded
+      {
+        get { return Id != null; }
+      }
+
+      public bool IsGenerated
+      {
+        get { return Url != null && !Url.StartsWith("http", StringComparison.Ordinal); }
+      }
+
+      public Image(string url, string id = null)
+      {
+        Url = url;
+        Id = id;
+      }
+
+      public string Save(byte[] data)
+      {
+        if (IsDownloaded) Delete();
+        Id = FileStorage.server.Store(data, FileStorage.Type.png, CommunityEntity.ServerInstance.net.ID, 0).ToString();
+        return Id;
+      }
+
+      public void Delete()
+      {
+        if (!IsDownloaded) return;
+        FileStorage.server.Remove(Convert.ToUInt32(Id), FileStorage.Type.png, CommunityEntity.ServerInstance.net.ID);
+        Id = null;
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+  using System.Collections;
+  using System.Collections.Generic;
+  using UnityEngine;
+
+  public partial class Imperium
+  {
+    class ImageDownloader : MonoBehaviour
+    {
+      Queue<Image> PendingImages = new Queue<Image>();
+
+      public bool IsDownloading { get; private set; }
+
+      public void Download(Image image)
+      {
+        PendingImages.Enqueue(image);
+        if (!IsDownloading) DownloadNext();
+      }
+
+      void DownloadNext()
+      {
+        if (PendingImages.Count == 0)
+        {
+          IsDownloading = false;
+          return;
+        }
+
+        Image image = PendingImages.Dequeue();
+        StartCoroutine(DownloadImage(image));
+
+        IsDownloading = true;
+      }
+
+      IEnumerator DownloadImage(Image image)
+      {
+        var www = new WWW(image.Url);
+        yield return www;
+
+        if (!String.IsNullOrEmpty(www.error))
+        {
+          Instance.Puts($"Error while downloading image {image.Url}: {www.error}");
+        }
+        else if (www.bytes == null || www.bytes.Length == 0)
+        {
+          Instance.Puts($"Error while downloading image {image.Url}: No data received");
+        }
+        else
+        {
+          byte[] data = www.texture.EncodeToPNG();
+          image.Save(data);
+          DestroyImmediate(www.texture);
+          Instance.Puts($"Stored {image.Url} as id {image.Id}");
+          DownloadNext();
         }
       }
     }
@@ -6034,6 +6167,7 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using System;
+  using System.Collections.Generic;
 
   public partial class Imperium
   {
@@ -6122,8 +6256,6 @@ namespace Oxide.Plugins
   {
     public static class Ui
     {
-      private static bool UpdatePending = false;
-
       public const string ImageBaseUrl = "http://assets.rustimperium.com/";
       public const string MapOverlayImageUrl = "imperium://map-overlay.png";
       public const string TransparentTexture = "assets/content/textures/generic/fulltransparent.tga";
@@ -6149,17 +6281,22 @@ namespace Oxide.Plugins
       public static class HudIcon
       {
         public const string Badlands = ImageBaseUrl + "icons/hud/badlands.png";
+        public const string CargoPlaneIndicatorOn = ImageBaseUrl + "icons/hud/cargoplane-on.png";
+        public const string CargoPlaneIndicatorOff = ImageBaseUrl + "icons/hud/cargoplane-off.png";
         public const string Claimed = ImageBaseUrl + "icons/hud/claimed.png";
         public const string Clock = ImageBaseUrl + "icons/hud/clock.png";
         public const string Debris = ImageBaseUrl + "icons/hud/debris.png";
         public const string Defense = ImageBaseUrl + "icons/hud/defense.png";
         public const string Harvest = ImageBaseUrl + "icons/hud/harvest.png";
         public const string Headquarters = ImageBaseUrl + "icons/hud/headquarters.png";
+        public const string HelicopterIndicatorOn = ImageBaseUrl + "icons/hud/helicopter-on.png";
+        public const string HelicopterIndicatorOff = ImageBaseUrl + "icons/hud/helicopter-off.png";
         public const string Players = ImageBaseUrl + "icons/hud/players.png";
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
         public const string SupplyDrop = ImageBaseUrl + "icons/hud/supplydrop.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
         public const string Town = ImageBaseUrl + "icons/hud/town.png";
+        public const string Warning = ImageBaseUrl + "icons/hud/warning.png";
         public const string WarZone = ImageBaseUrl + "icons/hud/warzone.png";
         public const string Wilderness = ImageBaseUrl + "icons/hud/wilderness.png";
       }
@@ -6189,23 +6326,6 @@ namespace Oxide.Plugins
         public const string Unknown = ImageBaseUrl + "icons/map/unknown.png";
         public const string WaterTreatmentPlant = ImageBaseUrl + "icons/map/water-treatment-plant.png";
       }
-
-      public static void RefreshForAllPlayers()
-      {
-        if (UpdatePending)
-          return;
-
-        Instance.NextTick(() => {
-          foreach (User user in Instance.Users.GetAll())
-          {
-            user.Map.Refresh();
-            user.HudPanel.Refresh();
-          }
-          UpdatePending = false;
-        });
-
-        UpdatePending = true;
-      }
     }
   }
 }
@@ -6219,7 +6339,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium
   {
-    class UserHudPanel
+    class UserHud
     {
       const float IconSize = 0.075f;
 
@@ -6236,7 +6356,7 @@ namespace Oxide.Plugins
       public User User { get; }
       public bool IsDisabled { get; set; }
 
-      public UserHudPanel(User user)
+      public UserHud(User user)
       {
         User = user;
       }
@@ -6328,10 +6448,16 @@ namespace Oxide.Plugins
         AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.33f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.3f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.66f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.53f);
+
+        string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
+        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.78f);
+
+        string heliIcon = Instance.Hud.GameEvents.IsHelicopterActive ? Ui.HudIcon.HelicopterIndicatorOn : Ui.HudIcon.HelicopterIndicatorOff;
+        AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.88f);
 
         return container;
       }
@@ -6379,17 +6505,7 @@ namespace Oxide.Plugins
         Zone zone = User.CurrentZones.FirstOrDefault();
 
         if (zone != null)
-        {
-          switch (zone.Type)
-          {
-            case ZoneType.SupplyDrop:
-              return $"{area.Id}: Supply Drop Area";
-            case ZoneType.Debris:
-              return $"{area.Id}: Debris Field";
-            case ZoneType.Monument:
-              return $"{area.Id}: Monument";
-          }
-        }
+          return $"{area.Id}: {zone.Name}";
 
         switch (area.Type)
         {
@@ -6462,7 +6578,7 @@ namespace Oxide.Plugins
           Name = Ui.Element.HudPanelIcon + guid,
           Parent = parent,
           Components = {
-            Instance.Images.CreateImageComponent(iconName),
+            Instance.Hud.CreateImageComponent(iconName),
             new CuiRectTransformComponent {
               AnchorMin = $"{left} {IconSize}",
               AnchorMax = $"{left + IconSize} {1 - IconSize}",
@@ -6486,6 +6602,25 @@ namespace Oxide.Plugins
             OffsetMax = "12 0"
           }
         }, parent, Ui.Element.HudPanelText + guid);
+      }
+
+      void AddWidget(CuiElementContainer container, string parent, string iconName, float left = 0f)
+      {
+        var guid = Guid.NewGuid().ToString();
+
+        container.Add(new CuiElement {
+          Name = Ui.Element.HudPanelIcon + guid,
+          Parent = parent,
+          Components = {
+            Instance.Hud.CreateImageComponent(iconName),
+            new CuiRectTransformComponent {
+              AnchorMin = $"{left} {IconSize}",
+              AnchorMax = $"{left + IconSize} {1 - IconSize}",
+              OffsetMin = "6 0",
+              OffsetMax = "6 0"
+            }
+          }
+        });
       }
     }
   }
@@ -6552,7 +6687,7 @@ namespace Oxide.Plugins
           Name = Ui.Element.MapBackgroundImage,
           Parent = Ui.Element.Map,
           Components = {
-            Instance.Images.CreateImageComponent(Instance.Options.MapImageUrl),
+            Instance.Hud.CreateImageComponent(Instance.Options.MapImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
@@ -6561,7 +6696,7 @@ namespace Oxide.Plugins
           Name = Ui.Element.MapClaimsImage,
           Parent = Ui.Element.Map,
           Components = {
-            Instance.Images.CreateImageComponent(Ui.MapOverlayImageUrl),
+            Instance.Hud.CreateImageComponent(Ui.MapOverlayImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
@@ -6596,7 +6731,7 @@ namespace Oxide.Plugins
           Name = Ui.Element.MapIcon + Guid.NewGuid().ToString(),
           Parent = Ui.Element.Map,
           Components = {
-            Instance.Images.CreateImageComponent(marker.IconUrl),
+            Instance.Hud.CreateImageComponent(marker.IconUrl),
             new CuiRectTransformComponent {
               AnchorMin = $"{marker.X - iconSize} {marker.Z - iconSize}",
               AnchorMax = $"{marker.X + iconSize} {marker.Z + iconSize}"

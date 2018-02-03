@@ -4,8 +4,6 @@
   {
     public static class Ui
     {
-      private static bool UpdatePending = false;
-
       public const string ImageBaseUrl = "http://assets.rustimperium.com/";
       public const string MapOverlayImageUrl = "imperium://map-overlay.png";
       public const string TransparentTexture = "assets/content/textures/generic/fulltransparent.tga";
@@ -31,17 +29,22 @@
       public static class HudIcon
       {
         public const string Badlands = ImageBaseUrl + "icons/hud/badlands.png";
+        public const string CargoPlaneIndicatorOn = ImageBaseUrl + "icons/hud/cargoplane-on.png";
+        public const string CargoPlaneIndicatorOff = ImageBaseUrl + "icons/hud/cargoplane-off.png";
         public const string Claimed = ImageBaseUrl + "icons/hud/claimed.png";
         public const string Clock = ImageBaseUrl + "icons/hud/clock.png";
         public const string Debris = ImageBaseUrl + "icons/hud/debris.png";
         public const string Defense = ImageBaseUrl + "icons/hud/defense.png";
         public const string Harvest = ImageBaseUrl + "icons/hud/harvest.png";
         public const string Headquarters = ImageBaseUrl + "icons/hud/headquarters.png";
+        public const string HelicopterIndicatorOn = ImageBaseUrl + "icons/hud/helicopter-on.png";
+        public const string HelicopterIndicatorOff = ImageBaseUrl + "icons/hud/helicopter-off.png";
         public const string Players = ImageBaseUrl + "icons/hud/players.png";
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
         public const string SupplyDrop = ImageBaseUrl + "icons/hud/supplydrop.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
         public const string Town = ImageBaseUrl + "icons/hud/town.png";
+        public const string Warning = ImageBaseUrl + "icons/hud/warning.png";
         public const string WarZone = ImageBaseUrl + "icons/hud/warzone.png";
         public const string Wilderness = ImageBaseUrl + "icons/hud/wilderness.png";
       }
@@ -70,23 +73,6 @@
         public const string Trainyard = ImageBaseUrl + "icons/map/trainyard.png";
         public const string Unknown = ImageBaseUrl + "icons/map/unknown.png";
         public const string WaterTreatmentPlant = ImageBaseUrl + "icons/map/water-treatment-plant.png";
-      }
-
-      public static void RefreshForAllPlayers()
-      {
-        if (UpdatePending)
-          return;
-
-        Instance.NextTick(() => {
-          foreach (User user in Instance.Users.GetAll())
-          {
-            user.Map.Refresh();
-            user.HudPanel.Refresh();
-          }
-          UpdatePending = false;
-        });
-
-        UpdatePending = true;
       }
     }
   }

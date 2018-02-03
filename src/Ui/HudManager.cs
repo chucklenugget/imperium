@@ -8,17 +8,39 @@
 
   public partial class Imperium
   {
-    class ImageManager
+    class HudManager
     {
       Dictionary<string, Image> Images;
+      bool UpdatePending;
+
+      public GameEventWatcher GameEvents { get; private set; }
+
       ImageDownloader ImageDownloader;
       MapOverlayGenerator MapOverlayGenerator;
 
-      public ImageManager()
+      public HudManager()
       {
         Images = new Dictionary<string, Image>();
+        GameEvents = Instance.GameObject.AddComponent<GameEventWatcher>();
         ImageDownloader = Instance.GameObject.AddComponent<ImageDownloader>();
         MapOverlayGenerator = Instance.GameObject.AddComponent<MapOverlayGenerator>();
+      }
+
+      public void RefreshForAllPlayers()
+      {
+        if (UpdatePending)
+          return;
+
+        Instance.NextTick(() => {
+          foreach (User user in Instance.Users.GetAll())
+          {
+            user.Map.Refresh();
+            user.Hud.Refresh();
+          }
+          UpdatePending = false;
+        });
+
+        UpdatePending = true;
       }
 
       public Image RegisterImage(string url, byte[] imageData = null, bool overwrite = false)
@@ -89,6 +111,7 @@
       {
         UnityEngine.Object.DestroyImmediate(ImageDownloader);
         UnityEngine.Object.DestroyImmediate(MapOverlayGenerator);
+        UnityEngine.Object.DestroyImmediate(GameEvents);
 
         foreach (Image image in Images.Values)
           image.Delete();

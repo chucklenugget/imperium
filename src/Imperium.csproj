@@ -94,6 +94,7 @@
     <Compile Include="Data\Wars\WarEndReason.cs" />
     <Compile Include="Data\Wars\WarInfo.cs" />
     <Compile Include="Data\Zones\ZoneType.cs" />
+    <Compile Include="Framework\Monument.cs" />
     <Compile Include="Framework\Util.cs" />
     <Compile Include="Imperium.cs" />
     <Compile Include="Core\Economics.cs" />
@@ -121,15 +122,16 @@
     <Compile Include="Core\Lang.cs" />
     <Compile Include="Core\Logistics.cs" />
     <Compile Include="Core\Options.cs" />
-    <Compile Include="Data\Images\FactionColorPicker.cs" />
-    <Compile Include="Data\Images\Image.cs" />
-    <Compile Include="Data\Images\ImageDownloader.cs" />
-    <Compile Include="Ui\MapGrid.cs" />
+    <Compile Include="Framework\FactionColorPicker.cs" />
+    <Compile Include="Ui\Image.cs" />
+    <Compile Include="Ui\ImageDownloader.cs" />
+    <Compile Include="Ui\GameEventWatcher.cs" />
+    <Compile Include="Framework\MapGrid.cs" />
     <Compile Include="Ui\MapMarker.cs" />
-    <Compile Include="Data\Images\MapOverlayGenerator.cs" />
-    <Compile Include="Data\Images\ImageManager.cs" />
+    <Compile Include="Framework\MapOverlayGenerator.cs" />
+    <Compile Include="Ui\HudManager.cs" />
     <Compile Include="Ui\Ui.cs" />
-    <Compile Include="Ui\UserHudPanel.cs" />
+    <Compile Include="Ui\UserHud.cs" />
     <Compile Include="Ui\UserMap.cs" />
   </ItemGroup>
   <ItemGroup>

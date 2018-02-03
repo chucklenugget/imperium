@@ -60,7 +60,7 @@
           Name = Ui.Element.MapBackgroundImage,
           Parent = Ui.Element.Map,
           Components = {
-            Instance.Images.CreateImageComponent(Instance.Options.MapImageUrl),
+            Instance.Hud.CreateImageComponent(Instance.Options.MapImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
@@ -69,7 +69,7 @@
           Name = Ui.Element.MapClaimsImage,
           Parent = Ui.Element.Map,
           Components = {
-            Instance.Images.CreateImageComponent(Ui.MapOverlayImageUrl),
+            Instance.Hud.CreateImageComponent(Ui.MapOverlayImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
@@ -104,7 +104,7 @@
           Name = Ui.Element.MapIcon + Guid.NewGuid().ToString(),
           Parent = Ui.Element.Map,
           Components = {
-            Instance.Images.CreateImageComponent(marker.IconUrl),
+            Instance.Hud.CreateImageComponent(marker.IconUrl),
             new CuiRectTransformComponent {
               AnchorMin = $"{marker.X - iconSize} {marker.Z - iconSize}",
               AnchorMax = $"{marker.X + iconSize} {marker.Z + iconSize}"
