@@ -92,9 +92,11 @@ namespace Oxide.Plugins
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
       Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
       Puts("Defensive bonuses are " + (Options.EnableDefensiveBonuses ? "enabled" : "disabled"));
-      Puts("Restricted PVP is " + (Options.EnableRestrictedPVP ? "enabled" : "disabled"));
       Puts("Decay reduction is " + (Options.EnableDecayReduction ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.EnableUpkeep ? "enabled" : "disabled"));
+      Puts("Restricted PVP is " + (Options.EnableRestrictedPVP ? "enabled" : "disabled"));
+      Puts("Monument zones are " + (Options.EnableMonumentZones ? "enabled" : "disabled"));
+      Puts("Event zones are " + (Options.EnableEventZones ? "enabled" : "disabled"));
     }
 
     void OnServerInitialized()
@@ -2528,25 +2530,47 @@ namespace Oxide.Plugins
       User defender = Users.Get(player);
       var entity = turret as BaseCombatEntity;
 
+      if (defender == null || entity == null)
+        return null;
+
       return Logistics.AlterTurretTrigger(entity, defender);
     }
 
-    void OnEntityKill(BaseNetworkable entity)
+    void OnEntitySpawned(BaseNetworkable entity)
     {
-      // If a player dies in an area or a zone, remove them.
-      var player = entity as BasePlayer;
-      if (player != null)
+      var drop = entity as SupplyDrop;
+
+      // If a supply drop was spawned, create a zone around it.
+      if (Options.EnableEventZones && drop != null)
+        Zones.Create(drop);
+    }
+
+    object OnPlayerDie(BasePlayer player, HitInfo hit)
+    {
+      if (player == null)
+        return null;
+
+      // If a player died in an area or a zone, remove them.
+      Puts($"Player died");
+      User user = Users.Get(player);
+      if (user != null)
       {
-        User user = Users.Get(player);
-        if (user != null)
-        {
-          user.CurrentArea = null;
-          user.CurrentZones.Clear();
-        }
-        return;
+        Puts($"Removing {user.UserName} from areas and zones");
+        user.CurrentArea = null;
+        user.CurrentZones.Clear();
       }
 
-      // If a claim TC is destroyed, remove the claim from the area.
+      return null;
+    }
+
+    void OnEntityKill(BaseNetworkable networkable)
+    {
+      var entity = networkable as BaseEntity;
+
+      if (entity == null)
+        return;
+
+      // If a claim TC was destroyed, remove the claim from the area.
       var cupboard = entity as BuildingPrivlidge;
       if (cupboard != null)
       {
@@ -2560,7 +2584,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      // If a tax chest is destroyed, remove it from the faction data.
+      // If a tax chest was destroyed, remove it from the faction data.
       var container = entity as StorageContainer;
       if (Options.EnableTaxation && container != null)
       {
@@ -2573,12 +2597,10 @@ namespace Oxide.Plugins
         return;
       }
 
-      // If a helicopter is destroyed, create an event zone around it.
+      // If a helicopter was destroyed, create an event zone around it.
       var helicopter = entity as BaseHelicopter;
-      if (helicopter != null)
-      {
+      if (Options.EnableEventZones && helicopter != null)
         Zones.Create(helicopter);
-      }
     }
 
     void OnDispenserGather(ResourceDispenser dispenser, BaseEntity entity, Item item)
@@ -2878,6 +2900,10 @@ namespace Oxide.Plugins
         {
           // One player is damaging another.
           User defender = Instance.Users.Get(defendingPlayer);
+
+          if (defender == null)
+            return null;
+
           return AlterDamageBetweenPlayers(attacker, defender, hit);
         }
 
@@ -2945,7 +2971,7 @@ namespace Oxide.Plugins
         }
 
         // If both the attacker and the defender are in a danger zone, they can damage one another.
-        if (attacker.CurrentArea.IsDangerous && attacker.CurrentArea.IsDangerous)
+        if (attacker.CurrentArea.IsDangerous && defender.CurrentArea.IsDangerous)
           return null;
 
         // If both the attacker and defender are in an event zone, they can damage one another.
@@ -3046,6 +3072,8 @@ namespace Oxide.Plugins
       public bool EnableBadlands;
       public bool EnableDecayReduction;
       public bool EnableDefensiveBonuses;
+      public bool EnableEventZones;
+      public bool EnableMonumentZones;
       public bool EnableRestrictedPVP;
       public bool EnableTaxation;
       public bool EnableTowns;
@@ -3085,6 +3113,8 @@ namespace Oxide.Plugins
         EnableBadlands = true,
         EnableDecayReduction = true,
         EnableDefensiveBonuses = true,
+        EnableEventZones = true,
+        EnableMonumentZones = true,
         EnableRestrictedPVP = false,
         EnableTaxation = true,
         EnableTowns = true,
@@ -4196,14 +4226,14 @@ namespace Oxide.Plugins
       public string Save(byte[] data)
       {
         if (IsDownloaded) Delete();
-        Id = FileStorage.server.Store(data, FileStorage.Type.png, CommunityEntity.ServerInstance.net.ID, 0).ToString();
+        Id = FileStorage.server.Store(data, FileStorage.Type.png, UInt32.MaxValue, 0).ToString();
         return Id;
       }
 
       public void Delete()
       {
         if (!IsDownloaded) return;
-        FileStorage.server.RemoveEntityNum(Convert.ToUInt32(Id), 0);
+        FileStorage.server.Remove(Convert.ToUInt32(Id), FileStorage.Type.png, UInt32.MaxValue);
         Id = null;
       }
 
@@ -4259,18 +4289,18 @@ namespace Oxide.Plugins
 
         if (!String.IsNullOrEmpty(www.error))
         {
-          Instance.Log($"[IMAGES] Error while downloading image {image.Url}: {www.error}");
+          Instance.Puts($"Error while downloading image {image.Url}: {www.error}");
         }
         else if (www.bytes == null || www.bytes.Length == 0)
         {
-          Instance.Log($"[IMAGES] Error while downloading image {image.Url}: No data received");
+          Instance.Puts($"Error while downloading image {image.Url}: No data received");
         }
         else
         {
           byte[] data = www.texture.EncodeToPNG();
           image.Save(data);
           DestroyImmediate(www.texture);
-          Instance.Log($"[IMAGES] Stored {image.Url} as id {image.Id}");
+          Instance.Puts($"Stored {image.Url} as id {image.Id}");
           DownloadNext();
         }
       }
@@ -4662,6 +4692,11 @@ namespace Oxide.Plugins
           Api.HandleUserLeftArea(this, currentArea);
           Api.HandleUserEnteredArea(this, correctArea);
         }
+      }
+
+      void CheckZones()
+      {
+
       }
     }
   }
@@ -5127,7 +5162,7 @@ namespace Oxide.Plugins
 
       public void Init()
       {
-        if (Instance.Options.MonumentZones != null)
+        if (Instance.Options.EnableMonumentZones && Instance.Options.MonumentZones != null)
         {
           MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
           foreach (MonumentInfo monument in monuments)
@@ -5138,9 +5173,12 @@ namespace Oxide.Plugins
           }
         }
 
-        SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
-        foreach (SupplyDrop drop in drops)
-          Create(drop);
+        if (Instance.Options.EnableEventZones)
+        {
+          SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
+          foreach (SupplyDrop drop in drops)
+            Create(drop);
+        }
       }
 
       public Zone Create(MonumentInfo monument, float radius)
@@ -6123,7 +6161,7 @@ namespace Oxide.Plugins
 {
   public partial class Imperium
   {
-    static class Ui
+    public static class Ui
     {
       private static bool UpdatePending = false;
 
@@ -6570,7 +6608,7 @@ namespace Oxide.Plugins
         });
 
         var monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
-        foreach (MonumentInfo monument in monuments.Where(m => m.Type != MonumentType.Cave && !m.name.Contains("power_sub")))
+        foreach (MonumentInfo monument in monuments.Where(ShowMonumentOnMap))
           AddMarker(container, MapMarker.ForMonument(monument));
 
         foreach (Area area in Instance.Areas.GetAllByType(AreaType.Headquarters))
@@ -6619,6 +6657,12 @@ namespace Oxide.Plugins
         }
       }
 
+      bool ShowMonumentOnMap(MonumentInfo monument)
+      {
+        return monument.Type != MonumentType.Cave
+          && !monument.name.Contains("power_sub")
+          && !monument.name.Contains("water_well");
+      }
     }
   }
 }

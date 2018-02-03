@@ -2,7 +2,7 @@
 {
   public partial class Imperium
   {
-    static class Ui
+    public static class Ui
     {
       private static bool UpdatePending = false;
 

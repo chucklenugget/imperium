@@ -74,25 +74,45 @@
       User defender = Users.Get(player);
       var entity = turret as BaseCombatEntity;
 
+      if (defender == null || entity == null)
+        return null;
+
       return Logistics.AlterTurretTrigger(entity, defender);
     }
 
-    void OnEntityKill(BaseNetworkable entity)
+    void OnEntitySpawned(BaseNetworkable entity)
     {
-      // If a player dies in an area or a zone, remove them.
-      var player = entity as BasePlayer;
-      if (player != null)
+      var drop = entity as SupplyDrop;
+
+      // If a supply drop was spawned, create a zone around it.
+      if (Options.EnableEventZones && drop != null)
+        Zones.Create(drop);
+    }
+
+    object OnPlayerDie(BasePlayer player, HitInfo hit)
+    {
+      if (player == null)
+        return null;
+
+      // When a player dies, remove them from the area and any zones they were in.
+      User user = Users.Get(player);
+      if (user != null)
       {
-        User user = Users.Get(player);
-        if (user != null)
-        {
-          user.CurrentArea = null;
-          user.CurrentZones.Clear();
-        }
-        return;
+        user.CurrentArea = null;
+        user.CurrentZones.Clear();
       }
 
-      // If a claim TC is destroyed, remove the claim from the area.
+      return null;
+    }
+
+    void OnEntityKill(BaseNetworkable networkable)
+    {
+      var entity = networkable as BaseEntity;
+
+      if (entity == null)
+        return;
+
+      // If a claim TC was destroyed, remove the claim from the area.
       var cupboard = entity as BuildingPrivlidge;
       if (cupboard != null)
       {
@@ -106,7 +126,7 @@
         return;
       }
 
-      // If a tax chest is destroyed, remove it from the faction data.
+      // If a tax chest was destroyed, remove it from the faction data.
       var container = entity as StorageContainer;
       if (Options.EnableTaxation && container != null)
       {
@@ -119,12 +139,10 @@
         return;
       }
 
-      // If a helicopter is destroyed, create an event zone around it.
+      // If a helicopter was destroyed, create an event zone around it.
       var helicopter = entity as BaseHelicopter;
-      if (helicopter != null)
-      {
+      if (Options.EnableEventZones && helicopter != null)
         Zones.Create(helicopter);
-      }
     }
 
     void OnDispenserGather(ResourceDispenser dispenser, BaseEntity entity, Item item)

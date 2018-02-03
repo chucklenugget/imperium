@@ -92,9 +92,11 @@ namespace Oxide.Plugins
       Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
       Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
       Puts("Defensive bonuses are " + (Options.EnableDefensiveBonuses ? "enabled" : "disabled"));
-      Puts("Restricted PVP is " + (Options.EnableRestrictedPVP ? "enabled" : "disabled"));
       Puts("Decay reduction is " + (Options.EnableDecayReduction ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.EnableUpkeep ? "enabled" : "disabled"));
+      Puts("Restricted PVP is " + (Options.EnableRestrictedPVP ? "enabled" : "disabled"));
+      Puts("Monument zones are " + (Options.EnableMonumentZones ? "enabled" : "disabled"));
+      Puts("Event zones are " + (Options.EnableEventZones ? "enabled" : "disabled"));
     }
 
     void OnServerInitialized()

@@ -11,7 +11,7 @@
 
       public void Init()
       {
-        if (Instance.Options.MonumentZones != null)
+        if (Instance.Options.EnableMonumentZones && Instance.Options.MonumentZones != null)
         {
           MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
           foreach (MonumentInfo monument in monuments)
@@ -22,9 +22,12 @@
           }
         }
 
-        SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
-        foreach (SupplyDrop drop in drops)
-          Create(drop);
+        if (Instance.Options.EnableEventZones)
+        {
+          SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
+          foreach (SupplyDrop drop in drops)
+            Create(drop);
+        }
       }
 
       public Zone Create(MonumentInfo monument, float radius)

@@ -37,6 +37,10 @@
         {
           // One player is damaging another.
           User defender = Instance.Users.Get(defendingPlayer);
+
+          if (defender == null)
+            return null;
+
           return AlterDamageBetweenPlayers(attacker, defender, hit);
         }
 
@@ -104,7 +108,7 @@
         }
 
         // If both the attacker and the defender are in a danger zone, they can damage one another.
-        if (attacker.CurrentArea.IsDangerous && attacker.CurrentArea.IsDangerous)
+        if (attacker.CurrentArea.IsDangerous && defender.CurrentArea.IsDangerous)
           return null;
 
         // If both the attacker and defender are in an event zone, they can damage one another.

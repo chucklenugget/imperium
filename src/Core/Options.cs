@@ -10,6 +10,8 @@
       public bool EnableBadlands;
       public bool EnableDecayReduction;
       public bool EnableDefensiveBonuses;
+      public bool EnableEventZones;
+      public bool EnableMonumentZones;
       public bool EnableRestrictedPVP;
       public bool EnableTaxation;
       public bool EnableTowns;
@@ -49,6 +51,8 @@
         EnableBadlands = true,
         EnableDecayReduction = true,
         EnableDefensiveBonuses = true,
+        EnableEventZones = true,
+        EnableMonumentZones = true,
         EnableRestrictedPVP = false,
         EnableTaxation = true,
         EnableTowns = true,

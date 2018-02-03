@@ -132,6 +132,11 @@
           Api.HandleUserEnteredArea(this, correctArea);
         }
       }
+
+      void CheckZones()
+      {
+
+      }
     }
   }
 }

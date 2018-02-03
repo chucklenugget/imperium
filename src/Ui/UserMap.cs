@@ -75,7 +75,7 @@
         });
 
         var monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
-        foreach (MonumentInfo monument in monuments.Where(m => m.Type != MonumentType.Cave && !m.name.Contains("power_sub")))
+        foreach (MonumentInfo monument in monuments.Where(ShowMonumentOnMap))
           AddMarker(container, MapMarker.ForMonument(monument));
 
         foreach (Area area in Instance.Areas.GetAllByType(AreaType.Headquarters))
@@ -124,6 +124,12 @@
         }
       }
 
+      bool ShowMonumentOnMap(MonumentInfo monument)
+      {
+        return monument.Type != MonumentType.Cave
+          && !monument.name.Contains("power_sub")
+          && !monument.name.Contains("water_well");
+      }
     }
   }
 }
