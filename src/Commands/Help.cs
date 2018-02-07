@@ -23,13 +23,13 @@
       sb.AppendLine("<color=#ffd479>/faction</color> Create or join a faction");
       sb.AppendLine("<color=#ffd479>/claim</color> Claim areas of land");
 
-      if (Options.EnableTaxation)
+      if (Options.Taxes.Enabled)
         sb.AppendLine("<color=#ffd479>/tax</color> Manage taxation of your land");
 
-      if (Options.EnableWar)
+      if (Options.War.Enabled)
         sb.AppendLine("<color=#ffd479>/war</color> See active wars, declare war, or offer peace");
 
-      if (Options.EnableTowns)
+      if (Options.Towns.Enabled)
       {
         if (user.HasPermission(PERM_CHANGE_TOWNS))
           sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns, or create one yourself");
@@ -37,7 +37,7 @@
           sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns");
       }
 
-      if (Options.EnableBadlands)
+      if (Options.Badlands.Enabled)
       {
         if (user.HasPermission(PERM_CHANGE_BADLANDS))
           sb.AppendLine("<color=#ffd479>/badlands</color> Find or change badlands areas");

@@ -27,8 +27,9 @@ namespace Oxide.Plugins
   using Oxide.Core.Configuration;
   using UnityEngine;
   using System.Collections.Generic;
+  using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.4.1")]
+  [Info("Imperium", "chucklenugget", "1.4.2")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -85,16 +86,14 @@ namespace Oxide.Plugins
         PrintError($"Error while loading configuration: {ex.ToString()}");
       }
 
-      Puts("Area claims are " + (Options.EnableAreaClaims ? "enabled" : "disabled"));
-      Puts("Taxation is " + (Options.EnableTaxation ? "enabled" : "disabled"));
-      Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
-      Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
-      Puts("Defensive bonuses are " + (Options.EnableDefensiveBonuses ? "enabled" : "disabled"));
-      Puts("Decay reduction is " + (Options.EnableDecayReduction ? "enabled" : "disabled"));
-      Puts("Claim upkeep is " + (Options.EnableUpkeep ? "enabled" : "disabled"));
-      Puts("Restricted PVP is " + (Options.EnableRestrictedPVP ? "enabled" : "disabled"));
-      Puts("Monument zones are " + (Options.EnableMonumentZones ? "enabled" : "disabled"));
-      Puts("Event zones are " + (Options.EnableEventZones ? "enabled" : "disabled"));
+      Puts("Area claims are " + (Options.Claims.Enabled ? "enabled" : "disabled"));
+      Puts("Taxation is " + (Options.Taxes.Enabled ? "enabled" : "disabled"));
+      Puts("Badlands are " + (Options.Badlands.Enabled ? "enabled" : "disabled"));
+      Puts("Towns are " + (Options.Towns.Enabled ? "enabled" : "disabled"));
+      Puts("War is " + (Options.War.Enabled ? "enabled" : "disabled"));
+      Puts("Decay reduction is " + (Options.Decay.Enabled ? "enabled" : "disabled"));
+      Puts("Claim upkeep is " + (Options.Upkeep.Enabled ? "enabled" : "disabled"));
+      Puts("Zones are " + (Options.Zones.Enabled ? "enabled" : "disabled"));
     }
 
     void OnServerInitialized()
@@ -114,8 +113,8 @@ namespace Oxide.Plugins
         Hud.GenerateMapOverlayImage();
       });
 
-      if (Options.EnableUpkeep)
-        UpkeepCollectionTimer = timer.Every(Options.UpkeepCheckIntervalMinutes * 60, CollectUpkeepForAllFactions);
+      if (Options.Upkeep.Enabled)
+        UpkeepCollectionTimer = timer.Every(Options.Upkeep.CheckIntervalMinutes * 60, Upkeep.CollectForAllFactions);
     }
 
     void OnServerSave()
@@ -178,9 +177,9 @@ namespace Oxide.Plugins
         return false;
       }
 
-      if (faction.MemberIds.Count < Options.MinFactionMembers)
+      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
         return false;
       }
 
@@ -246,7 +245,7 @@ namespace Oxide.Plugins
         return false;
       }
 
-      if (faction.MemberIds.Count < Options.MinFactionMembers)
+      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
       {
         user.SendChatMessage(Messages.FactionTooSmall);
         return false;
@@ -271,10 +270,39 @@ namespace Oxide.Plugins
         return false;
       }
 
-      user.CommandCooldownExpirationTime = DateTime.UtcNow.AddSeconds(Options.CommandCooldownSeconds);
+      user.CommandCooldownExpirationTime = DateTime.UtcNow.AddSeconds(Options.Map.CommandCooldownSeconds);
       return true;
     }
 
+    bool TryCollectFromStacks(ItemDefinition itemDef, IEnumerable<Item> stacks, int amount)
+    {
+      if (stacks.Sum(item => item.amount) < amount)
+        return false;
+
+      int amountRemaining = amount;
+      var dirtyContainers = new HashSet<ItemContainer>();
+
+      foreach (Item stack in stacks)
+      {
+        var amountToTake = Math.Min(stack.amount, amountRemaining);
+
+        stack.amount -= amountToTake;
+        amountRemaining -= amountToTake;
+
+        dirtyContainers.Add(stack.GetRootContainer());
+
+        if (stack.amount == 0)
+          stack.RemoveFromContainer();
+
+        if (amountRemaining == 0)
+          break;
+      }
+
+      foreach (ItemContainer container in dirtyContainers)
+        container.MarkDirty();
+
+      return true;
+    }
   }
 }
 ﻿namespace Oxide.Plugins
@@ -322,13 +350,13 @@ namespace Oxide.Plugins
       sb.AppendLine("<color=#ffd479>/faction</color> Create or join a faction");
       sb.AppendLine("<color=#ffd479>/claim</color> Claim areas of land");
 
-      if (Options.EnableTaxation)
+      if (Options.Taxes.Enabled)
         sb.AppendLine("<color=#ffd479>/tax</color> Manage taxation of your land");
 
-      if (Options.EnableWar)
+      if (Options.War.Enabled)
         sb.AppendLine("<color=#ffd479>/war</color> See active wars, declare war, or offer peace");
 
-      if (Options.EnableTowns)
+      if (Options.Towns.Enabled)
       {
         if (user.HasPermission(PERM_CHANGE_TOWNS))
           sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns, or create one yourself");
@@ -336,7 +364,7 @@ namespace Oxide.Plugins
           sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns");
       }
 
-      if (Options.EnableBadlands)
+      if (Options.Badlands.Enabled)
       {
         if (user.HasPermission(PERM_CHANGE_BADLANDS))
           sb.AppendLine("<color=#ffd479>/badlands</color> Find or change badlands areas");
@@ -360,7 +388,7 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableBadlands)
+      if (!Options.Badlands.Enabled)
       {
         user.SendChatMessage(Messages.BadlandsDisabled);
         return;
@@ -369,7 +397,7 @@ namespace Oxide.Plugins
       if (args.Length == 0)
       {
         var areas = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-        user.SendChatMessage(Messages.BadlandsList, Util.Format(areas), Options.BadlandsGatherBonus);
+        user.SendChatMessage(Messages.BadlandsList, Util.Format(areas), Options.Taxes.BadlandsGatherBonus);
         return;
       }
 
@@ -563,7 +591,7 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableAreaClaims)
+      if (!Options.Claims.Enabled)
       {
         user.SendChatMessage(Messages.AreaClaimsDisabled);
         return;
@@ -679,9 +707,9 @@ namespace Oxide.Plugins
         return;
       }
 
-      if (faction.MemberIds.Count < Options.MinFactionMembers)
+      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
         return;
       }
 
@@ -833,7 +861,7 @@ namespace Oxide.Plugins
       sb.AppendLine("  <color=#ffd479>/claim list FACTION</color>: List all areas claimed for a faction");
       sb.AppendLine("  <color=#ffd479>/claim cost [XY]</color>: Show the cost for your faction to claim an area");
 
-      if (!Options.EnableUpkeep)
+      if (!Options.Upkeep.Enabled)
         sb.AppendLine("  <color=#ffd479>/claim upkeep</color>: Show information about upkeep costs for your faction");
 
       sb.AppendLine("  <color=#ffd479>/claim help</color>: Prints this message");
@@ -928,9 +956,9 @@ namespace Oxide.Plugins
       var areaId = Util.NormalizeAreaId(args[0]);
       var name = Util.NormalizeAreaName(args[1]);
 
-      if (name == null || name.Length < Options.MinAreaNameLength)
+      if (name == null || name.Length < Options.Claims.MinAreaNameLength)
       {
-        user.SendChatMessage(Messages.InvalidAreaName, Options.MinAreaNameLength);
+        user.SendChatMessage(Messages.InvalidAreaName, Options.Claims.MinAreaNameLength);
         return;
       }
 
@@ -1002,7 +1030,7 @@ namespace Oxide.Plugins
   {
     void OnClaimUpkeepCommand(User user)
     {
-      if (!Options.EnableUpkeep)
+      if (!Options.Upkeep.Enabled)
       {
         user.SendChatMessage(Messages.UpkeepDisabled);
         return;
@@ -1016,9 +1044,9 @@ namespace Oxide.Plugins
         return;
       }
 
-      if (faction.MemberIds.Count < Options.MinFactionMembers)
+      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
         return;
       }
 
@@ -1578,7 +1606,7 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableTaxation)
+      if (!Options.Taxes.Enabled)
       {
         user.SendChatMessage(Messages.TaxationDisabled);
         return;
@@ -1669,13 +1697,13 @@ namespace Oxide.Plugins
       }
       catch
       {
-        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
+        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.Taxes.MaxTaxRate * 100);
         return;
       }
 
-      if (taxRate < 0 || taxRate > Options.MaxTaxRate)
+      if (taxRate < 0 || taxRate > Options.Taxes.MaxTaxRate)
       {
-        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
+        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.Taxes.MaxTaxRate * 100);
         return;
       }
 
@@ -1698,7 +1726,7 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableTowns)
+      if (!Options.Towns.Enabled)
       {
         user.SendChatMessage(Messages.TownsDisabled);
         return;
@@ -1914,7 +1942,7 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableTowns)
+      if (!Options.Towns.Enabled)
       {
         user.SendChatMessage(Messages.TownsDisabled);
         return;
@@ -1993,7 +2021,7 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableWar)
+      if (!Options.War.Enabled)
       {
         user.SendChatMessage(Messages.WarDisabled);
         return;
@@ -2069,7 +2097,7 @@ namespace Oxide.Plugins
 
       string cassusBelli = args[1].Trim();
 
-      if (cassusBelli.Length < Options.MinCassusBelliLength)
+      if (cassusBelli.Length < Options.War.MinCassusBelliLength)
       {
         user.SendChatMessage(Messages.CannotDeclareWarInvalidCassusBelli, defender.Id);
         return;
@@ -2306,152 +2334,34 @@ namespace Oxide.Plugins
 }
 ﻿namespace Oxide.Plugins
 {
-  using System;
-  using System.Collections.Generic;
-  using System.Linq;
-
   public partial class Imperium
   {
-    void CollectUpkeepForAllFactions()
+    static class Decay
     {
-      foreach (Faction faction in Factions.GetAll())
-        CollectUpkeep(faction);
-    }
-
-    void CollectUpkeep(Faction faction)
-    {
-      Area[] areas = Areas.GetAllClaimedByFaction(faction);
-
-      if (areas.Length == 0)
-        return;
-
-      if (faction.IsUpkeepPaid)
+      public static object AlterDecayDamage(BaseEntity entity, HitInfo hit)
       {
-        Log($"[UPKEEP] {faction.Id}: Upkeep not due until {faction.NextUpkeepPaymentTime}");
-        return;
+        if (!Instance.Options.Decay.Enabled)
+          return null;
+
+        Area area = Instance.Areas.GetByEntityPosition(entity, true);
+        float reduction = 0;
+
+        if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
+          reduction = Instance.Options.Decay.ClaimedLandDecayReduction;
+
+        if (area.Type == AreaType.Town)
+          reduction = Instance.Options.Decay.TownDecayReduction;
+
+        if (reduction >= 1)
+          return false;
+
+        if (reduction > 0)
+          hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
+
+        return null;
       }
-
-      int amountOwed = faction.GetUpkeepPerPeriod();
-      var hoursSincePaid = (int)DateTime.UtcNow.Subtract(faction.NextUpkeepPaymentTime).TotalHours;
-
-      Log($"[UPKEEP] {faction.Id}: {hoursSincePaid} hours since upkeep paid, trying to collect {amountOwed} scrap for {areas.Length} area claims");
-
-      if (faction.TaxChest != null)
-      {
-        ItemDefinition scrapDef = ItemManager.FindItemDefinition("scrap");
-        List<Item> stacks = faction.TaxChest.inventory.FindItemsByItemID(scrapDef.itemid);
-        if (TryCollectFromStacks(scrapDef, stacks, amountOwed))
-        {
-          faction.NextUpkeepPaymentTime = faction.NextUpkeepPaymentTime.AddHours(Options.UpkeepCollectionPeriodHours);
-          Log($"[UPKEEP] {faction.Id}: {amountOwed} scrap upkeep collected, next payment due {faction.NextUpkeepPaymentTime}");
-          return;
-        }
-      }
-
-      if (hoursSincePaid <= Options.UpkeepGracePeriodHours)
-      {
-        Log($"[UPKEEP] {faction.Id}: Couldn't collect upkeep, but still within {Options.UpkeepGracePeriodHours} hour grace period");
-        return;
-      }
-
-      Area lostArea = areas.OrderBy(area => Areas.GetDepthInsideFriendlyTerritory(area)).First();
-
-      Log($"[UPKEEP] {faction.Id}: Upkeep not paid in {hoursSincePaid} hours, seizing claim on {lostArea.Id}");
-      PrintToChat(Messages.AreaClaimLostUpkeepNotPaidAnnouncement, faction.Id, lostArea.Id);
-
-      Areas.Unclaim(lostArea);
-    }
-
-    void ProcessTaxesIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)
-    {
-      if (!Options.EnableTaxation)
-        return;
-
-      var player = entity as BasePlayer;
-      if (player == null)
-        return;
-
-      User user = Users.Get(player);
-      if (user == null)
-        return;
-
-      Area area = user.CurrentArea;
-      if (area == null || !area.IsClaimed)
-        return;
-
-      Faction faction = Factions.Get(area.FactionId);
-      if (!faction.CanCollectTaxes || faction.TaxChest.inventory.IsFull())
-        return;
-
-      ItemDefinition itemDef = ItemManager.FindItemDefinition(item.info.itemid);
-      if (itemDef == null)
-        return;
-
-      int bonus;
-      if (area.Type == AreaType.Town)
-        bonus = (int)(item.amount * Options.TownGatherBonus);
-      else
-        bonus = (int)(item.amount * Options.ClaimedLandGatherBonus);
-
-      var tax = (int)(item.amount * faction.TaxRate);
-
-      faction.TaxChest.inventory.AddItem(itemDef, tax + bonus);
-      item.amount -= tax;
-    }
-
-    void AwardBadlandsBonusIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)
-    {
-      if (!Options.EnableBadlands) return;
-
-      var player = entity as BasePlayer;
-      if (player == null) return;
-
-      User user = Users.Get(player);
-
-      if (user.CurrentArea == null)
-      {
-        PrintWarning("Player gathered outside of a defined area. This shouldn't happen.");
-        return;
-      }
-
-      if (user.CurrentArea.Type == AreaType.Badlands)
-      {
-        var bonus = (int)(item.amount * Options.BadlandsGatherBonus);
-        item.amount += bonus;
-      }
-    }
-
-    bool TryCollectFromStacks(ItemDefinition itemDef, IEnumerable<Item> stacks, int amount)
-    {
-      if (stacks.Sum(item => item.amount) < amount)
-        return false;
-
-      int amountRemaining = amount;
-      var dirtyContainers = new HashSet<ItemContainer>();
-
-      foreach (Item stack in stacks)
-      {
-        var amountToTake = Math.Min(stack.amount, amountRemaining);
-
-        stack.amount -= amountToTake;
-        amountRemaining -= amountToTake;
-
-        dirtyContainers.Add(stack.GetRootContainer());
-
-        if (stack.amount == 0)
-          stack.RemoveFromContainer();
-
-        if (amountRemaining == 0)
-          break;
-      }
-
-      foreach (ItemContainer container in dirtyContainers)
-        container.MarkDirty();
-
-      return true;
     }
   }
-
 }
 ﻿namespace Oxide.Plugins
 {
@@ -2498,7 +2408,28 @@ namespace Oxide.Plugins
       if (entity == null || hit == null)
         return null;
 
-      return Logistics.AlterDamage(entity, hit);
+      if (hit.damageTypes.Has(Rust.DamageType.Decay))
+        return Decay.AlterDecayDamage(entity, hit);
+
+      User attacker = Instance.Users.Get(hit.InitiatorPlayer);
+      var defendingPlayer = entity as BasePlayer;
+
+      if (attacker == null)
+        return null;
+
+      if (defendingPlayer != null)
+      {
+        // One player is damaging another.
+        User defender = Instance.Users.Get(defendingPlayer);
+
+        if (defender == null)
+          return null;
+
+        return Pvp.AlterDamageBetweenPlayers(attacker, defender, hit);
+      }
+
+      // A player is damaging a structure.
+      return Raiding.AlterDamageAgainstStructure(attacker, entity, hit);
     }
 
     object OnTrapTrigger(BaseTrap trap, GameObject obj)
@@ -2509,7 +2440,7 @@ namespace Oxide.Plugins
         return null;
 
       User defender = Users.Get(player);
-      return Logistics.AlterTrapTrigger(trap, defender);
+      return Pvp.AlterTrapTrigger(trap, defender);
     }
 
     object CanBeTargeted(BaseCombatEntity target, MonoBehaviour turret)
@@ -2532,7 +2463,7 @@ namespace Oxide.Plugins
       if (defender == null || entity == null)
         return null;
 
-      return Logistics.AlterTurretTrigger(entity, defender);
+      return Pvp.AlterTurretTrigger(entity, defender);
     }
 
     void OnEntitySpawned(BaseNetworkable entity)
@@ -2546,7 +2477,7 @@ namespace Oxide.Plugins
         Hud.GameEvents.BeginEvent(plane);
 
       var drop = entity as SupplyDrop;
-      if (Options.EnableEventZones && drop != null)
+      if (Options.Zones.Enabled && drop != null)
         Zones.Create(drop);
     }
 
@@ -2573,7 +2504,7 @@ namespace Oxide.Plugins
 
       // If a tax chest was destroyed, remove it from the faction data.
       var container = entity as StorageContainer;
-      if (Options.EnableTaxation && container != null)
+      if (Options.Taxes.Enabled && container != null)
       {
         Faction faction = Factions.GetByTaxChest(container);
         if (faction != null)
@@ -2586,20 +2517,20 @@ namespace Oxide.Plugins
 
       // If a helicopter was destroyed, create an event zone around it.
       var helicopter = entity as BaseHelicopter;
-      if (Options.EnableEventZones && helicopter != null)
+      if (Options.Zones.Enabled && helicopter != null)
         Zones.Create(helicopter);
     }
 
     void OnDispenserGather(ResourceDispenser dispenser, BaseEntity entity, Item item)
     {
-      ProcessTaxesIfApplicable(dispenser, entity, item);
-      AwardBadlandsBonusIfApplicable(dispenser, entity, item);
+      Taxes.ProcessTaxesIfApplicable(dispenser, entity, item);
+      Taxes.AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
     void OnDispenserBonus(ResourceDispenser dispenser, BaseEntity entity, Item item)
     {
-      ProcessTaxesIfApplicable(dispenser, entity, item);
-      AwardBadlandsBonusIfApplicable(dispenser, entity, item);
+      Taxes.ProcessTaxesIfApplicable(dispenser, entity, item);
+      Taxes.AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
     object OnPlayerDie(BasePlayer player, HitInfo hit)
@@ -2866,11 +2797,135 @@ namespace Oxide.Plugins
 }
 ﻿namespace Oxide.Plugins
 {
+  using System;
   using System.Linq;
 
   public partial class Imperium
   {
-    static class Logistics
+    static class Pvp
+    {
+      public static object AlterDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
+      {
+        // Allow players to take the easy way out.
+        if (hit.damageTypes.Has(Rust.DamageType.Suicide))
+          return null;
+
+        if (attacker.CurrentArea == null || defender.CurrentArea == null)
+        {
+          Instance.PrintWarning("A player dealt or received damage while in an unknown area. This shouldn't happen.");
+          return null;
+        }
+
+        // If the players are both in factions who are currently at war, they can damage each other anywhere.
+        if (attacker.Faction != null && defender.Faction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, defender.Faction))
+          return null;
+
+        // If both the attacker and the defender are in a PVP area or zone, they can damage one another.
+        if (IsUserInPvpLocation(attacker) && IsUserInPvpLocation(defender))
+          return null;
+
+        // Stop the damage.
+        return false;
+      }
+
+      public static object AlterTrapTrigger(BaseTrap trap, User defender)
+      {
+        // A player can always trigger their own traps, to prevent exploiting this mechanic.
+        if (defender.Player.userID == trap.OwnerID)
+          return null;
+
+        Area trapArea = Instance.Areas.GetByEntityPosition(trap, true);
+
+        if (trapArea == null || defender.CurrentArea == null)
+        {
+          Instance.PrintWarning("A trap was triggered in an unknown area. This shouldn't happen.");
+          return null;
+        }
+
+        // If the defender is in a faction, they can trigger traps placed in areas claimed by factions with which they are at war.
+        if (defender.Faction != null && trapArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, trapArea.FactionId))
+          return null;
+
+        // If both the trap and the defender are in a PVP area, the trap can trigger.
+        if (IsPvpArea(trapArea) && IsPvpArea(defender.CurrentArea))
+          return null;
+
+        // Stop the trap from triggering.
+        return false;
+      }
+
+      public static object AlterTurretTrigger(BaseCombatEntity turret, User defender)
+      {
+        // A player can be always be targeted by their own turrets, to prevent exploiting this mechanic.
+        if (defender.Player.userID == turret.OwnerID)
+          return null;
+
+        Area turretArea = Instance.Areas.GetByEntityPosition(turret, true);
+
+        if (turretArea == null || defender.CurrentArea == null)
+        {
+          Instance.PrintWarning("A turret tried to acquire a target in an unknown area. This shouldn't happen.");
+          return null;
+        }
+
+        // If the defender is in a faction, they can be targeted by turrets in areas claimed by factions with which they are at war.
+        if (defender.Faction != null && turretArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, turretArea.FactionId))
+          return null;
+
+        // If both the turret and the defender are in a PVP area, the trap can trigger.
+        if (IsPvpArea(turretArea) && IsPvpArea(defender.CurrentArea))
+          return null;
+
+        return false;
+      }
+
+      static bool IsUserInPvpLocation(User user)
+      {
+        return IsPvpArea(user.CurrentArea) || user.CurrentZones.Any(IsPvpZone);
+      }
+
+      static bool IsPvpZone(Zone zone)
+      {
+        switch (zone.Type)
+        {
+          case ZoneType.Debris:
+          case ZoneType.SupplyDrop:
+            return Instance.Options.Pvp.AllowedInEventZones;
+          case ZoneType.Monument:
+            return Instance.Options.Pvp.AllowedInMonumentZones;
+          default:
+            throw new InvalidOperationException($"Unknown zone type {zone.Type}");
+        }
+      }
+
+      static bool IsPvpArea(Area area)
+      {
+        switch (area.Type)
+        {
+          case AreaType.Badlands:
+            return Instance.Options.Pvp.AllowedInBadlands;
+          case AreaType.Claimed:
+          case AreaType.Headquarters:
+            return Instance.Options.Pvp.AllowedInClaimedLand;
+          case AreaType.Town:
+            return Instance.Options.Pvp.AllowedInTowns;
+          case AreaType.Wilderness:
+            return Instance.Options.Pvp.AllowedInWilderness;
+          default:
+            throw new InvalidOperationException($"Unknown area type {area.Type}");
+        }
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+  using System.Linq;
+
+  public partial class Imperium
+  {
+    static class Raiding
     {
       static string[] ProtectedPrefabs = new[]
       {
@@ -2888,110 +2943,13 @@ namespace Oxide.Plugins
         "waterbarrel"
       };
 
-      public static object AlterDamage(BaseCombatEntity entity, HitInfo hit)
+      public static object AlterDamageAgainstStructure(User attacker, BaseCombatEntity entity, HitInfo hit)
       {
-        if (hit.damageTypes.Has(Rust.DamageType.Decay))
-          return AlterDecayDamage(entity, hit);
-
-        User attacker = Instance.Users.Get(hit.InitiatorPlayer);
-        var defendingPlayer = entity as BasePlayer;
-
-        if (attacker == null)
-          return null;
-
-        if (defendingPlayer != null)
-        {
-          // One player is damaging another.
-          User defender = Instance.Users.Get(defendingPlayer);
-
-          if (defender == null)
-            return null;
-
-          return AlterDamageBetweenPlayers(attacker, defender, hit);
-        }
-
-        // A player is damaging a structure.
-        return AlterDamageAgainstStructure(attacker, entity, hit);
-      }
-
-      public static object AlterTrapTrigger(BaseTrap trap, User defender)
-      {
-        if (!Instance.Options.EnableRestrictedPVP)
-          return null;
-
-        // A player can trigger their own traps, to prevent exploiting this mechanic.
-        if (defender.Player.userID == trap.OwnerID)
-          return null;
-
-        Area trapArea = Instance.Areas.GetByEntityPosition(trap, true);
-        Area defenderArea = Instance.Areas.GetByEntityPosition(defender.Player);
-
-        // A player can trigger a trap if both are in a danger zone.
-        if (trapArea.IsDangerous && defenderArea.IsDangerous)
-          return null;
-
-        return false;
-      }
-
-      public static object AlterTurretTrigger(BaseCombatEntity turret, User defender)
-      {
-        if (!Instance.Options.EnableRestrictedPVP)
-          return null;
-
-        // A player can be targeted by their own turrets, to prevent exploiting this mechanic.
-        if (defender.Player.userID == turret.OwnerID)
-          return null;
-
-        Area turretArea = Instance.Areas.GetByEntityPosition(turret, true);
-        Area defenderArea = Instance.Areas.GetByEntityPosition(defender.Player);
-
-        // A player can be targeted by a turret if both are in a danger zone.
-        if (turretArea.IsDangerous && defenderArea.IsDangerous)
-          return null;
-
-        return false;
-      }
-
-      static object AlterDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
-      {
-        if (!Instance.Options.EnableRestrictedPVP)
-          return null;
-
-        // Allow players to take the easy way out.
-        if (hit.damageTypes.Has(Rust.DamageType.Suicide))
-          return null;
-
-        if (attacker.CurrentArea == null)
-        {
-          Instance.PrintWarning("A player damaged another player from an unknown area. This shouldn't happen.");
-          return null;
-        }
-
-        if (defender.CurrentArea == null)
-        {
-          Instance.PrintWarning("A player was damaged in an unknown area. This shouldn't happen.");
-          return null;
-        }
-
-        // If both the attacker and the defender are in a danger zone, they can damage one another.
-        if (attacker.CurrentArea.IsDangerous && defender.CurrentArea.IsDangerous)
-          return null;
-
-        // If both the attacker and defender are in an event zone, they can damage one another.
-        if (attacker.CurrentZones.Count > 0 && defender.CurrentZones.Count > 0)
-          return null;
-
-        // Stop the damage.
-        return false;
-      }
-
-      static object AlterDamageAgainstStructure(User attacker, BaseCombatEntity entity, HitInfo hit)
-      {
-        if (!Instance.Options.EnableDefensiveBonuses || !ShouldAwardDefensiveBonus(entity))
-          return null;
-
-        // If someone is damaging their own entity, don't alter the damage.
+        // Players can always damage their own entities.
         if (attacker.Player.userID == entity.OwnerID)
+          return null;
+
+        if (!IsProtectedEntity(entity))
           return null;
 
         Area area = Instance.Areas.GetByEntityPosition(entity, true);
@@ -3002,18 +2960,27 @@ namespace Oxide.Plugins
           return null;
         }
 
-        // If the area isn't owned by a faction, it conveys no defensive bonuses.
-        if (!area.IsClaimed)
-          return null;
+        if (area.FactionId != null && attacker.Faction != null)
+        {
+          // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
+          if (attacker.Faction.Id == area.FactionId)
+            return null;
 
-        // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
-        if (attacker.Faction != null && attacker.Faction.Id == area.FactionId)
-          return null;
+          // If the entity is built on claimed land, it can be damaged during war by enemy faction members.
+          if (Instance.Wars.AreFactionsAtWar(attacker.Faction.Id, area.FactionId))
+            return ApplyDefensiveBonus(area, hit);
+        }
 
-        // Structures cannot be damaged, except during war.
-        if (!area.IsWarZone)
-          return false;
+        // If the structure is in a raidable area, it can be damaged.
+        if (IsRaidableArea(area))
+          return ApplyDefensiveBonus(area, hit);
 
+        // Prevent the damage.
+        return false;
+      }
+
+      static object ApplyDefensiveBonus(Area area, HitInfo hit)
+      {
         float reduction = area.GetDefensiveBonus();
 
         if (reduction >= 1)
@@ -3025,30 +2992,7 @@ namespace Oxide.Plugins
         return null;
       }
 
-      static object AlterDecayDamage(BaseEntity entity, HitInfo hit)
-      {
-        if (!Instance.Options.EnableDecayReduction)
-          return null;
-
-        Area area = Instance.Areas.GetByEntityPosition(entity, true);
-        float reduction = 0;
-
-        if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
-          reduction = Instance.Options.ClaimedLandDecayReduction;
-
-        if (area.Type == AreaType.Town)
-          reduction = Instance.Options.TownDecayReduction;
-
-        if (reduction >= 1)
-          return false;
-
-        if (reduction > 0)
-          hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
-
-        return null;
-      }
-
-      static bool ShouldAwardDefensiveBonus(BaseEntity entity)
+      static bool IsProtectedEntity(BaseEntity entity)
       {
         var buildingBlock = entity as BuildingBlock;
 
@@ -3060,105 +3004,154 @@ namespace Oxide.Plugins
 
         return false;
       }
+
+      static bool IsRaidableArea(Area area)
+      {
+        switch (area.Type)
+        {
+          case AreaType.Badlands:
+            return Instance.Options.Raiding.AllowedInBadlands;
+          case AreaType.Claimed:
+          case AreaType.Headquarters:
+            return Instance.Options.Raiding.AllowedInClaimedLand;
+          case AreaType.Town:
+            return Instance.Options.Raiding.AllowedInTowns;
+          case AreaType.Wilderness:
+            return Instance.Options.Raiding.AllowedInWilderness;
+          default:
+            throw new InvalidOperationException($"Unknown area type {area.Type}");
+        }
+      }
     }
   }
 }
 ﻿namespace Oxide.Plugins
 {
-  using System.Collections.Generic;
-
-  public partial class Imperium : RustPlugin
+  public partial class Imperium
   {
-    class ImperiumOptions
+    static class Taxes
     {
-      public bool EnableAreaClaims;
-      public bool EnableBadlands;
-      public bool EnableDecayReduction;
-      public bool EnableDefensiveBonuses;
-      public bool EnableEventZones;
-      public bool EnableMonumentZones;
-      public bool EnableRestrictedPVP;
-      public bool EnableTaxation;
-      public bool EnableTowns;
-      public bool EnableUpkeep;
-      public bool EnableWar;
-      public int MinFactionMembers;
-      public int MinAreaNameLength;
-      public int MinCassusBelliLength;
-      public float DefaultTaxRate;
-      public float MaxTaxRate;
-      public float ClaimedLandGatherBonus;
-      public float TownGatherBonus;
-      public float BadlandsGatherBonus;
-      public float ClaimedLandDecayReduction;
-      public float TownDecayReduction;
-      public List<int> ClaimCosts = new List<int>();
-      public List<int> UpkeepCosts = new List<int>();
-      public List<float> DefensiveBonuses = new List<float>();
-      public Dictionary<string, float> MonumentZones = new Dictionary<string, float>();
-      public int ZoneDomeDarkness;
-      public float EventZoneRadius;
-      public float EventZoneLifespanSeconds;
-      public int UpkeepCheckIntervalMinutes;
-      public int UpkeepCollectionPeriodHours;
-      public int UpkeepGracePeriodHours;
-      public string MapImageUrl;
-      public int MapImageSize;
-      public int CommandCooldownSeconds;
+      public static void ProcessTaxesIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)
+      {
+        if (!Instance.Options.Taxes.Enabled)
+          return;
+
+        var player = entity as BasePlayer;
+        if (player == null)
+          return;
+
+        User user = Instance.Users.Get(player);
+        if (user == null)
+          return;
+
+        Area area = user.CurrentArea;
+        if (area == null || !area.IsClaimed)
+          return;
+
+        Faction faction = Instance.Factions.Get(area.FactionId);
+        if (!faction.CanCollectTaxes || faction.TaxChest.inventory.IsFull())
+          return;
+
+        ItemDefinition itemDef = ItemManager.FindItemDefinition(item.info.itemid);
+        if (itemDef == null)
+          return;
+
+        int bonus;
+        if (area.Type == AreaType.Town)
+          bonus = (int)(item.amount * Instance.Options.Taxes.TownGatherBonus);
+        else
+          bonus = (int)(item.amount * Instance.Options.Taxes.ClaimedLandGatherBonus);
+
+        var tax = (int)(item.amount * faction.TaxRate);
+
+        faction.TaxChest.inventory.AddItem(itemDef, tax + bonus);
+        item.amount -= tax;
+      }
+
+      public static void AwardBadlandsBonusIfApplicable(ResourceDispenser dispenser, BaseEntity entity, Item item)
+      {
+        if (!Instance.Options.Badlands.Enabled)
+          return;
+
+        var player = entity as BasePlayer;
+        if (player == null) return;
+
+        User user = Instance.Users.Get(player);
+
+        if (user.CurrentArea == null)
+        {
+          Instance.PrintWarning("Player gathered outside of a defined area. This shouldn't happen.");
+          return;
+        }
+
+        if (user.CurrentArea.Type == AreaType.Badlands)
+        {
+          var bonus = (int)(item.amount * Instance.Options.Taxes.BadlandsGatherBonus);
+          item.amount += bonus;
+        }
+      }
     }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
 
-    protected override void LoadDefaultConfig()
+  public partial class Imperium
+  {
+    static class Upkeep
     {
-      PrintWarning("Loading default configuration.");
+      public static void CollectForAllFactions()
+      {
+        foreach (Faction faction in Instance.Factions.GetAll())
+          Collect(faction);
+      }
 
-      var options = new ImperiumOptions {
-        EnableAreaClaims = true,
-        EnableBadlands = true,
-        EnableDecayReduction = true,
-        EnableDefensiveBonuses = true,
-        EnableEventZones = true,
-        EnableMonumentZones = true,
-        EnableRestrictedPVP = false,
-        EnableTaxation = true,
-        EnableTowns = true,
-        EnableUpkeep = true,
-        EnableWar = true,
-        MinFactionMembers = 3,
-        MinAreaNameLength = 3,
-        MinCassusBelliLength = 50,
-        DefaultTaxRate = 0.1f,
-        MaxTaxRate = 0.2f,
-        ClaimedLandGatherBonus = 0.1f,
-        TownGatherBonus = 0.1f,
-        BadlandsGatherBonus = 0.1f,
-        ClaimedLandDecayReduction = 0.5f,
-        TownDecayReduction = 1f,
-        ClaimCosts = new List<int> { 0, 100, 200, 300, 400, 500 },
-        UpkeepCosts = new List<int> { 10, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 },
-        UpkeepCheckIntervalMinutes = 15,
-        UpkeepCollectionPeriodHours = 24,
-        UpkeepGracePeriodHours = 12,
-        DefensiveBonuses = new List<float> { 0, 0.5f, 1f },
-        MonumentZones = new Dictionary<string, float> {
-          { "airfield", 200 },
-          { "sphere_tank", 200 },
-          { "junkyard", 200 },
-          { "launch_site", 200 },
-          { "military_tunnel", 200 },
-          { "powerplant", 200 },
-          { "satellite_dish", 200 },
-          { "trainyard", 200 },
-          { "water_treatment_plant", 200 }
-        },
-        ZoneDomeDarkness = 3,
-        EventZoneRadius = 100f,
-        EventZoneLifespanSeconds = 600f,
-        MapImageUrl = "",
-        MapImageSize = 1440,
-        CommandCooldownSeconds = 10
-      };
+      public static void Collect(Faction faction)
+      {
+        Area[] areas = Instance.Areas.GetAllClaimedByFaction(faction);
 
-      Config.WriteObject(options, true);
+        if (areas.Length == 0)
+          return;
+
+        if (faction.IsUpkeepPaid)
+        {
+          Instance.Log($"[UPKEEP] {faction.Id}: Upkeep not due until {faction.NextUpkeepPaymentTime}");
+          return;
+        }
+
+        int amountOwed = faction.GetUpkeepPerPeriod();
+        var hoursSincePaid = (int)DateTime.UtcNow.Subtract(faction.NextUpkeepPaymentTime).TotalHours;
+
+        Instance.Log($"[UPKEEP] {faction.Id}: {hoursSincePaid} hours since upkeep paid, trying to collect {amountOwed} scrap for {areas.Length} area claims");
+
+        if (faction.TaxChest != null)
+        {
+          ItemDefinition scrapDef = ItemManager.FindItemDefinition("scrap");
+          List<Item> stacks = faction.TaxChest.inventory.FindItemsByItemID(scrapDef.itemid);
+          if (Instance.TryCollectFromStacks(scrapDef, stacks, amountOwed))
+          {
+            faction.NextUpkeepPaymentTime = faction.NextUpkeepPaymentTime.AddHours(Instance.Options.Upkeep.CollectionPeriodHours);
+            Instance.Log($"[UPKEEP] {faction.Id}: {amountOwed} scrap upkeep collected, next payment due {faction.NextUpkeepPaymentTime}");
+            return;
+          }
+        }
+
+        if (hoursSincePaid <= Instance.Options.Upkeep.GracePeriodHours)
+        {
+          Instance.Log($"[UPKEEP] {faction.Id}: Couldn't collect upkeep, but still within {Instance.Options.Upkeep.GracePeriodHours} hour grace period");
+          return;
+        }
+
+        Area lostArea = areas.OrderBy(area => Instance.Areas.GetDepthInsideFriendlyTerritory(area)).First();
+
+        Instance.Log($"[UPKEEP] {faction.Id}: Upkeep not paid in {hoursSincePaid} hours, seizing claim on {lostArea.Id}");
+        Instance.PrintToChat(Messages.AreaClaimLostUpkeepNotPaidAnnouncement, faction.Id, lostArea.Id);
+
+        Instance.Areas.Unclaim(lostArea);
+      }
     }
   }
 }
@@ -3192,11 +3185,6 @@ namespace Oxide.Plugins
       public bool IsTaxableClaim
       {
         get { return Type == AreaType.Claimed || Type == AreaType.Headquarters; }
-      }
-
-      public bool IsDangerous
-      {
-        get { return Type == AreaType.Badlands || IsWarZone; }
       }
 
       public bool IsWarZone
@@ -3318,7 +3306,7 @@ namespace Oxide.Plugins
 
       public int GetClaimCost(Faction faction)
       {
-        var costs = Instance.Options.ClaimCosts;
+        var costs = Instance.Options.Claims.Costs;
         int numberOfAreasOwned = Instance.Areas.GetAllClaimedByFaction(faction).Length;
         int index = Mathf.Clamp(numberOfAreasOwned, 0, costs.Count - 1);
         return costs[index];
@@ -3326,7 +3314,7 @@ namespace Oxide.Plugins
 
       public float GetDefensiveBonus()
       {
-        var bonuses = Instance.Options.DefensiveBonuses;
+        var bonuses = Instance.Options.War.DefensiveBonuses;
         var depth = Instance.Areas.GetDepthInsideFriendlyTerritory(this);
         int index = Mathf.Clamp(depth, 0, bonuses.Count - 1);
         return bonuses[index];
@@ -3748,8 +3736,8 @@ namespace Oxide.Plugins
         ManagerIds = new HashSet<string>();
         InviteIds = new HashSet<string>();
 
-        TaxRate = Instance.Options.DefaultTaxRate;
-        NextUpkeepPaymentTime = DateTime.UtcNow.AddHours(Instance.Options.UpkeepCollectionPeriodHours);
+        TaxRate = Instance.Options.Taxes.DefaultTaxRate;
+        NextUpkeepPaymentTime = DateTime.UtcNow.AddHours(Instance.Options.Upkeep.CollectionPeriodHours);
       }
 
       public Faction(FactionInfo info)
@@ -3923,7 +3911,7 @@ namespace Oxide.Plugins
 
       public int GetUpkeepPerPeriod()
       {
-        var costs = Instance.Options.UpkeepCosts;
+        var costs = Instance.Options.Upkeep.Costs;
 
         int totalCost = 0;
         for (var num = 0; num < Instance.Areas.GetAllClaimedByFaction(this).Length; num++)
@@ -4613,6 +4601,16 @@ namespace Oxide.Plugins
         );
       }
 
+      public bool AreFactionsAtWar(Faction firstFaction, Faction secondFaction)
+      {
+        return AreFactionsAtWar(firstFaction.Id, secondFaction.Id);
+      }
+
+      public bool AreFactionsAtWar(string firstFactionId, string secondFactionId)
+      {
+        return GetActiveWarBetween(firstFactionId, secondFactionId) != null;
+      }
+
       public War DeclareWar(Faction attacker, Faction defender, User user, string cassusBelli)
       {
         var war = new War(attacker, defender, user, cassusBelli);
@@ -4780,7 +4778,10 @@ namespace Oxide.Plugins
 
       public void Init()
       {
-        if (Instance.Options.EnableMonumentZones && Instance.Options.MonumentZones != null)
+        if (!Instance.Options.Zones.Enabled)
+          return;
+
+        if (Instance.Options.Zones.MonumentZones != null)
         {
           MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
           foreach (MonumentInfo monument in monuments)
@@ -4791,12 +4792,9 @@ namespace Oxide.Plugins
           }
         }
 
-        if (Instance.Options.EnableEventZones)
-        {
-          SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
-          foreach (SupplyDrop drop in drops)
-            Create(drop);
-        }
+        SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
+        foreach (SupplyDrop drop in drops)
+          Create(drop);
       }
 
       public Zone Create(MonumentInfo monument, float radius)
@@ -4809,16 +4807,16 @@ namespace Oxide.Plugins
       public Zone Create(SupplyDrop drop)
       {
         Vector3 position = GetGroundPosition(drop.transform.position);
-        float radius = Instance.Options.EventZoneRadius;
-        float lifespan = Instance.Options.EventZoneLifespanSeconds;
+        float radius = Instance.Options.Zones.EventZoneRadius;
+        float lifespan = Instance.Options.Zones.EventZoneLifespanSeconds;
         return Create(ZoneType.SupplyDrop, "Supply Drop", drop, position, radius, lifespan);
       }
 
       public Zone Create(BaseHelicopter helicopter)
       {
         Vector3 position = GetGroundPosition(helicopter.transform.position);
-        float radius = Instance.Options.EventZoneRadius;
-        float lifespan = Instance.Options.EventZoneLifespanSeconds;
+        float radius = Instance.Options.Zones.EventZoneRadius;
+        float lifespan = Instance.Options.Zones.EventZoneLifespanSeconds;
         return Create(ZoneType.Debris, "Debris Field", helicopter, position, radius, lifespan);
       }
 
@@ -4853,7 +4851,7 @@ namespace Oxide.Plugins
       Zone Create(ZoneType type, string name, MonoBehaviour owner, Vector3 position, float radius, float? lifespan = null)
       {
         var zone = new GameObject().AddComponent<Zone>();
-        zone.Init(type, name, owner, position, radius, Instance.Options.ZoneDomeDarkness, lifespan);
+        zone.Init(type, name, owner, position, radius, Instance.Options.Zones.DomeDarkness, lifespan);
 
         Instance.Puts($"Created zone {zone.Name} at {position} with radius {radius}");
 
@@ -4870,7 +4868,7 @@ namespace Oxide.Plugins
         if (monument.Type == MonumentType.Cave)
           return null;
 
-        foreach (var entry in Instance.Options.MonumentZones)
+        foreach (var entry in Instance.Options.Zones.MonumentZones)
         {
           if (monument.name.Contains(entry.Key))
             return entry.Value;
@@ -4893,8 +4891,8 @@ namespace Oxide.Plugins
     public enum ZoneType
     {
       Monument,
-      SupplyDrop,
-      Debris
+      Debris,
+      SupplyDrop
     }
   }
 }
@@ -5162,11 +5160,11 @@ namespace Oxide.Plugins
         IsGenerating = true;
         Instance.Puts("Generating new map overlay image...");
 
-        using (var bitmap = new Bitmap(Instance.Options.MapImageSize, Instance.Options.MapImageSize))
+        using (var bitmap = new Bitmap(Instance.Options.Map.ImageSize, Instance.Options.Map.ImageSize))
         using (var graphics = Graphics.FromImage(bitmap))
         {
           var mapSize = ConVar.Server.worldsize;
-          var tileSize = (int)(Instance.Options.MapImageSize / (mapSize / 150f));
+          var tileSize = (int)(Instance.Options.Map.ImageSize / (mapSize / 150f));
           var grid = new MapGrid(mapSize);
 
           var colorPicker = new FactionColorPicker();
@@ -5847,9 +5845,9 @@ namespace Oxide.Plugins
           return false;
         }
 
-        if (TargetFaction.MemberIds.Count < Instance.Options.MinFactionMembers)
+        if (TargetFaction.MemberIds.Count < Instance.Options.Claims.MinFactionMembers)
         {
-          User.SendChatMessage(Messages.FactionTooSmall, Instance.Options.MinFactionMembers);
+          User.SendChatMessage(Messages.FactionTooSmall, Instance.Options.Claims.MinFactionMembers);
           return false;
         }
 
@@ -5861,6 +5859,398 @@ namespace Oxide.Plugins
 
         return true;
       }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumBadlandsOptions
+    {
+      [JsonProperty("enabled")]
+      public bool Enabled;
+
+      public static ImperiumBadlandsOptions Default = new ImperiumBadlandsOptions {
+        Enabled = true
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+  using System.Collections.Generic;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumClaimOptions
+    {
+      [JsonProperty("enabled")]
+      public bool Enabled;
+
+      [JsonProperty("costs")]
+      public List<int> Costs = new List<int>();
+
+      [JsonProperty("minAreaNameLength")]
+      public int MinAreaNameLength;
+
+      [JsonProperty("minFactionMembers")]
+      public int MinFactionMembers;
+
+      public static ImperiumClaimOptions Default = new ImperiumClaimOptions {
+        Enabled = true,
+        Costs = new List<int> { 0, 100, 200, 300, 400, 500 },
+        MinAreaNameLength = 3,
+        MinFactionMembers = 3
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumDecayOptions
+    {
+      [JsonProperty("enabled")]
+      public bool Enabled;
+
+      [JsonProperty("claimedLandDecayReduction")]
+      public float ClaimedLandDecayReduction;
+
+      [JsonProperty("townDecayReduction")]
+      public float TownDecayReduction;
+
+      public static ImperiumDecayOptions Default = new ImperiumDecayOptions {
+        Enabled = false,
+        ClaimedLandDecayReduction = 0.5f,
+        TownDecayReduction = 1f
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumMapOptions
+    {
+      [JsonProperty("commandCooldownSeconds")]
+      public int CommandCooldownSeconds;
+
+      [JsonProperty("imageUrl")]
+      public string ImageUrl;
+
+      [JsonProperty("imageSize")]
+      public int ImageSize;
+
+      public static ImperiumMapOptions Default = new ImperiumMapOptions {
+        CommandCooldownSeconds = 10,
+        ImageUrl = "",
+        ImageSize = 1440
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumPvpOptions
+    {
+      [JsonProperty("allowedInBadlands")]
+      public bool AllowedInBadlands;
+
+      [JsonProperty("allowedInClaimedLand")]
+      public bool AllowedInClaimedLand;
+
+      [JsonProperty("allowedInTowns")]
+      public bool AllowedInTowns;
+
+      [JsonProperty("allowedInWilderness")]
+      public bool AllowedInWilderness;
+
+      [JsonProperty("allowedInEventZones")]
+      public bool AllowedInEventZones;
+
+      [JsonProperty("allowedInMonumentZones")]
+      public bool AllowedInMonumentZones;
+
+      public static ImperiumPvpOptions Default = new ImperiumPvpOptions {
+        AllowedInBadlands = true,
+        AllowedInClaimedLand = true,
+        AllowedInEventZones = true,
+        AllowedInMonumentZones = true,
+        AllowedInTowns = true,
+        AllowedInWilderness = true,
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumRaidingOptions
+    {
+      [JsonProperty("allowedInBadlands")]
+      public bool AllowedInBadlands;
+
+      [JsonProperty("allowedInClaimedLand")]
+      public bool AllowedInClaimedLand;
+
+      [JsonProperty("allowedInTowns")]
+      public bool AllowedInTowns;
+
+      [JsonProperty("allowedInWilderness")]
+      public bool AllowedInWilderness;
+
+      [JsonProperty("allowedInEventZones")]
+      public bool AllowedInEventZones;
+
+      [JsonProperty("allowedInMonumentZones")]
+      public bool AllowedInMonumentZones;
+
+      public static ImperiumRaidingOptions Default = new ImperiumRaidingOptions {
+        AllowedInBadlands = true,
+        AllowedInClaimedLand = true,
+        AllowedInEventZones = true,
+        AllowedInMonumentZones = true,
+        AllowedInTowns = true,
+        AllowedInWilderness = true,
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumTaxesOptions
+    {
+      [JsonProperty("enabled")]
+      public bool Enabled;
+
+      [JsonProperty("defaultTaxRate")]
+      public float DefaultTaxRate;
+
+      [JsonProperty("maxTaxRate")]
+      public float MaxTaxRate;
+
+      [JsonProperty("claimedLandGatherBonus")]
+      public float ClaimedLandGatherBonus;
+
+      [JsonProperty("townGatherBonus")]
+      public float TownGatherBonus;
+
+      [JsonProperty("badlandsGatherBonus")]
+      public float BadlandsGatherBonus;
+
+      public static ImperiumTaxesOptions Default = new ImperiumTaxesOptions {
+        Enabled = true,
+        DefaultTaxRate = 0.1f,
+        MaxTaxRate = 0.2f,
+        ClaimedLandGatherBonus = 0.1f,
+        TownGatherBonus = 0.1f,
+        BadlandsGatherBonus = 0.1f
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumTownOptions
+    {
+      [JsonProperty("enabled")]
+      public bool Enabled;
+
+      public static ImperiumTownOptions Default = new ImperiumTownOptions {
+        Enabled = true
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+  using System.Collections.Generic;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumUpkeepOptions
+    {
+      [JsonProperty("enabled")]
+      public bool Enabled;
+
+      [JsonProperty("costs")]
+      public List<int> Costs = new List<int>();
+
+      [JsonProperty("checkIntervalMinutes")]
+      public int CheckIntervalMinutes;
+
+      [JsonProperty("collectionPeriodHours")]
+      public int CollectionPeriodHours;
+
+      [JsonProperty("gracePeriodHours")]
+      public int GracePeriodHours;
+
+      public static ImperiumUpkeepOptions Default = new ImperiumUpkeepOptions {
+        Enabled = false,
+        Costs = new List<int> { 10, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 },
+        CheckIntervalMinutes = 15,
+        CollectionPeriodHours = 24,
+        GracePeriodHours = 12
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+  using System.Collections.Generic;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumWarOptions
+    {
+      [JsonProperty("enabled")]
+      public bool Enabled;
+
+      [JsonProperty("minCassusBelliLength")]
+      public int MinCassusBelliLength;
+
+      [JsonProperty("defensiveBonuses")]
+      public List<float> DefensiveBonuses = new List<float>();
+
+      public static ImperiumWarOptions Default = new ImperiumWarOptions {
+        Enabled = true,
+        MinCassusBelliLength = 50,
+        DefensiveBonuses = new List<float> { 0, 0.5f, 1f }
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+  using System.Collections.Generic;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumZonesOptions
+    {
+      [JsonProperty("enabled")]
+      public bool Enabled;
+
+      [JsonProperty("domeDarkness")]
+      public int DomeDarkness;
+
+      [JsonProperty("eventZoneRadius")]
+      public float EventZoneRadius;
+
+      [JsonProperty("eventZoneLifespanSeconds")]
+      public float EventZoneLifespanSeconds;
+
+      [JsonProperty("monumentZones")]
+      public Dictionary<string, float> MonumentZones = new Dictionary<string, float>();
+
+      public static ImperiumZonesOptions Default = new ImperiumZonesOptions {
+        Enabled = true,
+        DomeDarkness = 3,
+        EventZoneRadius = 150f,
+        EventZoneLifespanSeconds = 600f,
+        MonumentZones = new Dictionary<string, float> {
+          { "airfield", 200 },
+          { "sphere_tank", 120 },
+          { "junkyard", 150 },
+          { "launch_site", 300 },
+          { "military_tunnel", 150 },
+          { "powerplant", 175 },
+          { "satellite_dish", 130 },
+          { "trainyard", 180 },
+          { "water_treatment_plant", 180 }
+        }
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class ImperiumOptions
+    {
+      [JsonProperty("badlands")]
+      public ImperiumBadlandsOptions Badlands;
+
+      [JsonProperty("claims")]
+      public ImperiumClaimOptions Claims;
+
+      [JsonProperty("decay")]
+      public ImperiumDecayOptions Decay;
+
+      [JsonProperty("map")]
+      public ImperiumMapOptions Map;
+
+      [JsonProperty("pvp")]
+      public ImperiumPvpOptions Pvp;
+
+      [JsonProperty("raiding")]
+      public ImperiumRaidingOptions Raiding;
+
+      [JsonProperty("taxes")]
+      public ImperiumTaxesOptions Taxes;
+
+      [JsonProperty("towns")]
+      public ImperiumTownOptions Towns;
+
+      [JsonProperty("upkeep")]
+      public ImperiumUpkeepOptions Upkeep;
+
+      [JsonProperty("war")]
+      public ImperiumWarOptions War;
+
+      [JsonProperty("zones")]
+      public ImperiumZonesOptions Zones;
+
+      public static ImperiumOptions Default = new ImperiumOptions {
+        Badlands = ImperiumBadlandsOptions.Default,
+        Claims = ImperiumClaimOptions.Default,
+        Decay = ImperiumDecayOptions.Default,
+        Map = ImperiumMapOptions.Default,
+        Pvp = ImperiumPvpOptions.Default,
+        Raiding = ImperiumRaidingOptions.Default,
+        Towns = ImperiumTownOptions.Default,
+        Taxes = ImperiumTaxesOptions.Default,
+        Upkeep = ImperiumUpkeepOptions.Default,
+        War = ImperiumWarOptions.Default,
+        Zones = ImperiumZonesOptions.Default
+      };
+    }
+
+    protected override void LoadDefaultConfig()
+    {
+      PrintWarning("Loading default configuration.");
+      Config.WriteObject(ImperiumOptions.Default, true);
     }
   }
 }
@@ -6033,8 +6423,8 @@ namespace Oxide.Plugins
 
       public void Init()
       {
-        if (!String.IsNullOrEmpty(Instance.Options.MapImageUrl))
-          RegisterImage(Instance.Options.MapImageUrl);
+        if (!String.IsNullOrEmpty(Instance.Options.Map.ImageUrl))
+          RegisterImage(Instance.Options.Map.ImageUrl);
 
         RegisterDefaultImages(typeof(Ui.HudIcon));
         RegisterDefaultImages(typeof(Ui.MapIcon));
@@ -6427,7 +6817,7 @@ namespace Oxide.Plugins
 
           if (area.Type == AreaType.Badlands)
           {
-            string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.BadlandsGatherBonus * 100);
+            string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.Taxes.BadlandsGatherBonus * 100);
             AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, PanelColor.TextNormal, harvestBonus);
           }
         }
@@ -6687,7 +7077,7 @@ namespace Oxide.Plugins
           Name = Ui.Element.MapBackgroundImage,
           Parent = Ui.Element.Map,
           Components = {
-            Instance.Hud.CreateImageComponent(Instance.Options.MapImageUrl),
+            Instance.Hud.CreateImageComponent(Instance.Options.Map.ImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });

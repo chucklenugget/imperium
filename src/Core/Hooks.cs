@@ -43,7 +43,28 @@
       if (entity == null || hit == null)
         return null;
 
-      return Logistics.AlterDamage(entity, hit);
+      if (hit.damageTypes.Has(Rust.DamageType.Decay))
+        return Decay.AlterDecayDamage(entity, hit);
+
+      User attacker = Instance.Users.Get(hit.InitiatorPlayer);
+      var defendingPlayer = entity as BasePlayer;
+
+      if (attacker == null)
+        return null;
+
+      if (defendingPlayer != null)
+      {
+        // One player is damaging another.
+        User defender = Instance.Users.Get(defendingPlayer);
+
+        if (defender == null)
+          return null;
+
+        return Pvp.AlterDamageBetweenPlayers(attacker, defender, hit);
+      }
+
+      // A player is damaging a structure.
+      return Raiding.AlterDamageAgainstStructure(attacker, entity, hit);
     }
 
     object OnTrapTrigger(BaseTrap trap, GameObject obj)
@@ -54,7 +75,7 @@
         return null;
 
       User defender = Users.Get(player);
-      return Logistics.AlterTrapTrigger(trap, defender);
+      return Pvp.AlterTrapTrigger(trap, defender);
     }
 
     object CanBeTargeted(BaseCombatEntity target, MonoBehaviour turret)
@@ -77,7 +98,7 @@
       if (defender == null || entity == null)
         return null;
 
-      return Logistics.AlterTurretTrigger(entity, defender);
+      return Pvp.AlterTurretTrigger(entity, defender);
     }
 
     void OnEntitySpawned(BaseNetworkable entity)
@@ -91,7 +112,7 @@
         Hud.GameEvents.BeginEvent(plane);
 
       var drop = entity as SupplyDrop;
-      if (Options.EnableEventZones && drop != null)
+      if (Options.Zones.Enabled && drop != null)
         Zones.Create(drop);
     }
 
@@ -118,7 +139,7 @@
 
       // If a tax chest was destroyed, remove it from the faction data.
       var container = entity as StorageContainer;
-      if (Options.EnableTaxation && container != null)
+      if (Options.Taxes.Enabled && container != null)
       {
         Faction faction = Factions.GetByTaxChest(container);
         if (faction != null)
@@ -131,20 +152,20 @@
 
       // If a helicopter was destroyed, create an event zone around it.
       var helicopter = entity as BaseHelicopter;
-      if (Options.EnableEventZones && helicopter != null)
+      if (Options.Zones.Enabled && helicopter != null)
         Zones.Create(helicopter);
     }
 
     void OnDispenserGather(ResourceDispenser dispenser, BaseEntity entity, Item item)
     {
-      ProcessTaxesIfApplicable(dispenser, entity, item);
-      AwardBadlandsBonusIfApplicable(dispenser, entity, item);
+      Taxes.ProcessTaxesIfApplicable(dispenser, entity, item);
+      Taxes.AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
     void OnDispenserBonus(ResourceDispenser dispenser, BaseEntity entity, Item item)
     {
-      ProcessTaxesIfApplicable(dispenser, entity, item);
-      AwardBadlandsBonusIfApplicable(dispenser, entity, item);
+      Taxes.ProcessTaxesIfApplicable(dispenser, entity, item);
+      Taxes.AwardBadlandsBonusIfApplicable(dispenser, entity, item);
     }
 
     object OnPlayerDie(BasePlayer player, HitInfo hit)

@@ -100,8 +100,8 @@
 
       public void Init()
       {
-        if (!String.IsNullOrEmpty(Instance.Options.MapImageUrl))
-          RegisterImage(Instance.Options.MapImageUrl);
+        if (!String.IsNullOrEmpty(Instance.Options.Map.ImageUrl))
+          RegisterImage(Instance.Options.Map.ImageUrl);
 
         RegisterDefaultImages(typeof(Ui.HudIcon));
         RegisterDefaultImages(typeof(Ui.MapIcon));

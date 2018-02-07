@@ -18,9 +18,9 @@
       var areaId = Util.NormalizeAreaId(args[0]);
       var name = Util.NormalizeAreaName(args[1]);
 
-      if (name == null || name.Length < Options.MinAreaNameLength)
+      if (name == null || name.Length < Options.Claims.MinAreaNameLength)
       {
-        user.SendChatMessage(Messages.InvalidAreaName, Options.MinAreaNameLength);
+        user.SendChatMessage(Messages.InvalidAreaName, Options.Claims.MinAreaNameLength);
         return;
       }
 

@@ -5,8 +5,8 @@
     public enum ZoneType
     {
       Monument,
-      SupplyDrop,
-      Debris
+      Debris,
+      SupplyDrop
     }
   }
 }

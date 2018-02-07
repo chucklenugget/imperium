@@ -38,8 +38,8 @@
         ManagerIds = new HashSet<string>();
         InviteIds = new HashSet<string>();
 
-        TaxRate = Instance.Options.DefaultTaxRate;
-        NextUpkeepPaymentTime = DateTime.UtcNow.AddHours(Instance.Options.UpkeepCollectionPeriodHours);
+        TaxRate = Instance.Options.Taxes.DefaultTaxRate;
+        NextUpkeepPaymentTime = DateTime.UtcNow.AddHours(Instance.Options.Upkeep.CollectionPeriodHours);
       }
 
       public Faction(FactionInfo info)
@@ -213,7 +213,7 @@
 
       public int GetUpkeepPerPeriod()
       {
-        var costs = Instance.Options.UpkeepCosts;
+        var costs = Instance.Options.Upkeep.Costs;
 
         int totalCost = 0;
         for (var num = 0; num < Instance.Areas.GetAllClaimedByFaction(this).Length; num++)

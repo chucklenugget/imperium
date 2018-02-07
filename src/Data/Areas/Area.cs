@@ -30,11 +30,6 @@
         get { return Type == AreaType.Claimed || Type == AreaType.Headquarters; }
       }
 
-      public bool IsDangerous
-      {
-        get { return Type == AreaType.Badlands || IsWarZone; }
-      }
-
       public bool IsWarZone
       {
         get { return GetActiveWars().Length > 0; }
@@ -154,7 +149,7 @@
 
       public int GetClaimCost(Faction faction)
       {
-        var costs = Instance.Options.ClaimCosts;
+        var costs = Instance.Options.Claims.Costs;
         int numberOfAreasOwned = Instance.Areas.GetAllClaimedByFaction(faction).Length;
         int index = Mathf.Clamp(numberOfAreasOwned, 0, costs.Count - 1);
         return costs[index];
@@ -162,7 +157,7 @@
 
       public float GetDefensiveBonus()
       {
-        var bonuses = Instance.Options.DefensiveBonuses;
+        var bonuses = Instance.Options.War.DefensiveBonuses;
         var depth = Instance.Areas.GetDepthInsideFriendlyTerritory(this);
         int index = Mathf.Clamp(depth, 0, bonuses.Count - 1);
         return bonuses[index];

@@ -10,7 +10,7 @@
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableWar)
+      if (!Options.War.Enabled)
       {
         user.SendChatMessage(Messages.WarDisabled);
         return;

@@ -38,6 +38,16 @@
         );
       }
 
+      public bool AreFactionsAtWar(Faction firstFaction, Faction secondFaction)
+      {
+        return AreFactionsAtWar(firstFaction.Id, secondFaction.Id);
+      }
+
+      public bool AreFactionsAtWar(string firstFactionId, string secondFactionId)
+      {
+        return GetActiveWarBetween(firstFactionId, secondFactionId) != null;
+      }
+
       public War DeclareWar(Faction attacker, Faction defender, User user, string cassusBelli)
       {
         var war = new War(attacker, defender, user, cassusBelli);

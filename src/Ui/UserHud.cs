@@ -95,7 +95,7 @@
 
           if (area.Type == AreaType.Badlands)
           {
-            string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.BadlandsGatherBonus * 100);
+            string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.Taxes.BadlandsGatherBonus * 100);
             AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, PanelColor.TextNormal, harvestBonus);
           }
         }

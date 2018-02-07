@@ -6,7 +6,7 @@
   {
     void OnClaimUpkeepCommand(User user)
     {
-      if (!Options.EnableUpkeep)
+      if (!Options.Upkeep.Enabled)
       {
         user.SendChatMessage(Messages.UpkeepDisabled);
         return;
@@ -20,9 +20,9 @@
         return;
       }
 
-      if (faction.MemberIds.Count < Options.MinFactionMembers)
+      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
         return;
       }
 

@@ -10,7 +10,7 @@
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableBadlands)
+      if (!Options.Badlands.Enabled)
       {
         user.SendChatMessage(Messages.BadlandsDisabled);
         return;
@@ -19,7 +19,7 @@
       if (args.Length == 0)
       {
         var areas = Areas.GetAllByType(AreaType.Badlands).Select(a => a.Id);
-        user.SendChatMessage(Messages.BadlandsList, Util.Format(areas), Options.BadlandsGatherBonus);
+        user.SendChatMessage(Messages.BadlandsList, Util.Format(areas), Options.Taxes.BadlandsGatherBonus);
         return;
       }
 

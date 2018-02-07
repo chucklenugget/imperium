@@ -10,7 +10,7 @@
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableAreaClaims)
+      if (!Options.Claims.Enabled)
       {
         user.SendChatMessage(Messages.AreaClaimsDisabled);
         return;

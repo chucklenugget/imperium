@@ -39,7 +39,7 @@
 
       string cassusBelli = args[1].Trim();
 
-      if (cassusBelli.Length < Options.MinCassusBelliLength)
+      if (cassusBelli.Length < Options.War.MinCassusBelliLength)
       {
         user.SendChatMessage(Messages.CannotDeclareWarInvalidCassusBelli, defender.Id);
         return;

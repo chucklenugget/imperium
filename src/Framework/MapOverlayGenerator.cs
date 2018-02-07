@@ -21,11 +21,11 @@
         IsGenerating = true;
         Instance.Puts("Generating new map overlay image...");
 
-        using (var bitmap = new Bitmap(Instance.Options.MapImageSize, Instance.Options.MapImageSize))
+        using (var bitmap = new Bitmap(Instance.Options.Map.ImageSize, Instance.Options.Map.ImageSize))
         using (var graphics = Graphics.FromImage(bitmap))
         {
           var mapSize = ConVar.Server.worldsize;
-          var tileSize = (int)(Instance.Options.MapImageSize / (mapSize / 150f));
+          var tileSize = (int)(Instance.Options.Map.ImageSize / (mapSize / 150f));
           var grid = new MapGrid(mapSize);
 
           var colorPicker = new FactionColorPicker();

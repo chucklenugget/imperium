@@ -8,7 +8,7 @@
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableTowns)
+      if (!Options.Towns.Enabled)
       {
         user.SendChatMessage(Messages.TownsDisabled);
         return;

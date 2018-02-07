@@ -60,7 +60,7 @@
           Name = Ui.Element.MapBackgroundImage,
           Parent = Ui.Element.Map,
           Components = {
-            Instance.Hud.CreateImageComponent(Instance.Options.MapImageUrl),
+            Instance.Hud.CreateImageComponent(Instance.Options.Map.ImageUrl),
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });

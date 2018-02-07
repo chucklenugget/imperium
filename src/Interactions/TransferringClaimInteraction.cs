@@ -34,9 +34,9 @@
           return false;
         }
 
-        if (TargetFaction.MemberIds.Count < Instance.Options.MinFactionMembers)
+        if (TargetFaction.MemberIds.Count < Instance.Options.Claims.MinFactionMembers)
         {
-          User.SendChatMessage(Messages.FactionTooSmall, Instance.Options.MinFactionMembers);
+          User.SendChatMessage(Messages.FactionTooSmall, Instance.Options.Claims.MinFactionMembers);
           return false;
         }
 

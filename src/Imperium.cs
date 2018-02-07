@@ -27,8 +27,9 @@ namespace Oxide.Plugins
   using Oxide.Core.Configuration;
   using UnityEngine;
   using System.Collections.Generic;
+  using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.4.1")]
+  [Info("Imperium", "chucklenugget", "1.4.2")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -85,16 +86,14 @@ namespace Oxide.Plugins
         PrintError($"Error while loading configuration: {ex.ToString()}");
       }
 
-      Puts("Area claims are " + (Options.EnableAreaClaims ? "enabled" : "disabled"));
-      Puts("Taxation is " + (Options.EnableTaxation ? "enabled" : "disabled"));
-      Puts("Badlands are " + (Options.EnableBadlands ? "enabled" : "disabled"));
-      Puts("Towns are " + (Options.EnableTowns ? "enabled" : "disabled"));
-      Puts("Defensive bonuses are " + (Options.EnableDefensiveBonuses ? "enabled" : "disabled"));
-      Puts("Decay reduction is " + (Options.EnableDecayReduction ? "enabled" : "disabled"));
-      Puts("Claim upkeep is " + (Options.EnableUpkeep ? "enabled" : "disabled"));
-      Puts("Restricted PVP is " + (Options.EnableRestrictedPVP ? "enabled" : "disabled"));
-      Puts("Monument zones are " + (Options.EnableMonumentZones ? "enabled" : "disabled"));
-      Puts("Event zones are " + (Options.EnableEventZones ? "enabled" : "disabled"));
+      Puts("Area claims are " + (Options.Claims.Enabled ? "enabled" : "disabled"));
+      Puts("Taxation is " + (Options.Taxes.Enabled ? "enabled" : "disabled"));
+      Puts("Badlands are " + (Options.Badlands.Enabled ? "enabled" : "disabled"));
+      Puts("Towns are " + (Options.Towns.Enabled ? "enabled" : "disabled"));
+      Puts("War is " + (Options.War.Enabled ? "enabled" : "disabled"));
+      Puts("Decay reduction is " + (Options.Decay.Enabled ? "enabled" : "disabled"));
+      Puts("Claim upkeep is " + (Options.Upkeep.Enabled ? "enabled" : "disabled"));
+      Puts("Zones are " + (Options.Zones.Enabled ? "enabled" : "disabled"));
     }
 
     void OnServerInitialized()
@@ -114,8 +113,8 @@ namespace Oxide.Plugins
         Hud.GenerateMapOverlayImage();
       });
 
-      if (Options.EnableUpkeep)
-        UpkeepCollectionTimer = timer.Every(Options.UpkeepCheckIntervalMinutes * 60, CollectUpkeepForAllFactions);
+      if (Options.Upkeep.Enabled)
+        UpkeepCollectionTimer = timer.Every(Options.Upkeep.CheckIntervalMinutes * 60, Upkeep.CollectForAllFactions);
     }
 
     void OnServerSave()
@@ -178,9 +177,9 @@ namespace Oxide.Plugins
         return false;
       }
 
-      if (faction.MemberIds.Count < Options.MinFactionMembers)
+      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
         return false;
       }
 
@@ -246,7 +245,7 @@ namespace Oxide.Plugins
         return false;
       }
 
-      if (faction.MemberIds.Count < Options.MinFactionMembers)
+      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
       {
         user.SendChatMessage(Messages.FactionTooSmall);
         return false;
@@ -271,9 +270,38 @@ namespace Oxide.Plugins
         return false;
       }
 
-      user.CommandCooldownExpirationTime = DateTime.UtcNow.AddSeconds(Options.CommandCooldownSeconds);
+      user.CommandCooldownExpirationTime = DateTime.UtcNow.AddSeconds(Options.Map.CommandCooldownSeconds);
       return true;
     }
 
+    bool TryCollectFromStacks(ItemDefinition itemDef, IEnumerable<Item> stacks, int amount)
+    {
+      if (stacks.Sum(item => item.amount) < amount)
+        return false;
+
+      int amountRemaining = amount;
+      var dirtyContainers = new HashSet<ItemContainer>();
+
+      foreach (Item stack in stacks)
+      {
+        var amountToTake = Math.Min(stack.amount, amountRemaining);
+
+        stack.amount -= amountToTake;
+        amountRemaining -= amountToTake;
+
+        dirtyContainers.Add(stack.GetRootContainer());
+
+        if (stack.amount == 0)
+          stack.RemoveFromContainer();
+
+        if (amountRemaining == 0)
+          break;
+      }
+
+      foreach (ItemContainer container in dirtyContainers)
+        container.MarkDirty();
+
+      return true;
+    }
   }
 }

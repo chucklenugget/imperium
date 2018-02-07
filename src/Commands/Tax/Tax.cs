@@ -10,7 +10,7 @@
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!Options.EnableTaxation)
+      if (!Options.Taxes.Enabled)
       {
         user.SendChatMessage(Messages.TaxationDisabled);
         return;

@@ -31,6 +31,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\Badlands\BadlandsHelp.cs" />
+    <Compile Include="Core\Decay.cs" />
+    <Compile Include="Core\Raiding.cs" />
+    <Compile Include="Core\Upkeep.cs" />
     <Compile Include="Data\Zones\Zone.cs" />
     <Compile Include="Data\Zones\ZoneManager.cs" />
     <Compile Include="Data\Areas\AreaInfo.cs" />
@@ -97,7 +100,7 @@
     <Compile Include="Framework\Monument.cs" />
     <Compile Include="Framework\Util.cs" />
     <Compile Include="Imperium.cs" />
-    <Compile Include="Core\Economics.cs" />
+    <Compile Include="Core\Taxes.cs" />
     <Compile Include="Core\Hooks.cs" />
     <Compile Include="Data\Areas\Area.cs" />
     <Compile Include="Data\Areas\AreaManager.cs" />
@@ -120,8 +123,19 @@
     <Compile Include="Interactions\SelectingHeadquartersInteraction.cs" />
     <Compile Include="Interactions\SelectingTaxChestInteraction.cs" />
     <Compile Include="Core\Lang.cs" />
-    <Compile Include="Core\Logistics.cs" />
-    <Compile Include="Core\Options.cs" />
+    <Compile Include="Core\Pvp.cs" />
+    <Compile Include="Options\ImperiumBadlandsOptions.cs" />
+    <Compile Include="Options\ImperiumClaimOptions.cs" />
+    <Compile Include="Options\ImperiumDecayOptions.cs" />
+    <Compile Include="Options\ImperiumMapOptions.cs" />
+    <Compile Include="Options\ImperiumPvpOptions.cs" />
+    <Compile Include="Options\ImperiumRaidingOptions.cs" />
+    <Compile Include="Options\ImperiumTaxesOptions.cs" />
+    <Compile Include="Options\ImperiumTownOptions.cs" />
+    <Compile Include="Options\ImperiumUpkeepOptions.cs" />
+    <Compile Include="Options\ImperiumWarOptions.cs" />
+    <Compile Include="Options\ImperiumZonesOptions.cs" />
+    <Compile Include="Options\Options.cs" />
     <Compile Include="Framework\FactionColorPicker.cs" />
     <Compile Include="Ui\Image.cs" />
     <Compile Include="Ui\ImageDownloader.cs" />

@@ -21,13 +21,13 @@
       }
       catch
       {
-        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
+        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.Taxes.MaxTaxRate * 100);
         return;
       }
 
-      if (taxRate < 0 || taxRate > Options.MaxTaxRate)
+      if (taxRate < 0 || taxRate > Options.Taxes.MaxTaxRate)
       {
-        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.MaxTaxRate * 100);
+        user.SendChatMessage(Messages.CannotSetTaxRateInvalidValue, Options.Taxes.MaxTaxRate * 100);
         return;
       }
 
