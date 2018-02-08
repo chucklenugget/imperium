@@ -4,12 +4,12 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumTownOptions
+    class TownOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
 
-      public static ImperiumTownOptions Default = new ImperiumTownOptions {
+      public static TownOptions Default = new TownOptions {
         Enabled = true
       };
     }

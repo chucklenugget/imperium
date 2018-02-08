@@ -40,14 +40,18 @@
           return null;
         }
 
-        if (area.FactionId != null && attacker.Faction != null)
+        Faction attackingFaction = attacker.Faction;
+        Faction defendingFaction = GetDefendingFaction(entity, area);
+
+        if (defendingFaction != null && attackingFaction != null)
         {
           // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
-          if (attacker.Faction.Id == area.FactionId)
+          if (attackingFaction.Id == defendingFaction.Id)
             return null;
 
-          // If the entity is built on claimed land, it can be damaged during war by enemy faction members.
-          if (Instance.Wars.AreFactionsAtWar(attacker.Faction.Id, area.FactionId))
+          // If the entity was built by a member of a faction, or was built on faction land, it can be
+          // damaged during war by enemy faction members.
+          if (Instance.Wars.AreFactionsAtWar(attackingFaction, defendingFaction))
             return ApplyDefensiveBonus(area, hit);
         }
 
@@ -68,6 +72,19 @@
 
         if (reduction > 0)
           hit.damageTypes.ScaleAll(reduction);
+
+        return null;
+      }
+
+      static Faction GetDefendingFaction(BaseEntity entity, Area area)
+      {
+        BasePlayer owner = BasePlayer.FindByID(entity.OwnerID);
+
+        if (owner != null)
+          return Instance.Factions.GetByMember(owner.UserIDString);
+
+        if (area.FactionId != null)
+          return Instance.Factions.Get(area.FactionId);
 
         return null;
       }

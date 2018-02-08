@@ -5,7 +5,7 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumZonesOptions
+    class ZoneOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -22,7 +22,7 @@
       [JsonProperty("monumentZones")]
       public Dictionary<string, float> MonumentZones = new Dictionary<string, float>();
 
-      public static ImperiumZonesOptions Default = new ImperiumZonesOptions {
+      public static ZoneOptions Default = new ZoneOptions {
         Enabled = true,
         DomeDarkness = 3,
         EventZoneRadius = 150f,

@@ -4,7 +4,7 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumRaidingOptions
+    class RaidingOptions
     {
       [JsonProperty("allowedInBadlands")]
       public bool AllowedInBadlands;
@@ -18,19 +18,11 @@
       [JsonProperty("allowedInWilderness")]
       public bool AllowedInWilderness;
 
-      [JsonProperty("allowedInEventZones")]
-      public bool AllowedInEventZones;
-
-      [JsonProperty("allowedInMonumentZones")]
-      public bool AllowedInMonumentZones;
-
-      public static ImperiumRaidingOptions Default = new ImperiumRaidingOptions {
+      public static RaidingOptions Default = new RaidingOptions {
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
-        AllowedInEventZones = true,
-        AllowedInMonumentZones = true,
         AllowedInTowns = true,
-        AllowedInWilderness = true,
+        AllowedInWilderness = true
       };
     }
   }

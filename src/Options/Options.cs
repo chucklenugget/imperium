@@ -7,50 +7,50 @@
     class ImperiumOptions
     {
       [JsonProperty("badlands")]
-      public ImperiumBadlandsOptions Badlands;
+      public BadlandsOptions Badlands;
 
       [JsonProperty("claims")]
-      public ImperiumClaimOptions Claims;
+      public ClaimOptions Claims;
 
       [JsonProperty("decay")]
-      public ImperiumDecayOptions Decay;
+      public DecayOptions Decay;
 
       [JsonProperty("map")]
-      public ImperiumMapOptions Map;
+      public MapOptions Map;
 
       [JsonProperty("pvp")]
-      public ImperiumPvpOptions Pvp;
+      public PvpOptions Pvp;
 
       [JsonProperty("raiding")]
-      public ImperiumRaidingOptions Raiding;
+      public RaidingOptions Raiding;
 
       [JsonProperty("taxes")]
-      public ImperiumTaxesOptions Taxes;
+      public TaxOptions Taxes;
 
       [JsonProperty("towns")]
-      public ImperiumTownOptions Towns;
+      public TownOptions Towns;
 
       [JsonProperty("upkeep")]
-      public ImperiumUpkeepOptions Upkeep;
+      public UpkeepOptions Upkeep;
 
       [JsonProperty("war")]
-      public ImperiumWarOptions War;
+      public WarOptions War;
 
       [JsonProperty("zones")]
-      public ImperiumZonesOptions Zones;
+      public ZoneOptions Zones;
 
       public static ImperiumOptions Default = new ImperiumOptions {
-        Badlands = ImperiumBadlandsOptions.Default,
-        Claims = ImperiumClaimOptions.Default,
-        Decay = ImperiumDecayOptions.Default,
-        Map = ImperiumMapOptions.Default,
-        Pvp = ImperiumPvpOptions.Default,
-        Raiding = ImperiumRaidingOptions.Default,
-        Towns = ImperiumTownOptions.Default,
-        Taxes = ImperiumTaxesOptions.Default,
-        Upkeep = ImperiumUpkeepOptions.Default,
-        War = ImperiumWarOptions.Default,
-        Zones = ImperiumZonesOptions.Default
+        Badlands = BadlandsOptions.Default,
+        Claims = ClaimOptions.Default,
+        Decay = DecayOptions.Default,
+        Map = MapOptions.Default,
+        Pvp = PvpOptions.Default,
+        Raiding = RaidingOptions.Default,
+        Towns = TownOptions.Default,
+        Taxes = TaxOptions.Default,
+        Upkeep = UpkeepOptions.Default,
+        War = WarOptions.Default,
+        Zones = ZoneOptions.Default
       };
     }
 

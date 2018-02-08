@@ -2960,14 +2960,18 @@ namespace Oxide.Plugins
           return null;
         }
 
-        if (area.FactionId != null && attacker.Faction != null)
+        Faction attackingFaction = attacker.Faction;
+        Faction defendingFaction = GetDefendingFaction(entity, area);
+
+        if (defendingFaction != null && attackingFaction != null)
         {
           // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
-          if (attacker.Faction.Id == area.FactionId)
+          if (attackingFaction.Id == defendingFaction.Id)
             return null;
 
-          // If the entity is built on claimed land, it can be damaged during war by enemy faction members.
-          if (Instance.Wars.AreFactionsAtWar(attacker.Faction.Id, area.FactionId))
+          // If the entity was built by a member of a faction, or was built on faction land, it can be
+          // damaged during war by enemy faction members.
+          if (Instance.Wars.AreFactionsAtWar(attackingFaction, defendingFaction))
             return ApplyDefensiveBonus(area, hit);
         }
 
@@ -2988,6 +2992,19 @@ namespace Oxide.Plugins
 
         if (reduction > 0)
           hit.damageTypes.ScaleAll(reduction);
+
+        return null;
+      }
+
+      static Faction GetDefendingFaction(BaseEntity entity, Area area)
+      {
+        BasePlayer owner = BasePlayer.FindByID(entity.OwnerID);
+
+        if (owner != null)
+          return Instance.Factions.GetByMember(owner.UserIDString);
+
+        if (area.FactionId != null)
+          return Instance.Factions.Get(area.FactionId);
 
         return null;
       }
@@ -5868,12 +5885,12 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumBadlandsOptions
+    class BadlandsOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
 
-      public static ImperiumBadlandsOptions Default = new ImperiumBadlandsOptions {
+      public static BadlandsOptions Default = new BadlandsOptions {
         Enabled = true
       };
     }
@@ -5886,7 +5903,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumClaimOptions
+    class ClaimOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -5900,7 +5917,7 @@ namespace Oxide.Plugins
       [JsonProperty("minFactionMembers")]
       public int MinFactionMembers;
 
-      public static ImperiumClaimOptions Default = new ImperiumClaimOptions {
+      public static ClaimOptions Default = new ClaimOptions {
         Enabled = true,
         Costs = new List<int> { 0, 100, 200, 300, 400, 500 },
         MinAreaNameLength = 3,
@@ -5915,7 +5932,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumDecayOptions
+    class DecayOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -5926,7 +5943,7 @@ namespace Oxide.Plugins
       [JsonProperty("townDecayReduction")]
       public float TownDecayReduction;
 
-      public static ImperiumDecayOptions Default = new ImperiumDecayOptions {
+      public static DecayOptions Default = new DecayOptions {
         Enabled = false,
         ClaimedLandDecayReduction = 0.5f,
         TownDecayReduction = 1f
@@ -5940,7 +5957,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumMapOptions
+    class MapOptions
     {
       [JsonProperty("commandCooldownSeconds")]
       public int CommandCooldownSeconds;
@@ -5951,7 +5968,7 @@ namespace Oxide.Plugins
       [JsonProperty("imageSize")]
       public int ImageSize;
 
-      public static ImperiumMapOptions Default = new ImperiumMapOptions {
+      public static MapOptions Default = new MapOptions {
         CommandCooldownSeconds = 10,
         ImageUrl = "",
         ImageSize = 1440
@@ -5965,7 +5982,70 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumPvpOptions
+    class ImperiumOptions
+    {
+      [JsonProperty("badlands")]
+      public BadlandsOptions Badlands;
+
+      [JsonProperty("claims")]
+      public ClaimOptions Claims;
+
+      [JsonProperty("decay")]
+      public DecayOptions Decay;
+
+      [JsonProperty("map")]
+      public MapOptions Map;
+
+      [JsonProperty("pvp")]
+      public PvpOptions Pvp;
+
+      [JsonProperty("raiding")]
+      public RaidingOptions Raiding;
+
+      [JsonProperty("taxes")]
+      public TaxOptions Taxes;
+
+      [JsonProperty("towns")]
+      public TownOptions Towns;
+
+      [JsonProperty("upkeep")]
+      public UpkeepOptions Upkeep;
+
+      [JsonProperty("war")]
+      public WarOptions War;
+
+      [JsonProperty("zones")]
+      public ZoneOptions Zones;
+
+      public static ImperiumOptions Default = new ImperiumOptions {
+        Badlands = BadlandsOptions.Default,
+        Claims = ClaimOptions.Default,
+        Decay = DecayOptions.Default,
+        Map = MapOptions.Default,
+        Pvp = PvpOptions.Default,
+        Raiding = RaidingOptions.Default,
+        Towns = TownOptions.Default,
+        Taxes = TaxOptions.Default,
+        Upkeep = UpkeepOptions.Default,
+        War = WarOptions.Default,
+        Zones = ZoneOptions.Default
+      };
+    }
+
+    protected override void LoadDefaultConfig()
+    {
+      PrintWarning("Loading default configuration.");
+      Config.WriteObject(ImperiumOptions.Default, true);
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class PvpOptions
     {
       [JsonProperty("allowedInBadlands")]
       public bool AllowedInBadlands;
@@ -5985,7 +6065,7 @@ namespace Oxide.Plugins
       [JsonProperty("allowedInMonumentZones")]
       public bool AllowedInMonumentZones;
 
-      public static ImperiumPvpOptions Default = new ImperiumPvpOptions {
+      public static PvpOptions Default = new PvpOptions {
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
         AllowedInEventZones = true,
@@ -6002,7 +6082,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumRaidingOptions
+    class RaidingOptions
     {
       [JsonProperty("allowedInBadlands")]
       public bool AllowedInBadlands;
@@ -6016,17 +6096,9 @@ namespace Oxide.Plugins
       [JsonProperty("allowedInWilderness")]
       public bool AllowedInWilderness;
 
-      [JsonProperty("allowedInEventZones")]
-      public bool AllowedInEventZones;
-
-      [JsonProperty("allowedInMonumentZones")]
-      public bool AllowedInMonumentZones;
-
-      public static ImperiumRaidingOptions Default = new ImperiumRaidingOptions {
+      public static RaidingOptions Default = new RaidingOptions {
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
-        AllowedInEventZones = true,
-        AllowedInMonumentZones = true,
         AllowedInTowns = true,
         AllowedInWilderness = true,
       };
@@ -6039,7 +6111,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumTaxesOptions
+    class TaxOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -6059,7 +6131,7 @@ namespace Oxide.Plugins
       [JsonProperty("badlandsGatherBonus")]
       public float BadlandsGatherBonus;
 
-      public static ImperiumTaxesOptions Default = new ImperiumTaxesOptions {
+      public static TaxOptions Default = new TaxOptions {
         Enabled = true,
         DefaultTaxRate = 0.1f,
         MaxTaxRate = 0.2f,
@@ -6076,12 +6148,12 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumTownOptions
+    class TownOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
 
-      public static ImperiumTownOptions Default = new ImperiumTownOptions {
+      public static TownOptions Default = new TownOptions {
         Enabled = true
       };
     }
@@ -6094,7 +6166,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumUpkeepOptions
+    class UpkeepOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -6111,7 +6183,7 @@ namespace Oxide.Plugins
       [JsonProperty("gracePeriodHours")]
       public int GracePeriodHours;
 
-      public static ImperiumUpkeepOptions Default = new ImperiumUpkeepOptions {
+      public static UpkeepOptions Default = new UpkeepOptions {
         Enabled = false,
         Costs = new List<int> { 10, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 },
         CheckIntervalMinutes = 15,
@@ -6128,7 +6200,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumWarOptions
+    class WarOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -6139,7 +6211,7 @@ namespace Oxide.Plugins
       [JsonProperty("defensiveBonuses")]
       public List<float> DefensiveBonuses = new List<float>();
 
-      public static ImperiumWarOptions Default = new ImperiumWarOptions {
+      public static WarOptions Default = new WarOptions {
         Enabled = true,
         MinCassusBelliLength = 50,
         DefensiveBonuses = new List<float> { 0, 0.5f, 1f }
@@ -6154,7 +6226,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumZonesOptions
+    class ZoneOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -6171,7 +6243,7 @@ namespace Oxide.Plugins
       [JsonProperty("monumentZones")]
       public Dictionary<string, float> MonumentZones = new Dictionary<string, float>();
 
-      public static ImperiumZonesOptions Default = new ImperiumZonesOptions {
+      public static ZoneOptions Default = new ZoneOptions {
         Enabled = true,
         DomeDarkness = 3,
         EventZoneRadius = 150f,
@@ -6188,69 +6260,6 @@ namespace Oxide.Plugins
           { "water_treatment_plant", 180 }
         }
       };
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using Newtonsoft.Json;
-
-  public partial class Imperium : RustPlugin
-  {
-    class ImperiumOptions
-    {
-      [JsonProperty("badlands")]
-      public ImperiumBadlandsOptions Badlands;
-
-      [JsonProperty("claims")]
-      public ImperiumClaimOptions Claims;
-
-      [JsonProperty("decay")]
-      public ImperiumDecayOptions Decay;
-
-      [JsonProperty("map")]
-      public ImperiumMapOptions Map;
-
-      [JsonProperty("pvp")]
-      public ImperiumPvpOptions Pvp;
-
-      [JsonProperty("raiding")]
-      public ImperiumRaidingOptions Raiding;
-
-      [JsonProperty("taxes")]
-      public ImperiumTaxesOptions Taxes;
-
-      [JsonProperty("towns")]
-      public ImperiumTownOptions Towns;
-
-      [JsonProperty("upkeep")]
-      public ImperiumUpkeepOptions Upkeep;
-
-      [JsonProperty("war")]
-      public ImperiumWarOptions War;
-
-      [JsonProperty("zones")]
-      public ImperiumZonesOptions Zones;
-
-      public static ImperiumOptions Default = new ImperiumOptions {
-        Badlands = ImperiumBadlandsOptions.Default,
-        Claims = ImperiumClaimOptions.Default,
-        Decay = ImperiumDecayOptions.Default,
-        Map = ImperiumMapOptions.Default,
-        Pvp = ImperiumPvpOptions.Default,
-        Raiding = ImperiumRaidingOptions.Default,
-        Towns = ImperiumTownOptions.Default,
-        Taxes = ImperiumTaxesOptions.Default,
-        Upkeep = ImperiumUpkeepOptions.Default,
-        War = ImperiumWarOptions.Default,
-        Zones = ImperiumZonesOptions.Default
-      };
-    }
-
-    protected override void LoadDefaultConfig()
-    {
-      PrintWarning("Loading default configuration.");
-      Config.WriteObject(ImperiumOptions.Default, true);
     }
   }
 }

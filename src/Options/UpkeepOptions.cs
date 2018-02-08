@@ -5,7 +5,7 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumUpkeepOptions
+    class UpkeepOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -22,7 +22,7 @@
       [JsonProperty("gracePeriodHours")]
       public int GracePeriodHours;
 
-      public static ImperiumUpkeepOptions Default = new ImperiumUpkeepOptions {
+      public static UpkeepOptions Default = new UpkeepOptions {
         Enabled = false,
         Costs = new List<int> { 10, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 },
         CheckIntervalMinutes = 15,

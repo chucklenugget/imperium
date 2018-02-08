@@ -4,7 +4,7 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumDecayOptions
+    class DecayOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -15,7 +15,7 @@
       [JsonProperty("townDecayReduction")]
       public float TownDecayReduction;
 
-      public static ImperiumDecayOptions Default = new ImperiumDecayOptions {
+      public static DecayOptions Default = new DecayOptions {
         Enabled = false,
         ClaimedLandDecayReduction = 0.5f,
         TownDecayReduction = 1f

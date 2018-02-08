@@ -4,7 +4,7 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumTaxesOptions
+    class TaxOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -24,7 +24,7 @@
       [JsonProperty("badlandsGatherBonus")]
       public float BadlandsGatherBonus;
 
-      public static ImperiumTaxesOptions Default = new ImperiumTaxesOptions {
+      public static TaxOptions Default = new TaxOptions {
         Enabled = true,
         DefaultTaxRate = 0.1f,
         MaxTaxRate = 0.2f,

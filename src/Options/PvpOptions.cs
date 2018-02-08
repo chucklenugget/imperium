@@ -4,7 +4,7 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumPvpOptions
+    class PvpOptions
     {
       [JsonProperty("allowedInBadlands")]
       public bool AllowedInBadlands;
@@ -24,7 +24,7 @@
       [JsonProperty("allowedInMonumentZones")]
       public bool AllowedInMonumentZones;
 
-      public static ImperiumPvpOptions Default = new ImperiumPvpOptions {
+      public static PvpOptions Default = new PvpOptions {
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
         AllowedInEventZones = true,

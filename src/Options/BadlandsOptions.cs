@@ -4,12 +4,12 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumBadlandsOptions
+    class BadlandsOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
 
-      public static ImperiumBadlandsOptions Default = new ImperiumBadlandsOptions {
+      public static BadlandsOptions Default = new BadlandsOptions {
         Enabled = true
       };
     }

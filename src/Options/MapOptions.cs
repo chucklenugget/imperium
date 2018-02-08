@@ -4,7 +4,7 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumMapOptions
+    class MapOptions
     {
       [JsonProperty("commandCooldownSeconds")]
       public int CommandCooldownSeconds;
@@ -15,7 +15,7 @@
       [JsonProperty("imageSize")]
       public int ImageSize;
 
-      public static ImperiumMapOptions Default = new ImperiumMapOptions {
+      public static MapOptions Default = new MapOptions {
         CommandCooldownSeconds = 10,
         ImageUrl = "",
         ImageSize = 1440

@@ -5,7 +5,7 @@
 
   public partial class Imperium : RustPlugin
   {
-    class ImperiumClaimOptions
+    class ClaimOptions
     {
       [JsonProperty("enabled")]
       public bool Enabled;
@@ -19,11 +19,15 @@
       [JsonProperty("minFactionMembers")]
       public int MinFactionMembers;
 
-      public static ImperiumClaimOptions Default = new ImperiumClaimOptions {
+      [JsonProperty("requireContiguousClaims")]
+      public bool RequireContiguousClaims;
+
+      public static ClaimOptions Default = new ClaimOptions {
         Enabled = true,
         Costs = new List<int> { 0, 100, 200, 300, 400, 500 },
         MinAreaNameLength = 3,
-        MinFactionMembers = 3
+        MinFactionMembers = 3,
+        RequireContiguousClaims = false
       };
     }
   }
