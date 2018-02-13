@@ -23,6 +23,7 @@
       public const string AreaNotOwnedByYourFaction = "<color=#ffd479>{0} is not owned by your faction.";
       public const string AreaNotWilderness = "<color=#ffd479>{0}</color> is not currently wilderness.";
       public const string AreaNotPartOfTown = "<color=#ffd479>{0}</color> is not part of a town.";
+      public const string AreaNotContiguous = "<color=#ffd479>{0}</color> is not connected to territory owned by <color=#ffd479>[{1}]</color>.";
 
       public const string InteractionCanceled = "Command canceled.";
       public const string NoInteractionInProgress = "You aren't currently executing any commands.";
@@ -30,7 +31,9 @@
       public const string NotMemberOfFaction = "You are not a member of a faction.";
       public const string AlreadyMemberOfFaction = "You are already a member of a faction.";
       public const string NotLeaderOfFaction = "You must be an owner or a manager of a faction.";
-      public const string FactionTooSmall = "To claim land, a faction must have least {0} members.";
+      public const string FactionTooSmallToOwnLand = "To own land, a faction must have least {0} members.";
+      public const string FactionOwnsTooMuchLand = "<color=#ffd479>[{0}]</color> already owns the maximum number of areas (<color=#ffd479>{1}</color>).";
+      public const string FactionHasTooManyMembers = "<color=#ffd479>[{0}]</color> already has the maximum number of members (<color=#ffd479>{1}</color>).";
       public const string NotMayorOfTown = "You are not the mayor of a town. To create one, use <color=#ffd479>/town create NAME</color>.";
       public const string FactionDoesNotOwnLand = "Your faction must own at least one area.";
       public const string FactionAlreadyExists = "There is already a faction named <color=#ffd479>[{0}]</color>.";

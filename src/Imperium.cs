@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.4.2")]
+  [Info("Imperium", "chucklenugget", "1.4.3")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -169,7 +169,7 @@ namespace Oxide.Plugins
       LogToFile("log", String.Format(message, args), this, true);
     }
 
-    bool EnsureCanChangeFactionClaims(User user, Faction faction)
+    bool EnsureUserCanChangeFactionClaims(User user, Faction faction)
     {
       if (faction == null || !faction.HasLeader(user))
       {
@@ -177,16 +177,52 @@ namespace Oxide.Plugins
         return false;
       }
 
-      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
+      if (faction.MemberCount < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmallToOwnLand, Options.Claims.MinFactionMembers);
         return false;
       }
 
       return true;
     }
 
-    bool EnsureCanUseCupboardAsClaim(User user, BuildingPrivlidge cupboard)
+    bool EnsureFactionCanClaimArea(User user, Faction faction, Area area)
+    {
+      if (area.Type == AreaType.Badlands)
+      {
+        user.SendChatMessage(Messages.AreaIsBadlands, area.Id);
+        return false;
+      }
+
+      if (faction.MemberCount < Instance.Options.Claims.MinFactionMembers)
+      {
+        user.SendChatMessage(Messages.FactionTooSmallToOwnLand, Instance.Options.Claims.MinFactionMembers);
+        return false;
+      }
+
+      Area[] claimedAreas = Areas.GetAllClaimedByFaction(faction);
+
+      if (Instance.Options.Claims.RequireContiguousClaims && !area.IsClaimed && claimedAreas.Length > 0)
+      {
+        int contiguousClaims = Areas.GetNumberOfContiguousClaimedAreas(area, faction);
+        if (contiguousClaims == 0)
+        {
+          user.SendChatMessage(Messages.AreaNotContiguous, area.Id, faction.Id);
+          return false;
+        }
+      }
+
+      int? maxClaims = Instance.Options.Claims.MaxClaims;
+      if (maxClaims != null && claimedAreas.Length >= maxClaims)
+      {
+        user.SendChatMessage(Messages.FactionOwnsTooMuchLand, faction.Id, maxClaims);
+        return false;
+      }
+
+      return true;
+    }
+
+    bool EnsureCupboardCanBeUsedForClaim(User user, BuildingPrivlidge cupboard)
     {
       if (cupboard == null)
       {
@@ -203,7 +239,7 @@ namespace Oxide.Plugins
       return true;
     }
 
-    bool EnsureCanManageTowns(User user, Faction faction)
+    bool EnsureUserCanManageTowns(User user, Faction faction)
     {
       if (!user.HasPermission(PERM_CHANGE_TOWNS))
       {
@@ -220,7 +256,7 @@ namespace Oxide.Plugins
       return true;
     }
 
-    bool EnsureCanUseCupboardAsTown(User user, BuildingPrivlidge cupboard)
+    bool EnsureCupboardCanBeUsedForTown(User user, BuildingPrivlidge cupboard)
     {
       if (cupboard == null)
       {
@@ -237,7 +273,7 @@ namespace Oxide.Plugins
       return true;
     }
 
-    bool EnsureCanEngageInDiplomacy(User user, Faction faction)
+    bool EnsureUserAndFactionCanEngageInDiplomacy(User user, Faction faction)
     {
       if (faction == null)
       {
@@ -245,9 +281,9 @@ namespace Oxide.Plugins
         return false;
       }
 
-      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
+      if (faction.MemberCount < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall);
+        user.SendChatMessage(Messages.FactionTooSmallToOwnLand);
         return false;
       }
 

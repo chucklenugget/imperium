@@ -6,7 +6,7 @@
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanChangeFactionClaims(user, faction))
+      if (!EnsureUserCanChangeFactionClaims(user, faction))
         return;
 
       user.SendChatMessage(Messages.SelectClaimCupboardToAdd);

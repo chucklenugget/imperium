@@ -13,6 +13,9 @@
       [JsonProperty("costs")]
       public List<int> Costs = new List<int>();
 
+      [JsonProperty("maxClaims")]
+      public int? MaxClaims;
+
       [JsonProperty("minAreaNameLength")]
       public int MinAreaNameLength;
 
@@ -25,6 +28,7 @@
       public static ClaimOptions Default = new ClaimOptions {
         Enabled = true,
         Costs = new List<int> { 0, 100, 200, 300, 400, 500 },
+        MaxClaims = null,
         MinAreaNameLength = 3,
         MinFactionMembers = 3,
         RequireContiguousClaims = false

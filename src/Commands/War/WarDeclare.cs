@@ -6,7 +6,7 @@
     {
       Faction attacker = Factions.GetByMember(user);
 
-      if (!EnsureCanEngageInDiplomacy(user, attacker))
+      if (!EnsureUserAndFactionCanEngageInDiplomacy(user, attacker))
         return;
 
       if (args.Length < 2)

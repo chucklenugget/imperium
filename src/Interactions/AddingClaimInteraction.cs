@@ -16,12 +16,7 @@
       public override bool TryComplete(HitInfo hit)
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
-
-        if (!Instance.EnsureCanChangeFactionClaims(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
-          return false;
-
         Area area = User.CurrentArea;
-        AreaType type = (Instance.Areas.GetAllClaimedByFaction(Faction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         if (area == null)
         {
@@ -29,17 +24,17 @@
           return false;
         }
 
-        if (area.Type == AreaType.Badlands)
-        {
-          User.SendChatMessage(Messages.AreaIsBadlands, area.Id);
+        if (!Instance.EnsureUserCanChangeFactionClaims(User, Faction))
           return false;
-        }
 
-        if (area.Type == AreaType.Town)
-        {
-          User.SendChatMessage(Messages.AreaIsTown, area.Id, area.Name, area.FactionId);
+        if (!Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
-        }
+
+        if (!Instance.EnsureFactionCanClaimArea(User, Faction, area))
+          return false;
+
+        Area[] claimedAreas = Instance.Areas.GetAllClaimedByFaction(Faction);
+        AreaType type = (claimedAreas.Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         if (area.Type == AreaType.Wilderness)
         {
@@ -66,6 +61,7 @@
 
           Instance.Log($"{Util.Format(User)} claimed {area.Id} on behalf of {Faction.Id}");
           Instance.Areas.Claim(area, type, Faction, User, cupboard);
+
           return true;
         }
 

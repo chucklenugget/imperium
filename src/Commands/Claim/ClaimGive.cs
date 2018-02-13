@@ -12,7 +12,7 @@
 
       Faction sourceFaction = Factions.GetByMember(user);
 
-      if (!EnsureCanChangeFactionClaims(user, sourceFaction))
+      if (!EnsureUserCanChangeFactionClaims(user, sourceFaction))
         return;
 
       string factionId = Util.NormalizeFactionId(args[0]);

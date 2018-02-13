@@ -127,6 +127,7 @@
     <Compile Include="Options\BadlandsOptions.cs" />
     <Compile Include="Options\ClaimOptions.cs" />
     <Compile Include="Options\DecayOptions.cs" />
+    <Compile Include="Options\FactionOptions.cs" />
     <Compile Include="Options\MapOptions.cs" />
     <Compile Include="Options\PvpOptions.cs" />
     <Compile Include="Options\RaidingOptions.cs" />

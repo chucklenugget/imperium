@@ -20,7 +20,8 @@
         "wall.external",
         "gates.external",
         "cupboard",
-        "waterbarrel"
+        "waterbarrel",
+        "fridge"
       };
 
       public static object AlterDamageAgainstStructure(User attacker, BaseCombatEntity entity, HitInfo hit)
@@ -40,22 +41,28 @@
           return null;
         }
 
-        Faction attackingFaction = attacker.Faction;
-        Faction defendingFaction = GetDefendingFaction(entity, area);
-
-        if (defendingFaction != null && attackingFaction != null)
+        if (attacker.Faction != null)
         {
-          // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
-          if (attackingFaction.Id == defendingFaction.Id)
+          // Factions can damage any structure built on their own land.
+          if (area.FactionId != null && attacker.Faction.Id == area.FactionId)
             return null;
 
-          // If the entity was built by a member of a faction, or was built on faction land, it can be
-          // damaged during war by enemy faction members.
-          if (Instance.Wars.AreFactionsAtWar(attackingFaction, defendingFaction))
+          // Factions who are at war can damage any structure on enemy land, subject to the defensive bonus.
+          if (area.FactionId != null && Instance.Wars.AreFactionsAtWar(attacker.Faction.Id, area.FactionId))
             return ApplyDefensiveBonus(area, hit);
+
+          // Factions who are at war can damage any structure built by a member of an enemy faction, subject
+          // to the defensive bonus.
+          BasePlayer owner = BasePlayer.FindByID(entity.OwnerID);
+          if (owner != null)
+          {
+            Faction owningFaction = Instance.Factions.GetByMember(owner.UserIDString);
+            if (owningFaction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, owningFaction))
+              return ApplyDefensiveBonus(area, hit);
+          }
         }
 
-        // If the structure is in a raidable area, it can be damaged.
+        // If the structure is in a raidable area, it can be damaged subject to the defensive bonus.
         if (IsRaidableArea(area))
           return ApplyDefensiveBonus(area, hit);
 
@@ -76,26 +83,15 @@
         return null;
       }
 
-      static Faction GetDefendingFaction(BaseEntity entity, Area area)
-      {
-        BasePlayer owner = BasePlayer.FindByID(entity.OwnerID);
-
-        if (owner != null)
-          return Instance.Factions.GetByMember(owner.UserIDString);
-
-        if (area.FactionId != null)
-          return Instance.Factions.Get(area.FactionId);
-
-        return null;
-      }
-
       static bool IsProtectedEntity(BaseEntity entity)
       {
         var buildingBlock = entity as BuildingBlock;
 
+        // All building blocks except for twig are protected.
         if (buildingBlock != null)
           return buildingBlock.grade != BuildingGrade.Enum.Twigs;
 
+        // Some additional entities (doors, boxes, etc.) are also protected.
         if (ProtectedPrefabs.Any(prefab => entity.ShortPrefabName.Contains(prefab)))
           return true;
 
@@ -104,6 +100,9 @@
 
       static bool IsRaidableArea(Area area)
       {
+        if (!Instance.Options.Raiding.RestrictRaiding)
+          return true;
+
         switch (area.Type)
         {
           case AreaType.Badlands:

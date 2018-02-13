@@ -6,6 +6,9 @@
   {
     class RaidingOptions
     {
+      [JsonProperty("restrictRaiding")]
+      public bool RestrictRaiding;
+
       [JsonProperty("allowedInBadlands")]
       public bool AllowedInBadlands;
 
@@ -19,6 +22,7 @@
       public bool AllowedInWilderness;
 
       public static RaidingOptions Default = new RaidingOptions {
+        RestrictRaiding = false,
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
         AllowedInTowns = true,

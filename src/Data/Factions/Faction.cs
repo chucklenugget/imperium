@@ -29,6 +29,11 @@
         get { return DateTime.UtcNow < NextUpkeepPaymentTime; }
       }
 
+      public int MemberCount
+      {
+        get { return MemberIds.Count; }
+      }
+
       public Faction(string id, User owner)
       {
         Id = id;

@@ -15,6 +15,9 @@
       [JsonProperty("decay")]
       public DecayOptions Decay;
 
+      [JsonProperty("factions")]
+      public FactionOptions Factions;
+
       [JsonProperty("map")]
       public MapOptions Map;
 
@@ -43,6 +46,7 @@
         Badlands = BadlandsOptions.Default,
         Claims = ClaimOptions.Default,
         Decay = DecayOptions.Default,
+        Factions = FactionOptions.Default,
         Map = MapOptions.Default,
         Pvp = PvpOptions.Default,
         Raiding = RaidingOptions.Default,

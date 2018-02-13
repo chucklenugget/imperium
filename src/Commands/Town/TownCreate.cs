@@ -6,7 +6,7 @@
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanManageTowns(user, faction))
+      if (!EnsureUserCanManageTowns(user, faction))
         return;
 
       if (args.Length == 0)

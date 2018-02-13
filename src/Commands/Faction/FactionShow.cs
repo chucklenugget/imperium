@@ -28,7 +28,7 @@
 
       User[] activeMembers = faction.GetAllActiveMembers();
 
-      sb.AppendLine($"<color=#ffd479>{faction.MemberIds.Count}</color> member(s), <color=#ffd479>{activeMembers.Length}</color> online:");
+      sb.AppendLine($"<color=#ffd479>{faction.MemberCount}</color> member(s), <color=#ffd479>{activeMembers.Length}</color> online:");
       sb.Append("  ");
 
       foreach (User member in activeMembers)

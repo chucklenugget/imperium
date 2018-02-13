@@ -16,7 +16,6 @@
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
         Area area = User.CurrentArea;
-        AreaType type = (Instance.Areas.GetAllClaimedByFaction(Faction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         if (area == null)
         {
@@ -29,6 +28,9 @@
           User.SendChatMessage(Messages.AreaIsBadlands, area.Id);
           return false;
         }
+
+        Area[] ownedAreas = Instance.Areas.GetAllClaimedByFaction(Faction);
+        AreaType type = (ownedAreas.Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         Instance.PrintToChat(Messages.AreaClaimAssignedAnnouncement, Faction.Id, area.Id);
         Instance.Log($"{Util.Format(User)} assigned {area.Id} to {Faction.Id}");

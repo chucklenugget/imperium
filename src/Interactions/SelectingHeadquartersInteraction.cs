@@ -15,7 +15,7 @@
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Instance.EnsureCanChangeFactionClaims(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureUserCanChangeFactionClaims(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
 
         Area area = Instance.Areas.GetByClaimCupboard(cupboard);

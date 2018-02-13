@@ -12,9 +12,9 @@
         return;
       }
 
-      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
+      if (faction.MemberCount < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmallToOwnLand, Options.Claims.MinFactionMembers);
         return;
       }
 

@@ -32,6 +32,13 @@
         return;
       }
 
+      int? maxMembers = Options.Factions.MaxMembers;
+      if (maxMembers != null && faction.MemberCount >= maxMembers)
+      {
+        user.SendChatMessage(Messages.FactionHasTooManyMembers, faction.Id, faction.MemberCount);
+        return;
+      }
+
       member.SendChatMessage(Messages.InviteReceived, user.UserName, faction.Id);
       user.SendChatMessage(Messages.InviteAdded, member.UserName, faction.Id);
 

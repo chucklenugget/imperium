@@ -46,6 +46,9 @@
       if (hit.damageTypes.Has(Rust.DamageType.Decay))
         return Decay.AlterDecayDamage(entity, hit);
 
+      if (hit.InitiatorPlayer == null)
+        return null;
+
       User attacker = Instance.Users.Get(hit.InitiatorPlayer);
       var defendingPlayer = entity as BasePlayer;
 

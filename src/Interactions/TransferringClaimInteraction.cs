@@ -17,7 +17,7 @@
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Instance.EnsureCanChangeFactionClaims(User, SourceFaction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureUserCanChangeFactionClaims(User, SourceFaction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
 
         Area area = Instance.Areas.GetByClaimCupboard(cupboard);
@@ -34,16 +34,15 @@
           return false;
         }
 
-        if (TargetFaction.MemberIds.Count < Instance.Options.Claims.MinFactionMembers)
-        {
-          User.SendChatMessage(Messages.FactionTooSmall, Instance.Options.Claims.MinFactionMembers);
+        if (!Instance.EnsureFactionCanClaimArea(User, TargetFaction, area))
           return false;
-        }
+
+        Area[] claimedAreas = Instance.Areas.GetAllClaimedByFaction(TargetFaction);
+        AreaType type = (claimedAreas.Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         Instance.PrintToChat(Messages.AreaClaimTransferredAnnouncement, SourceFaction.Id, area.Id, TargetFaction.Id);
         Instance.Log($"{Util.Format(User)} transferred {SourceFaction.Id}'s claim on {area.Id} to {TargetFaction.Id}");
 
-        AreaType type = (Instance.Areas.GetAllClaimedByFaction(TargetFaction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
         Instance.Areas.Claim(area, type, TargetFaction, User, cupboard);
 
         return true;

@@ -6,6 +6,9 @@
   {
     class PvpOptions
     {
+      [JsonProperty("restrictPvp")]
+      public bool RestrictPvp;
+
       [JsonProperty("allowedInBadlands")]
       public bool AllowedInBadlands;
 
@@ -25,6 +28,7 @@
       public bool AllowedInMonumentZones;
 
       public static PvpOptions Default = new PvpOptions {
+        RestrictPvp = false,
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
         AllowedInEventZones = true,

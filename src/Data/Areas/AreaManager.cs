@@ -9,7 +9,7 @@
   {
     class AreaManager
     {
-      const int ENTITY_LOCATION_CACHE_SIZE = 50000;
+      const int ENTITY_LOCATION_CACHE_SIZE = 100000;
 
       MapGrid Grid;
       Dictionary<string, Area> Areas;
@@ -91,8 +91,10 @@
       {
         Area area;
 
+        /*
         if (useCache && EntityAreas.TryGetValue(entity.net.ID, out area))
           return area;
+        */
 
         var x = entity.transform.position.x;
         var z = entity.transform.position.z;
@@ -116,8 +118,10 @@
 
         area = Layout[row, col];
 
+        /*
         if (useCache)
           EntityAreas.Set(entity.net.ID, area);
+        */
 
         return area;
       }
@@ -198,6 +202,29 @@
         AddBadlands(areas.ToArray());
       }
 
+      public int GetNumberOfContiguousClaimedAreas(Area area, Faction owner)
+      {
+        int count = 0;
+
+        // North
+        if (area.Row > 0 && Layout[area.Row - 1, area.Col].FactionId == owner.Id)
+          count++;
+
+        // South
+        if (area.Row < Grid.NumberOfCells - 1 && Layout[area.Row + 1, area.Col].FactionId == owner.Id)
+          count++;
+
+        // West
+        if (area.Col > 0 && Layout[area.Row, area.Col - 1].FactionId == owner.Id)
+          count++;
+
+        // East
+        if (area.Col < Grid.NumberOfCells - 1 && Layout[area.Row, area.Col + 1].FactionId == owner.Id)
+          count++;
+
+        return count;
+      }
+
       public int GetDepthInsideFriendlyTerritory(Area area)
       {
         if (!area.IsClaimed)
@@ -205,6 +232,7 @@
 
         var depth = new int[4];
 
+        // North
         for (var row = area.Row; row >= 0; row--)
         {
           if (Layout[row, area.Col].FactionId != area.FactionId)
@@ -213,6 +241,7 @@
           depth[0]++;
         }
 
+        // South
         for (var row = area.Row; row < Grid.NumberOfCells; row++)
         {
           if (Layout[row, area.Col].FactionId != area.FactionId)
@@ -221,6 +250,7 @@
           depth[1]++;
         }
 
+        // West
         for (var col = area.Col; col >= 0; col--)
         {
           if (Layout[area.Row, col].FactionId != area.FactionId)
@@ -229,6 +259,7 @@
           depth[2]++;
         }
 
+        // East
         for (var col = area.Col; col < Grid.NumberOfCells; col++)
         {
           if (Layout[area.Row, col].FactionId != area.FactionId)
@@ -285,6 +316,7 @@
 
         Areas.Clear();
         Array.Clear(Layout, 0, Layout.Length);
+        EntityAreas.Clear();
 
         Instance.Puts("Area objects destroyed.");
       }

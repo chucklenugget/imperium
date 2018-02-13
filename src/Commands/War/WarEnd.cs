@@ -6,7 +6,7 @@
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanEngageInDiplomacy(user, faction))
+      if (!EnsureUserAndFactionCanEngageInDiplomacy(user, faction))
         return;
 
       Faction enemy = Factions.Get(Util.NormalizeFactionId(args[0]));

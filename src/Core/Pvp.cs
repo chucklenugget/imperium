@@ -9,6 +9,9 @@
     {
       public static object AlterDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
       {
+        if (!Instance.Options.Pvp.RestrictPvp)
+          return null;
+
         // Allow players to take the easy way out.
         if (hit.damageTypes.Has(Rust.DamageType.Suicide))
           return null;
@@ -33,6 +36,9 @@
 
       public static object AlterTrapTrigger(BaseTrap trap, User defender)
       {
+        if (!Instance.Options.Pvp.RestrictPvp)
+          return null;
+
         // A player can always trigger their own traps, to prevent exploiting this mechanic.
         if (defender.Player.userID == trap.OwnerID)
           return null;
@@ -59,6 +65,9 @@
 
       public static object AlterTurretTrigger(BaseCombatEntity turret, User defender)
       {
+        if (!Instance.Options.Pvp.RestrictPvp)
+          return null;
+
         // A player can be always be targeted by their own turrets, to prevent exploiting this mechanic.
         if (defender.Player.userID == turret.OwnerID)
           return null;

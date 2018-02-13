@@ -19,7 +19,7 @@
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Instance.EnsureCanManageTowns(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureUserCanManageTowns(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
 
         Area area = Instance.Areas.GetByClaimCupboard(cupboard);

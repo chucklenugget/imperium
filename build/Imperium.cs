@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.4.2")]
+  [Info("Imperium", "chucklenugget", "1.4.3")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -169,7 +169,7 @@ namespace Oxide.Plugins
       LogToFile("log", String.Format(message, args), this, true);
     }
 
-    bool EnsureCanChangeFactionClaims(User user, Faction faction)
+    bool EnsureUserCanChangeFactionClaims(User user, Faction faction)
     {
       if (faction == null || !faction.HasLeader(user))
       {
@@ -177,16 +177,52 @@ namespace Oxide.Plugins
         return false;
       }
 
-      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
+      if (faction.MemberCount < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmallToOwnLand, Options.Claims.MinFactionMembers);
         return false;
       }
 
       return true;
     }
 
-    bool EnsureCanUseCupboardAsClaim(User user, BuildingPrivlidge cupboard)
+    bool EnsureFactionCanClaimArea(User user, Faction faction, Area area)
+    {
+      if (area.Type == AreaType.Badlands)
+      {
+        user.SendChatMessage(Messages.AreaIsBadlands, area.Id);
+        return false;
+      }
+
+      if (faction.MemberCount < Instance.Options.Claims.MinFactionMembers)
+      {
+        user.SendChatMessage(Messages.FactionTooSmallToOwnLand, Instance.Options.Claims.MinFactionMembers);
+        return false;
+      }
+
+      Area[] claimedAreas = Areas.GetAllClaimedByFaction(faction);
+
+      if (Instance.Options.Claims.RequireContiguousClaims && !area.IsClaimed && claimedAreas.Length > 0)
+      {
+        int contiguousClaims = Areas.GetNumberOfContiguousClaimedAreas(area, faction);
+        if (contiguousClaims == 0)
+        {
+          user.SendChatMessage(Messages.AreaNotContiguous, area.Id, faction.Id);
+          return false;
+        }
+      }
+
+      int? maxClaims = Instance.Options.Claims.MaxClaims;
+      if (maxClaims != null && claimedAreas.Length >= maxClaims)
+      {
+        user.SendChatMessage(Messages.FactionOwnsTooMuchLand, faction.Id, maxClaims);
+        return false;
+      }
+
+      return true;
+    }
+
+    bool EnsureCupboardCanBeUsedForClaim(User user, BuildingPrivlidge cupboard)
     {
       if (cupboard == null)
       {
@@ -203,7 +239,7 @@ namespace Oxide.Plugins
       return true;
     }
 
-    bool EnsureCanManageTowns(User user, Faction faction)
+    bool EnsureUserCanManageTowns(User user, Faction faction)
     {
       if (!user.HasPermission(PERM_CHANGE_TOWNS))
       {
@@ -220,7 +256,7 @@ namespace Oxide.Plugins
       return true;
     }
 
-    bool EnsureCanUseCupboardAsTown(User user, BuildingPrivlidge cupboard)
+    bool EnsureCupboardCanBeUsedForTown(User user, BuildingPrivlidge cupboard)
     {
       if (cupboard == null)
       {
@@ -237,7 +273,7 @@ namespace Oxide.Plugins
       return true;
     }
 
-    bool EnsureCanEngageInDiplomacy(User user, Faction faction)
+    bool EnsureUserAndFactionCanEngageInDiplomacy(User user, Faction faction)
     {
       if (faction == null)
       {
@@ -245,9 +281,9 @@ namespace Oxide.Plugins
         return false;
       }
 
-      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
+      if (faction.MemberCount < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall);
+        user.SendChatMessage(Messages.FactionTooSmallToOwnLand);
         return false;
       }
 
@@ -655,7 +691,7 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanChangeFactionClaims(user, faction))
+      if (!EnsureUserCanChangeFactionClaims(user, faction))
         return;
 
       user.SendChatMessage(Messages.SelectClaimCupboardToAdd);
@@ -707,9 +743,9 @@ namespace Oxide.Plugins
         return;
       }
 
-      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
+      if (faction.MemberCount < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmallToOwnLand, Options.Claims.MinFactionMembers);
         return;
       }
 
@@ -810,7 +846,7 @@ namespace Oxide.Plugins
 
       Faction sourceFaction = Factions.GetByMember(user);
 
-      if (!EnsureCanChangeFactionClaims(user, sourceFaction))
+      if (!EnsureUserCanChangeFactionClaims(user, sourceFaction))
         return;
 
       string factionId = Util.NormalizeFactionId(args[0]);
@@ -834,7 +870,7 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanChangeFactionClaims(user, faction))
+      if (!EnsureUserCanChangeFactionClaims(user, faction))
         return;
 
       user.SendChatMessage(Messages.SelectClaimCupboardForHeadquarters);
@@ -929,7 +965,7 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanChangeFactionClaims(user, faction))
+      if (!EnsureUserCanChangeFactionClaims(user, faction))
         return;
 
       user.SendChatMessage(Messages.SelectClaimCupboardToRemove);
@@ -944,7 +980,7 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanChangeFactionClaims(user, faction))
+      if (!EnsureUserCanChangeFactionClaims(user, faction))
         return;
 
       if (args.Length != 2)
@@ -1044,9 +1080,9 @@ namespace Oxide.Plugins
         return;
       }
 
-      if (faction.MemberIds.Count < Options.Claims.MinFactionMembers)
+      if (faction.MemberCount < Options.Claims.MinFactionMembers)
       {
-        user.SendChatMessage(Messages.FactionTooSmall, Options.Claims.MinFactionMembers);
+        user.SendChatMessage(Messages.FactionTooSmallToOwnLand, Options.Claims.MinFactionMembers);
         return;
       }
 
@@ -1350,6 +1386,13 @@ namespace Oxide.Plugins
         return;
       }
 
+      int? maxMembers = Options.Factions.MaxMembers;
+      if (maxMembers != null && faction.MemberCount >= maxMembers)
+      {
+        user.SendChatMessage(Messages.FactionHasTooManyMembers, faction.Id, faction.MemberCount);
+        return;
+      }
+
       member.SendChatMessage(Messages.InviteReceived, user.UserName, faction.Id);
       user.SendChatMessage(Messages.InviteAdded, member.UserName, faction.Id);
 
@@ -1462,7 +1505,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      if (faction.MemberIds.Count == 1)
+      if (faction.MemberCount == 1)
       {
         PrintToChat(Messages.FactionDisbandedAnnouncement, faction.Id);
         Log($"{Util.Format(user)} disbanded faction {faction.Id} by leaving as its only member");
@@ -1555,7 +1598,7 @@ namespace Oxide.Plugins
 
       User[] activeMembers = faction.GetAllActiveMembers();
 
-      sb.AppendLine($"<color=#ffd479>{faction.MemberIds.Count}</color> member(s), <color=#ffd479>{activeMembers.Length}</color> online:");
+      sb.AppendLine($"<color=#ffd479>{faction.MemberCount}</color> member(s), <color=#ffd479>{activeMembers.Length}</color> online:");
       sb.Append("  ");
 
       foreach (User member in activeMembers)
@@ -1772,7 +1815,7 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanManageTowns(user, faction))
+      if (!EnsureUserCanManageTowns(user, faction))
         return;
 
       if (args.Length == 0)
@@ -1810,7 +1853,7 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanManageTowns(user, faction))
+      if (!EnsureUserCanManageTowns(user, faction))
         return;
 
       Town town = Areas.GetTownByMayor(user);
@@ -1836,7 +1879,7 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanManageTowns(user, faction))
+      if (!EnsureUserCanManageTowns(user, faction))
         return;
 
       Town town = Areas.GetTownByMayor(user);
@@ -1917,7 +1960,7 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanManageTowns(user, faction))
+      if (!EnsureUserCanManageTowns(user, faction))
         return;
 
       Town town = Areas.GetTownByMayor(user);
@@ -2064,7 +2107,7 @@ namespace Oxide.Plugins
     {
       Faction attacker = Factions.GetByMember(user);
 
-      if (!EnsureCanEngageInDiplomacy(user, attacker))
+      if (!EnsureUserAndFactionCanEngageInDiplomacy(user, attacker))
         return;
 
       if (args.Length < 2)
@@ -2117,7 +2160,7 @@ namespace Oxide.Plugins
     {
       Faction faction = Factions.GetByMember(user);
 
-      if (!EnsureCanEngageInDiplomacy(user, faction))
+      if (!EnsureUserAndFactionCanEngageInDiplomacy(user, faction))
         return;
 
       Faction enemy = Factions.Get(Util.NormalizeFactionId(args[0]));
@@ -2343,7 +2386,14 @@ namespace Oxide.Plugins
         if (!Instance.Options.Decay.Enabled)
           return null;
 
-        Area area = Instance.Areas.GetByEntityPosition(entity, true);
+        Area area = GetAreaForDecayCalculation(entity);
+
+        if (area == null)
+        {
+          Instance.PrintWarning($"An entity decayed in an unknown area. This shouldn't happen.");
+          return null;
+        }
+
         float reduction = 0;
 
         if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
@@ -2359,6 +2409,22 @@ namespace Oxide.Plugins
           hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
 
         return null;
+      }
+
+      static Area GetAreaForDecayCalculation(BaseEntity entity)
+      {
+        Area area = null;
+
+        // If the entity is controlled by a claim cupboard, use the area the cupboard controls.
+        BuildingPrivlidge cupboard = entity.GetBuildingPrivilege();
+        if (cupboard)
+          area = Instance.Areas.GetByClaimCupboard(cupboard);
+
+        // Otherwise, determine the area by its position in the world.
+        if (area == null)
+          area = Instance.Areas.GetByEntityPosition(entity, true);
+
+        return area;
       }
     }
   }
@@ -2410,6 +2476,9 @@ namespace Oxide.Plugins
 
       if (hit.damageTypes.Has(Rust.DamageType.Decay))
         return Decay.AlterDecayDamage(entity, hit);
+
+      if (hit.InitiatorPlayer == null)
+        return null;
 
       User attacker = Instance.Users.Get(hit.InitiatorPlayer);
       var defendingPlayer = entity as BasePlayer;
@@ -2662,6 +2731,7 @@ namespace Oxide.Plugins
       public const string AreaNotOwnedByYourFaction = "<color=#ffd479>{0} is not owned by your faction.";
       public const string AreaNotWilderness = "<color=#ffd479>{0}</color> is not currently wilderness.";
       public const string AreaNotPartOfTown = "<color=#ffd479>{0}</color> is not part of a town.";
+      public const string AreaNotContiguous = "<color=#ffd479>{0}</color> is not connected to territory owned by <color=#ffd479>[{1}]</color>.";
 
       public const string InteractionCanceled = "Command canceled.";
       public const string NoInteractionInProgress = "You aren't currently executing any commands.";
@@ -2669,7 +2739,9 @@ namespace Oxide.Plugins
       public const string NotMemberOfFaction = "You are not a member of a faction.";
       public const string AlreadyMemberOfFaction = "You are already a member of a faction.";
       public const string NotLeaderOfFaction = "You must be an owner or a manager of a faction.";
-      public const string FactionTooSmall = "To claim land, a faction must have least {0} members.";
+      public const string FactionTooSmallToOwnLand = "To own land, a faction must have least {0} members.";
+      public const string FactionOwnsTooMuchLand = "<color=#ffd479>[{0}]</color> already owns the maximum number of areas (<color=#ffd479>{1}</color>).";
+      public const string FactionHasTooManyMembers = "<color=#ffd479>[{0}]</color> already has the maximum number of members (<color=#ffd479>{1}</color>).";
       public const string NotMayorOfTown = "You are not the mayor of a town. To create one, use <color=#ffd479>/town create NAME</color>.";
       public const string FactionDoesNotOwnLand = "Your faction must own at least one area.";
       public const string FactionAlreadyExists = "There is already a faction named <color=#ffd479>[{0}]</color>.";
@@ -2806,6 +2878,9 @@ namespace Oxide.Plugins
     {
       public static object AlterDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
       {
+        if (!Instance.Options.Pvp.RestrictPvp)
+          return null;
+
         // Allow players to take the easy way out.
         if (hit.damageTypes.Has(Rust.DamageType.Suicide))
           return null;
@@ -2830,6 +2905,9 @@ namespace Oxide.Plugins
 
       public static object AlterTrapTrigger(BaseTrap trap, User defender)
       {
+        if (!Instance.Options.Pvp.RestrictPvp)
+          return null;
+
         // A player can always trigger their own traps, to prevent exploiting this mechanic.
         if (defender.Player.userID == trap.OwnerID)
           return null;
@@ -2856,6 +2934,9 @@ namespace Oxide.Plugins
 
       public static object AlterTurretTrigger(BaseCombatEntity turret, User defender)
       {
+        if (!Instance.Options.Pvp.RestrictPvp)
+          return null;
+
         // A player can be always be targeted by their own turrets, to prevent exploiting this mechanic.
         if (defender.Player.userID == turret.OwnerID)
           return null;
@@ -2940,7 +3021,8 @@ namespace Oxide.Plugins
         "wall.external",
         "gates.external",
         "cupboard",
-        "waterbarrel"
+        "waterbarrel",
+        "fridge"
       };
 
       public static object AlterDamageAgainstStructure(User attacker, BaseCombatEntity entity, HitInfo hit)
@@ -2960,22 +3042,28 @@ namespace Oxide.Plugins
           return null;
         }
 
-        Faction attackingFaction = attacker.Faction;
-        Faction defendingFaction = GetDefendingFaction(entity, area);
-
-        if (defendingFaction != null && attackingFaction != null)
+        if (attacker.Faction != null)
         {
-          // If a member of a faction is attacking an entity within their own lands, don't alter the damage.
-          if (attackingFaction.Id == defendingFaction.Id)
+          // Factions can damage any structure built on their own land.
+          if (area.FactionId != null && attacker.Faction.Id == area.FactionId)
             return null;
 
-          // If the entity was built by a member of a faction, or was built on faction land, it can be
-          // damaged during war by enemy faction members.
-          if (Instance.Wars.AreFactionsAtWar(attackingFaction, defendingFaction))
+          // Factions who are at war can damage any structure on enemy land, subject to the defensive bonus.
+          if (area.FactionId != null && Instance.Wars.AreFactionsAtWar(attacker.Faction.Id, area.FactionId))
             return ApplyDefensiveBonus(area, hit);
+
+          // Factions who are at war can damage any structure built by a member of an enemy faction, subject
+          // to the defensive bonus.
+          BasePlayer owner = BasePlayer.FindByID(entity.OwnerID);
+          if (owner != null)
+          {
+            Faction owningFaction = Instance.Factions.GetByMember(owner.UserIDString);
+            if (owningFaction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, owningFaction))
+              return ApplyDefensiveBonus(area, hit);
+          }
         }
 
-        // If the structure is in a raidable area, it can be damaged.
+        // If the structure is in a raidable area, it can be damaged subject to the defensive bonus.
         if (IsRaidableArea(area))
           return ApplyDefensiveBonus(area, hit);
 
@@ -2996,26 +3084,15 @@ namespace Oxide.Plugins
         return null;
       }
 
-      static Faction GetDefendingFaction(BaseEntity entity, Area area)
-      {
-        BasePlayer owner = BasePlayer.FindByID(entity.OwnerID);
-
-        if (owner != null)
-          return Instance.Factions.GetByMember(owner.UserIDString);
-
-        if (area.FactionId != null)
-          return Instance.Factions.Get(area.FactionId);
-
-        return null;
-      }
-
       static bool IsProtectedEntity(BaseEntity entity)
       {
         var buildingBlock = entity as BuildingBlock;
 
+        // All building blocks except for twig are protected.
         if (buildingBlock != null)
           return buildingBlock.grade != BuildingGrade.Enum.Twigs;
 
+        // Some additional entities (doors, boxes, etc.) are also protected.
         if (ProtectedPrefabs.Any(prefab => entity.ShortPrefabName.Contains(prefab)))
           return true;
 
@@ -3024,6 +3101,9 @@ namespace Oxide.Plugins
 
       static bool IsRaidableArea(Area area)
       {
+        if (!Instance.Options.Raiding.RestrictRaiding)
+          return true;
+
         switch (area.Type)
         {
           case AreaType.Badlands:
@@ -3412,7 +3492,7 @@ namespace Oxide.Plugins
   {
     class AreaManager
     {
-      const int ENTITY_LOCATION_CACHE_SIZE = 50000;
+      const int ENTITY_LOCATION_CACHE_SIZE = 100000;
 
       MapGrid Grid;
       Dictionary<string, Area> Areas;
@@ -3494,8 +3574,10 @@ namespace Oxide.Plugins
       {
         Area area;
 
+        /*
         if (useCache && EntityAreas.TryGetValue(entity.net.ID, out area))
           return area;
+        */
 
         var x = entity.transform.position.x;
         var z = entity.transform.position.z;
@@ -3519,8 +3601,10 @@ namespace Oxide.Plugins
 
         area = Layout[row, col];
 
+        /*
         if (useCache)
           EntityAreas.Set(entity.net.ID, area);
+        */
 
         return area;
       }
@@ -3601,6 +3685,29 @@ namespace Oxide.Plugins
         AddBadlands(areas.ToArray());
       }
 
+      public int GetNumberOfContiguousClaimedAreas(Area area, Faction owner)
+      {
+        int count = 0;
+
+        // North
+        if (area.Row > 0 && Layout[area.Row - 1, area.Col].FactionId == owner.Id)
+          count++;
+
+        // South
+        if (area.Row < Grid.NumberOfCells - 1 && Layout[area.Row + 1, area.Col].FactionId == owner.Id)
+          count++;
+
+        // West
+        if (area.Col > 0 && Layout[area.Row, area.Col - 1].FactionId == owner.Id)
+          count++;
+
+        // East
+        if (area.Col < Grid.NumberOfCells - 1 && Layout[area.Row, area.Col + 1].FactionId == owner.Id)
+          count++;
+
+        return count;
+      }
+
       public int GetDepthInsideFriendlyTerritory(Area area)
       {
         if (!area.IsClaimed)
@@ -3608,6 +3715,7 @@ namespace Oxide.Plugins
 
         var depth = new int[4];
 
+        // North
         for (var row = area.Row; row >= 0; row--)
         {
           if (Layout[row, area.Col].FactionId != area.FactionId)
@@ -3616,6 +3724,7 @@ namespace Oxide.Plugins
           depth[0]++;
         }
 
+        // South
         for (var row = area.Row; row < Grid.NumberOfCells; row++)
         {
           if (Layout[row, area.Col].FactionId != area.FactionId)
@@ -3624,6 +3733,7 @@ namespace Oxide.Plugins
           depth[1]++;
         }
 
+        // West
         for (var col = area.Col; col >= 0; col--)
         {
           if (Layout[area.Row, col].FactionId != area.FactionId)
@@ -3632,6 +3742,7 @@ namespace Oxide.Plugins
           depth[2]++;
         }
 
+        // East
         for (var col = area.Col; col < Grid.NumberOfCells; col++)
         {
           if (Layout[area.Row, col].FactionId != area.FactionId)
@@ -3742,6 +3853,11 @@ namespace Oxide.Plugins
       public bool IsUpkeepPaid
       {
         get { return DateTime.UtcNow < NextUpkeepPaymentTime; }
+      }
+
+      public int MemberCount
+      {
+        get { return MemberIds.Count; }
       }
 
       public Faction(string id, User owner)
@@ -5424,7 +5540,7 @@ namespace Oxide.Plugins
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Instance.EnsureCanManageTowns(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureUserCanManageTowns(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
 
         Area area = Instance.Areas.GetByClaimCupboard(cupboard);
@@ -5474,12 +5590,7 @@ namespace Oxide.Plugins
       public override bool TryComplete(HitInfo hit)
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
-
-        if (!Instance.EnsureCanChangeFactionClaims(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
-          return false;
-
         Area area = User.CurrentArea;
-        AreaType type = (Instance.Areas.GetAllClaimedByFaction(Faction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         if (area == null)
         {
@@ -5487,17 +5598,17 @@ namespace Oxide.Plugins
           return false;
         }
 
-        if (area.Type == AreaType.Badlands)
-        {
-          User.SendChatMessage(Messages.AreaIsBadlands, area.Id);
+        if (!Instance.EnsureUserCanChangeFactionClaims(User, Faction))
           return false;
-        }
 
-        if (area.Type == AreaType.Town)
-        {
-          User.SendChatMessage(Messages.AreaIsTown, area.Id, area.Name, area.FactionId);
+        if (!Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
-        }
+
+        if (!Instance.EnsureFactionCanClaimArea(User, Faction, area))
+          return false;
+
+        Area[] claimedAreas = Instance.Areas.GetAllClaimedByFaction(Faction);
+        AreaType type = (claimedAreas.Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         if (area.Type == AreaType.Wilderness)
         {
@@ -5524,6 +5635,7 @@ namespace Oxide.Plugins
 
           Instance.Log($"{Util.Format(User)} claimed {area.Id} on behalf of {Faction.Id}");
           Instance.Areas.Claim(area, type, Faction, User, cupboard);
+
           return true;
         }
 
@@ -5589,7 +5701,6 @@ namespace Oxide.Plugins
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
         Area area = User.CurrentArea;
-        AreaType type = (Instance.Areas.GetAllClaimedByFaction(Faction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         if (area == null)
         {
@@ -5602,6 +5713,9 @@ namespace Oxide.Plugins
           User.SendChatMessage(Messages.AreaIsBadlands, area.Id);
           return false;
         }
+
+        Area[] ownedAreas = Instance.Areas.GetAllClaimedByFaction(Faction);
+        AreaType type = (ownedAreas.Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         Instance.PrintToChat(Messages.AreaClaimAssignedAnnouncement, Faction.Id, area.Id);
         Instance.Log($"{Util.Format(User)} assigned {area.Id} to {Faction.Id}");
@@ -5631,7 +5745,7 @@ namespace Oxide.Plugins
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Instance.EnsureCanManageTowns(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureUserCanManageTowns(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
 
         Area area = Instance.Areas.GetByClaimCupboard(cupboard);
@@ -5695,7 +5809,7 @@ namespace Oxide.Plugins
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Instance.EnsureCanManageTowns(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureUserCanManageTowns(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
 
         Area area = Instance.Areas.GetByClaimCupboard(cupboard);
@@ -5738,7 +5852,7 @@ namespace Oxide.Plugins
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Instance.EnsureCanChangeFactionClaims(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureUserCanChangeFactionClaims(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
 
         Area area = Instance.Areas.GetByClaimCupboard(cupboard);
@@ -5775,7 +5889,7 @@ namespace Oxide.Plugins
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Instance.EnsureCanChangeFactionClaims(User, Faction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureUserCanChangeFactionClaims(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
 
         Area area = Instance.Areas.GetByClaimCupboard(cupboard);
@@ -5845,7 +5959,7 @@ namespace Oxide.Plugins
       {
         var cupboard = hit.HitEntity as BuildingPrivlidge;
 
-        if (!Instance.EnsureCanChangeFactionClaims(User, SourceFaction) || !Instance.EnsureCanUseCupboardAsClaim(User, cupboard))
+        if (!Instance.EnsureUserCanChangeFactionClaims(User, SourceFaction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
           return false;
 
         Area area = Instance.Areas.GetByClaimCupboard(cupboard);
@@ -5862,16 +5976,15 @@ namespace Oxide.Plugins
           return false;
         }
 
-        if (TargetFaction.MemberIds.Count < Instance.Options.Claims.MinFactionMembers)
-        {
-          User.SendChatMessage(Messages.FactionTooSmall, Instance.Options.Claims.MinFactionMembers);
+        if (!Instance.EnsureFactionCanClaimArea(User, TargetFaction, area))
           return false;
-        }
+
+        Area[] claimedAreas = Instance.Areas.GetAllClaimedByFaction(TargetFaction);
+        AreaType type = (claimedAreas.Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
 
         Instance.PrintToChat(Messages.AreaClaimTransferredAnnouncement, SourceFaction.Id, area.Id, TargetFaction.Id);
         Instance.Log($"{Util.Format(User)} transferred {SourceFaction.Id}'s claim on {area.Id} to {TargetFaction.Id}");
 
-        AreaType type = (Instance.Areas.GetAllClaimedByFaction(TargetFaction).Length == 0) ? AreaType.Headquarters : AreaType.Claimed;
         Instance.Areas.Claim(area, type, TargetFaction, User, cupboard);
 
         return true;
@@ -5911,17 +6024,25 @@ namespace Oxide.Plugins
       [JsonProperty("costs")]
       public List<int> Costs = new List<int>();
 
+      [JsonProperty("maxClaims")]
+      public int? MaxClaims;
+
       [JsonProperty("minAreaNameLength")]
       public int MinAreaNameLength;
 
       [JsonProperty("minFactionMembers")]
       public int MinFactionMembers;
 
+      [JsonProperty("requireContiguousClaims")]
+      public bool RequireContiguousClaims;
+
       public static ClaimOptions Default = new ClaimOptions {
         Enabled = true,
         Costs = new List<int> { 0, 100, 200, 300, 400, 500 },
+        MaxClaims = null,
         MinAreaNameLength = 3,
-        MinFactionMembers = 3
+        MinFactionMembers = 3,
+        RequireContiguousClaims = false
       };
     }
   }
@@ -5947,6 +6068,23 @@ namespace Oxide.Plugins
         Enabled = false,
         ClaimedLandDecayReduction = 0.5f,
         TownDecayReduction = 1f
+      };
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+
+  public partial class Imperium : RustPlugin
+  {
+    class FactionOptions
+    {
+      [JsonProperty("maxMembers")]
+      public int? MaxMembers;
+
+      public static FactionOptions Default = new FactionOptions {
+        MaxMembers = null
       };
     }
   }
@@ -5993,6 +6131,9 @@ namespace Oxide.Plugins
       [JsonProperty("decay")]
       public DecayOptions Decay;
 
+      [JsonProperty("factions")]
+      public FactionOptions Factions;
+
       [JsonProperty("map")]
       public MapOptions Map;
 
@@ -6021,6 +6162,7 @@ namespace Oxide.Plugins
         Badlands = BadlandsOptions.Default,
         Claims = ClaimOptions.Default,
         Decay = DecayOptions.Default,
+        Factions = FactionOptions.Default,
         Map = MapOptions.Default,
         Pvp = PvpOptions.Default,
         Raiding = RaidingOptions.Default,
@@ -6047,6 +6189,9 @@ namespace Oxide.Plugins
   {
     class PvpOptions
     {
+      [JsonProperty("restrictPvp")]
+      public bool RestrictPvp;
+
       [JsonProperty("allowedInBadlands")]
       public bool AllowedInBadlands;
 
@@ -6066,6 +6211,7 @@ namespace Oxide.Plugins
       public bool AllowedInMonumentZones;
 
       public static PvpOptions Default = new PvpOptions {
+        RestrictPvp = false,
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
         AllowedInEventZones = true,
@@ -6084,6 +6230,9 @@ namespace Oxide.Plugins
   {
     class RaidingOptions
     {
+      [JsonProperty("restrictRaiding")]
+      public bool RestrictRaiding;
+
       [JsonProperty("allowedInBadlands")]
       public bool AllowedInBadlands;
 
@@ -6097,10 +6246,11 @@ namespace Oxide.Plugins
       public bool AllowedInWilderness;
 
       public static RaidingOptions Default = new RaidingOptions {
+        RestrictRaiding = false,
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
         AllowedInTowns = true,
-        AllowedInWilderness = true,
+        AllowedInWilderness = true
       };
     }
   }

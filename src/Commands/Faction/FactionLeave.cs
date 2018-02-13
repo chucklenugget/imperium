@@ -18,7 +18,7 @@
         return;
       }
 
-      if (faction.MemberIds.Count == 1)
+      if (faction.MemberCount == 1)
       {
         PrintToChat(Messages.FactionDisbandedAnnouncement, faction.Id);
         Log($"{Util.Format(user)} disbanded faction {faction.Id} by leaving as its only member");
