@@ -2422,7 +2422,7 @@ namespace Oxide.Plugins
 
         // Otherwise, determine the area by its position in the world.
         if (area == null)
-          area = Instance.Areas.GetByEntityPosition(entity, true);
+          area = Instance.Areas.GetByEntityPosition(entity);
 
         return area;
       }
@@ -2912,7 +2912,7 @@ namespace Oxide.Plugins
         if (defender.Player.userID == trap.OwnerID)
           return null;
 
-        Area trapArea = Instance.Areas.GetByEntityPosition(trap, true);
+        Area trapArea = Instance.Areas.GetByEntityPosition(trap);
 
         if (trapArea == null || defender.CurrentArea == null)
         {
@@ -2941,7 +2941,7 @@ namespace Oxide.Plugins
         if (defender.Player.userID == turret.OwnerID)
           return null;
 
-        Area turretArea = Instance.Areas.GetByEntityPosition(turret, true);
+        Area turretArea = Instance.Areas.GetByEntityPosition(turret);
 
         if (turretArea == null || defender.CurrentArea == null)
         {
@@ -3034,7 +3034,7 @@ namespace Oxide.Plugins
         if (!IsProtectedEntity(entity))
           return null;
 
-        Area area = Instance.Areas.GetByEntityPosition(entity, true);
+        Area area = Instance.Areas.GetByEntityPosition(entity);
 
         if (area == null)
         {
@@ -3497,7 +3497,6 @@ namespace Oxide.Plugins
       MapGrid Grid;
       Dictionary<string, Area> Areas;
       Area[,] Layout;
-      LruCache<uint, Area> EntityAreas;
 
       public int Count
       {
@@ -3509,7 +3508,6 @@ namespace Oxide.Plugins
         Grid = new MapGrid(ConVar.Server.worldsize);
         Areas = new Dictionary<string, Area>();
         Layout = new Area[Grid.NumberOfCells, Grid.NumberOfCells];
-        EntityAreas = new LruCache<uint, Area>(ENTITY_LOCATION_CACHE_SIZE);
       }
       
       public Area Get(string areaId)
@@ -3570,43 +3568,14 @@ namespace Oxide.Plugins
         return GetAllTowns().FirstOrDefault(town => town.MayorId == user.Id);
       }
 
-      public Area GetByEntityPosition(BaseEntity entity, bool useCache = false)
+      public Area GetByEntityPosition(BaseEntity entity)
       {
-        Area area;
+        Vector3 position = entity.transform.position;
 
-        /*
-        if (useCache && EntityAreas.TryGetValue(entity.net.ID, out area))
-          return area;
-        */
+        int row = (int)(position.z + Grid.MapSize / 2) / Grid.CellSize;
+        int col = (int)(position.x + Grid.MapSize / 2) / Grid.CellSize;
 
-        var x = entity.transform.position.x;
-        var z = entity.transform.position.z;
-        var offset = MapGrid.GridCellSize / 2;
-
-        int row;
-        for (row = 0; row < Grid.NumberOfCells; row++)
-        {
-          Vector3 position = Layout[row, 0].Position;
-          if (z >= position.z - offset && z <= position.z + offset)
-            break;
-        }
-
-        int col;
-        for (col = 0; col < Grid.NumberOfCells; col++)
-        {
-          Vector3 position = Layout[0, col].Position;
-          if (x >= position.x - offset && x <= position.x + offset)
-            break;
-        }
-
-        area = Layout[row, col];
-
-        /*
-        if (useCache)
-          EntityAreas.Set(entity.net.ID, area);
-        */
-
-        return area;
+        return Layout[row, col];
       }
 
       public void Claim(Area area, AreaType type, Faction faction, User claimant, BuildingPrivlidge cupboard)
@@ -3770,7 +3739,7 @@ namespace Oxide.Plugins
           {
             string areaId = Grid.GetAreaId(row, col);
             Vector3 position = Grid.GetPosition(row, col);
-            Vector3 size = new Vector3(MapGrid.GridCellSize, 500, MapGrid.GridCellSize);
+            Vector3 size = new Vector3(Grid.CellSize, 500, Grid.CellSize);
 
             AreaInfo info = null;
             lookup.TryGetValue(areaId, out info);
@@ -5190,7 +5159,12 @@ namespace Oxide.Plugins
   {
     public class MapGrid
     {
-      public const int GridCellSize = 150;
+      const int GRID_CELL_SIZE = 150;
+
+      public int CellSize
+      {
+        get { return GRID_CELL_SIZE; }
+      }
 
       public int MapSize { get; private set; }
       public int NumberOfCells { get; private set; }
@@ -5203,7 +5177,7 @@ namespace Oxide.Plugins
       public MapGrid(int mapSize)
       {
         MapSize = mapSize;
-        NumberOfCells = (int)Math.Ceiling(mapSize / (float)GridCellSize);
+        NumberOfCells = (int)Math.Ceiling(mapSize / (float)CellSize);
         RowIds = new string[NumberOfCells];
         ColumnIds = new string[NumberOfCells];
         AreaIds = new string[NumberOfCells, NumberOfCells];
@@ -5253,7 +5227,7 @@ namespace Oxide.Plugins
         for (int col = 0; col < NumberOfCells; col++)
           ColumnIds[col] = col.ToString();
 
-        int z = (MapSize / 2) - GridCellSize;
+        int z = (MapSize / 2) - CellSize;
         for (int row = 0; row < NumberOfCells; row++)
         {
           int x = -(MapSize / 2);
@@ -5261,10 +5235,10 @@ namespace Oxide.Plugins
           {
             var areaId = RowIds[row] + ColumnIds[col];
             AreaIds[row, col] = areaId;
-            Positions[row, col] = new Vector3(x + (GridCellSize / 2), 0, z + (GridCellSize / 2));
-            x += GridCellSize;
+            Positions[row, col] = new Vector3(x + (CellSize / 2), 0, z + (CellSize / 2));
+            x += CellSize;
           }
-          z -= GridCellSize;
+          z -= CellSize;
         }
       }
     }

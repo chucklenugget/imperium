@@ -33,7 +33,7 @@
         if (!IsProtectedEntity(entity))
           return null;
 
-        Area area = Instance.Areas.GetByEntityPosition(entity, true);
+        Area area = Instance.Areas.GetByEntityPosition(entity);
 
         if (area == null)
         {

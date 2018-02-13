@@ -7,7 +7,12 @@
   {
     public class MapGrid
     {
-      public const int GridCellSize = 150;
+      const int GRID_CELL_SIZE = 150;
+
+      public int CellSize
+      {
+        get { return GRID_CELL_SIZE; }
+      }
 
       public int MapSize { get; private set; }
       public int NumberOfCells { get; private set; }
@@ -20,7 +25,7 @@
       public MapGrid(int mapSize)
       {
         MapSize = mapSize;
-        NumberOfCells = (int)Math.Ceiling(mapSize / (float)GridCellSize);
+        NumberOfCells = (int)Math.Ceiling(mapSize / (float)CellSize);
         RowIds = new string[NumberOfCells];
         ColumnIds = new string[NumberOfCells];
         AreaIds = new string[NumberOfCells, NumberOfCells];
@@ -70,7 +75,7 @@
         for (int col = 0; col < NumberOfCells; col++)
           ColumnIds[col] = col.ToString();
 
-        int z = (MapSize / 2) - GridCellSize;
+        int z = (MapSize / 2) - CellSize;
         for (int row = 0; row < NumberOfCells; row++)
         {
           int x = -(MapSize / 2);
@@ -78,10 +83,10 @@
           {
             var areaId = RowIds[row] + ColumnIds[col];
             AreaIds[row, col] = areaId;
-            Positions[row, col] = new Vector3(x + (GridCellSize / 2), 0, z + (GridCellSize / 2));
-            x += GridCellSize;
+            Positions[row, col] = new Vector3(x + (CellSize / 2), 0, z + (CellSize / 2));
+            x += CellSize;
           }
-          z -= GridCellSize;
+          z -= CellSize;
         }
       }
     }

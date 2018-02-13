@@ -14,7 +14,6 @@
       MapGrid Grid;
       Dictionary<string, Area> Areas;
       Area[,] Layout;
-      LruCache<uint, Area> EntityAreas;
 
       public int Count
       {
@@ -26,7 +25,6 @@
         Grid = new MapGrid(ConVar.Server.worldsize);
         Areas = new Dictionary<string, Area>();
         Layout = new Area[Grid.NumberOfCells, Grid.NumberOfCells];
-        EntityAreas = new LruCache<uint, Area>(ENTITY_LOCATION_CACHE_SIZE);
       }
       
       public Area Get(string areaId)
@@ -87,43 +85,14 @@
         return GetAllTowns().FirstOrDefault(town => town.MayorId == user.Id);
       }
 
-      public Area GetByEntityPosition(BaseEntity entity, bool useCache = false)
+      public Area GetByEntityPosition(BaseEntity entity)
       {
-        Area area;
+        Vector3 position = entity.transform.position;
 
-        /*
-        if (useCache && EntityAreas.TryGetValue(entity.net.ID, out area))
-          return area;
-        */
+        int row = (int)(position.z + Grid.MapSize / 2) / Grid.CellSize;
+        int col = (int)(position.x + Grid.MapSize / 2) / Grid.CellSize;
 
-        var x = entity.transform.position.x;
-        var z = entity.transform.position.z;
-        var offset = MapGrid.GridCellSize / 2;
-
-        int row;
-        for (row = 0; row < Grid.NumberOfCells; row++)
-        {
-          Vector3 position = Layout[row, 0].Position;
-          if (z >= position.z - offset && z <= position.z + offset)
-            break;
-        }
-
-        int col;
-        for (col = 0; col < Grid.NumberOfCells; col++)
-        {
-          Vector3 position = Layout[0, col].Position;
-          if (x >= position.x - offset && x <= position.x + offset)
-            break;
-        }
-
-        area = Layout[row, col];
-
-        /*
-        if (useCache)
-          EntityAreas.Set(entity.net.ID, area);
-        */
-
-        return area;
+        return Layout[row, col];
       }
 
       public void Claim(Area area, AreaType type, Faction faction, User claimant, BuildingPrivlidge cupboard)
@@ -287,7 +256,7 @@
           {
             string areaId = Grid.GetAreaId(row, col);
             Vector3 position = Grid.GetPosition(row, col);
-            Vector3 size = new Vector3(MapGrid.GridCellSize, 500, MapGrid.GridCellSize);
+            Vector3 size = new Vector3(Grid.CellSize, 500, Grid.CellSize);
 
             AreaInfo info = null;
             lookup.TryGetValue(areaId, out info);
@@ -316,7 +285,6 @@
 
         Areas.Clear();
         Array.Clear(Layout, 0, Layout.Length);
-        EntityAreas.Clear();
 
         Instance.Puts("Area objects destroyed.");
       }

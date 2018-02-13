@@ -43,7 +43,7 @@
         if (defender.Player.userID == trap.OwnerID)
           return null;
 
-        Area trapArea = Instance.Areas.GetByEntityPosition(trap, true);
+        Area trapArea = Instance.Areas.GetByEntityPosition(trap);
 
         if (trapArea == null || defender.CurrentArea == null)
         {
@@ -72,7 +72,7 @@
         if (defender.Player.userID == turret.OwnerID)
           return null;
 
-        Area turretArea = Instance.Areas.GetByEntityPosition(turret, true);
+        Area turretArea = Instance.Areas.GetByEntityPosition(turret);
 
         if (turretArea == null || defender.CurrentArea == null)
         {

@@ -45,7 +45,7 @@
 
         // Otherwise, determine the area by its position in the world.
         if (area == null)
-          area = Instance.Areas.GetByEntityPosition(entity, true);
+          area = Instance.Areas.GetByEntityPosition(entity);
 
         return area;
       }
