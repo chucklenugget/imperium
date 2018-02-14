@@ -99,7 +99,7 @@
       {
         Vector3 position = entity.transform.position;
 
-        int row = (int)(position.z + Grid.MapSize / 2) / Grid.CellSize;
+        int row = (int)(Grid.MapSize / 2 - position.z) / Grid.CellSize;
         int col = (int)(position.x + Grid.MapSize / 2) / Grid.CellSize;
 
         return Layout[row, col];
