@@ -16,7 +16,7 @@
 
       public static void Collect(Faction faction)
       {
-        Area[] areas = Instance.Areas.GetAllClaimedByFaction(faction);
+        Area[] areas = Instance.Areas.GetAllTaxableClaimsByFaction(faction);
 
         if (areas.Length == 0)
           return;

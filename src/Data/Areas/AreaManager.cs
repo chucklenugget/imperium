@@ -56,6 +56,16 @@
         return Areas.Values.Where(a => a.FactionId == factionId).ToArray();
       }
 
+      public Area[] GetAllTaxableClaimsByFaction(Faction faction)
+      {
+        return GetAllTaxableClaimsByFaction(faction.Id);
+      }
+
+      public Area[] GetAllTaxableClaimsByFaction(string factionId)
+      {
+        return Areas.Values.Where(a => a.FactionId == factionId && a.IsTaxableClaim).ToArray();
+      }
+
       public Area GetByClaimCupboard(BuildingPrivlidge cupboard)
       {
         return GetByClaimCupboard(cupboard.net.ID);

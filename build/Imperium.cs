@@ -3208,7 +3208,7 @@ namespace Oxide.Plugins
 
       public static void Collect(Faction faction)
       {
-        Area[] areas = Instance.Areas.GetAllClaimedByFaction(faction);
+        Area[] areas = Instance.Areas.GetAllTaxableClaimsByFaction(faction);
 
         if (areas.Length == 0)
           return;
@@ -3537,6 +3537,16 @@ namespace Oxide.Plugins
       public Area[] GetAllClaimedByFaction(string factionId)
       {
         return Areas.Values.Where(a => a.FactionId == factionId).ToArray();
+      }
+
+      public Area[] GetAllTaxableClaimsByFaction(Faction faction)
+      {
+        return GetAllTaxableClaimsByFaction(faction.Id);
+      }
+
+      public Area[] GetAllTaxableClaimsByFaction(string factionId)
+      {
+        return Areas.Values.Where(a => a.FactionId == factionId && a.IsTaxableClaim).ToArray();
       }
 
       public Area GetByClaimCupboard(BuildingPrivlidge cupboard)
@@ -4005,24 +4015,24 @@ namespace Oxide.Plugins
         return InviteIds.Select(id => Instance.Users.Get(id)).Where(user => user != null).ToArray();
       }
 
-      public void SendChatMessage(string message, params object[] args)
-      {
-        foreach (User user in GetAllActiveMembers())
-          user.SendChatMessage(message, args);
-      }
-
       public int GetUpkeepPerPeriod()
       {
         var costs = Instance.Options.Upkeep.Costs;
 
         int totalCost = 0;
-        for (var num = 0; num < Instance.Areas.GetAllClaimedByFaction(this).Length; num++)
+        for (var num = 0; num < Instance.Areas.GetAllTaxableClaimsByFaction(this).Length; num++)
         {
           var index = Mathf.Clamp(num, 0, costs.Count - 1);
           totalCost += costs[index];
         }
 
         return totalCost;
+      }
+
+      public void SendChatMessage(string message, params object[] args)
+      {
+        foreach (User user in GetAllActiveMembers())
+          user.SendChatMessage(message, args);
       }
 
       public FactionInfo Serialize()
