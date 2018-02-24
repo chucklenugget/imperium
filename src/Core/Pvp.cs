@@ -7,7 +7,7 @@
   {
     static class Pvp
     {
-      public static object AlterDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
+      public static object HandleDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
       {
         if (!Instance.Options.Pvp.RestrictPvp)
           return null;

@@ -143,7 +143,9 @@
             case ZoneType.Debris:
               return Ui.HudIcon.Debris;
             case ZoneType.Monument:
-              return Ui.HudIcon.Badlands;
+              return Ui.HudIcon.Monument;
+            case ZoneType.Raid:
+              return Ui.HudIcon.Raid;
           }
         }
 

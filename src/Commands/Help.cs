@@ -32,9 +32,9 @@
       if (Options.Towns.Enabled)
       {
         if (user.HasPermission(PERM_CHANGE_TOWNS))
-          sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns, or create one yourself");
+          sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns, or create one yourself");
         else
-          sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns");
+          sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns");
       }
 
       if (Options.Badlands.Enabled)

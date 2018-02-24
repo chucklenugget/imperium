@@ -126,7 +126,6 @@
       {
         Area currentArea = CurrentArea;
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
-        Instance.Puts($"Player at {correctArea.Id}");
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
           Api.HandleUserLeftArea(this, currentArea);

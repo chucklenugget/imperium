@@ -4,7 +4,7 @@
 
   public partial class Imperium
   {
-    [ChatCommand("town")]
+    [ChatCommand("towns")]
     void OnTownCommand(BasePlayer player, string command, string[] args)
     {
       User user = Users.Get(player);
@@ -18,7 +18,7 @@
 
       if (args.Length == 0)
       {
-        OnTownHelpCommand(user);
+        OnTownListCommand(user);
         return;
       }
 

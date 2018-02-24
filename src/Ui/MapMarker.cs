@@ -14,8 +14,7 @@
 
       public static MapMarker ForUser(User user)
       {
-        return new MapMarker
-        {
+        return new MapMarker {
           IconUrl = Ui.MapIcon.Player,
           X = TranslatePosition(user.Player.transform.position.x),
           Z = TranslatePosition(user.Player.transform.position.z)

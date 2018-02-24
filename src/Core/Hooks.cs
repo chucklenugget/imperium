@@ -1,6 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
   using Network;
+  using Oxide.Core;
   using UnityEngine;
 
   public partial class Imperium : RustPlugin
@@ -43,6 +44,11 @@
       if (entity == null || hit == null)
         return null;
 
+      object externalResult = Interface.CallHook("CanEntityTakeDamage", new object[] { entity, hit });
+
+      if (externalResult != null)
+        return (bool)externalResult;
+
       if (hit.damageTypes.Has(Rust.DamageType.Decay))
         return Decay.AlterDecayDamage(entity, hit);
 
@@ -63,11 +69,11 @@
         if (defender == null)
           return null;
 
-        return Pvp.AlterDamageBetweenPlayers(attacker, defender, hit);
+        return Pvp.HandleDamageBetweenPlayers(attacker, defender, hit);
       }
 
       // A player is damaging a structure.
-      return Raiding.AlterDamageAgainstStructure(attacker, entity, hit);
+      return Raiding.HandleDamageAgainstStructure(attacker, entity, hit);
     }
 
     object OnTrapTrigger(BaseTrap trap, GameObject obj)
@@ -116,7 +122,7 @@
 
       var drop = entity as SupplyDrop;
       if (Options.Zones.Enabled && drop != null)
-        Zones.Create(drop);
+        Zones.CreateForSupplyDrop(drop);
     }
 
     void OnEntityKill(BaseNetworkable networkable)
@@ -156,7 +162,7 @@
       // If a helicopter was destroyed, create an event zone around it.
       var helicopter = entity as BaseHelicopter;
       if (Options.Zones.Enabled && helicopter != null)
-        Zones.Create(helicopter);
+        Zones.CreateForDebrisField(helicopter);
     }
 
     void OnDispenserGather(ResourceDispenser dispenser, BaseEntity entity, Item item)

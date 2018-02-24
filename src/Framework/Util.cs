@@ -13,6 +13,9 @@
         var user = obj as User;
         if (user != null) return Format(user);
 
+        var area = obj as Area;
+        if (area != null) return Format(area);
+
         var entity = obj as BaseEntity;
         if (entity != null) return Format(entity);
 
@@ -28,6 +31,16 @@
           return "(null)";
         else
           return $"{user.UserName} ({user.Id})";
+      }
+
+      public static string Format(Area area)
+      {
+        if (area == null)
+          return "(null)";
+        else if (!String.IsNullOrEmpty(area.Name))
+          return $"{area.Id} ({area.Name})";
+        else
+          return area.Id;
       }
 
       public static string Format(BaseEntity entity)

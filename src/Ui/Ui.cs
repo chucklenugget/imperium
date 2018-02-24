@@ -39,7 +39,9 @@
         public const string Headquarters = ImageBaseUrl + "icons/hud/headquarters.png";
         public const string HelicopterIndicatorOn = ImageBaseUrl + "icons/hud/helicopter-on.png";
         public const string HelicopterIndicatorOff = ImageBaseUrl + "icons/hud/helicopter-off.png";
+        public const string Monument = ImageBaseUrl + "icons/hud/badlands.png"; // TODO
         public const string Players = ImageBaseUrl + "icons/hud/players.png";
+        public const string Raid = ImageBaseUrl + "icons/hud/debris.png"; // TODO
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
         public const string SupplyDrop = ImageBaseUrl + "icons/hud/supplydrop.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";

@@ -1,6 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
   using Rust;
+  using System;
   using System.Collections.Generic;
   using UnityEngine;
 
@@ -15,12 +16,16 @@
       public ZoneType Type { get; private set; }
       public string Name { get; private set; }
       public MonoBehaviour Owner { get; private set; }
+      public DateTime? EndTime { get; set; }
 
-      public void Init(ZoneType type, string name, MonoBehaviour owner, Vector3 position, float radius, int darkness, float? lifespan = null)
+      public void Init(ZoneType type, string name, MonoBehaviour owner, float radius, int darkness, DateTime? endTime)
       {
         Type = type;
-        Owner = owner;
         Name = name;
+        Owner = owner;
+        EndTime = endTime;
+
+        Vector3 position = GetGroundPosition(owner.transform.position);
 
         gameObject.layer = (int)Layer.Reserved1;
         gameObject.name = $"imperium_zone_{name.ToLowerInvariant()}";
@@ -32,6 +37,7 @@
           var sphere = GameManager.server.CreateEntity(SpherePrefab, position);
 
           SphereEntity entity = sphere.GetComponent<SphereEntity>();
+          entity.lerpRadius = radius * 2;
           entity.currentRadius = radius * 2;
           entity.lerpSpeed = 0f;
 
@@ -44,8 +50,8 @@
         collider.isTrigger = true;
         collider.enabled = true;
 
-        if (lifespan != null)
-          Invoke("DelayedDestroy", (int)lifespan);
+        if (endTime != null)
+          InvokeRepeating("CheckIfShouldDestroy", 10f, 5f);
       }
 
       void OnDestroy()
@@ -57,6 +63,9 @@
 
         foreach (BaseEntity sphere in Spheres)
           sphere.KillMessage();
+
+        if (IsInvoking("CheckIfShouldDestroy"))
+          CancelInvoke("CheckIfShouldDestroy");
       }
 
       void OnTriggerEnter(Collider collider)
@@ -81,9 +90,15 @@
           Api.HandleUserLeftZone(user, this);
       }
 
-      void DelayedDestroy()
+      void CheckIfShouldDestroy()
       {
-        Instance.Zones.Remove(this);
+        if (DateTime.UtcNow >= EndTime)
+          Instance.Zones.Remove(this);
+      }
+
+      Vector3 GetGroundPosition(Vector3 pos)
+      {
+        return new Vector3(pos.x, TerrainMeta.HeightMap.GetHeight(pos), pos.z);
       }
     }
   }

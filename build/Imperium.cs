@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.4.3")]
+  [Info("Imperium", "chucklenugget", "1.5.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -395,9 +395,9 @@ namespace Oxide.Plugins
       if (Options.Towns.Enabled)
       {
         if (user.HasPermission(PERM_CHANGE_TOWNS))
-          sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns, or create one yourself");
+          sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns, or create one yourself");
         else
-          sb.AppendLine("<color=#ffd479>/town</color> Find nearby towns");
+          sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns");
       }
 
       if (Options.Badlands.Enabled)
@@ -1763,7 +1763,7 @@ namespace Oxide.Plugins
 
   public partial class Imperium
   {
-    [ChatCommand("town")]
+    [ChatCommand("towns")]
     void OnTownCommand(BasePlayer player, string command, string[] args)
     {
       User user = Users.Get(player);
@@ -1777,7 +1777,7 @@ namespace Oxide.Plugins
 
       if (args.Length == 0)
       {
-        OnTownHelpCommand(user);
+        OnTownListCommand(user);
         return;
       }
 
@@ -1905,16 +1905,16 @@ namespace Oxide.Plugins
       var sb = new StringBuilder();
 
       sb.AppendLine("Available commands:");
-      sb.AppendLine("  <color=#ffd479>/town list</color> (or <color=#ffd479>/towns</color>): Lists all towns on the island");
-      sb.AppendLine("  <color=#ffd479>/town help</color>: Prints this message");
+      sb.AppendLine("  <color=#ffd479>/towns [list]</color>: Lists all towns on the island");
+      sb.AppendLine("  <color=#ffd479>/towns help</color>: Prints this message");
 
       if (user.HasPermission(PERM_CHANGE_TOWNS))
       {
         sb.AppendLine("Mayor commands:");
-        sb.AppendLine("  <color=#ffd479>/town create \"NAME\"</color>: Create a new town");
-        sb.AppendLine("  <color=#ffd479>/town expand</color>: Add an area to your town");
-        sb.AppendLine("  <color=#ffd479>/town remove</color>: Remove an area from your town");
-        sb.AppendLine("  <color=#ffd479>/town disband</color>: Disband your town immediately (no undo!)");
+        sb.AppendLine("  <color=#ffd479>/towns create \"NAME\"</color>: Create a new town");
+        sb.AppendLine("  <color=#ffd479>/towns expand</color>: Add an area to your town");
+        sb.AppendLine("  <color=#ffd479>/towns remove</color>: Remove an area from your town");
+        sb.AppendLine("  <color=#ffd479>/towns disband</color>: Disband your town immediately (no undo!)");
       }
 
       user.SendChatMessage(sb);
@@ -1972,26 +1972,6 @@ namespace Oxide.Plugins
 
       user.SendChatMessage(Messages.SelectTownCupboardToRemove);
       user.BeginInteraction(new RemovingAreaFromTownInteraction(faction, town));
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  public partial class Imperium
-  {
-    [ChatCommand("towns")]
-    void OnTownsCommand(BasePlayer player, string command, string[] args)
-    {
-      User user = Users.Get(player);
-      if (user == null) return;
-
-      if (!Options.Towns.Enabled)
-      {
-        user.SendChatMessage(Messages.TownsDisabled);
-        return;
-      }
-
-      OnTownListCommand(user);
     }
   }
 }
@@ -2432,6 +2412,7 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using Network;
+  using Oxide.Core;
   using UnityEngine;
 
   public partial class Imperium : RustPlugin
@@ -2474,6 +2455,11 @@ namespace Oxide.Plugins
       if (entity == null || hit == null)
         return null;
 
+      object externalResult = Interface.CallHook("CanEntityTakeDamage", new object[] { entity, hit });
+
+      if (externalResult != null)
+        return (bool)externalResult;
+
       if (hit.damageTypes.Has(Rust.DamageType.Decay))
         return Decay.AlterDecayDamage(entity, hit);
 
@@ -2494,11 +2480,11 @@ namespace Oxide.Plugins
         if (defender == null)
           return null;
 
-        return Pvp.AlterDamageBetweenPlayers(attacker, defender, hit);
+        return Pvp.HandleDamageBetweenPlayers(attacker, defender, hit);
       }
 
       // A player is damaging a structure.
-      return Raiding.AlterDamageAgainstStructure(attacker, entity, hit);
+      return Raiding.HandleDamageAgainstStructure(attacker, entity, hit);
     }
 
     object OnTrapTrigger(BaseTrap trap, GameObject obj)
@@ -2547,7 +2533,7 @@ namespace Oxide.Plugins
 
       var drop = entity as SupplyDrop;
       if (Options.Zones.Enabled && drop != null)
-        Zones.Create(drop);
+        Zones.CreateForSupplyDrop(drop);
     }
 
     void OnEntityKill(BaseNetworkable networkable)
@@ -2587,7 +2573,7 @@ namespace Oxide.Plugins
       // If a helicopter was destroyed, create an event zone around it.
       var helicopter = entity as BaseHelicopter;
       if (Options.Zones.Enabled && helicopter != null)
-        Zones.Create(helicopter);
+        Zones.CreateForDebrisField(helicopter);
     }
 
     void OnDispenserGather(ResourceDispenser dispenser, BaseEntity entity, Item item)
@@ -2876,7 +2862,7 @@ namespace Oxide.Plugins
   {
     static class Pvp
     {
-      public static object AlterDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
+      public static object HandleDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
       {
         if (!Instance.Options.Pvp.RestrictPvp)
           return null;
@@ -3008,6 +2994,13 @@ namespace Oxide.Plugins
   {
     static class Raiding
     {
+      enum DamageResult
+      {
+        Prevent,
+        Ignore,
+        TreatAsRaid
+      }
+
       static string[] ProtectedPrefabs = new[]
       {
         "door.hinged",
@@ -3022,18 +3015,15 @@ namespace Oxide.Plugins
         "gates.external",
         "cupboard",
         "waterbarrel",
-        "fridge"
+        "fridge",
+        "woodbox_deployed",
+        "mailbox.deployed",
+        "dropbox.deployed",
+        "box.wooden.large"
       };
 
-      public static object AlterDamageAgainstStructure(User attacker, BaseCombatEntity entity, HitInfo hit)
+      public static object HandleDamageAgainstStructure(User attacker, BaseCombatEntity entity, HitInfo hit)
       {
-        // Players can always damage their own entities.
-        if (attacker.Player.userID == entity.OwnerID)
-          return null;
-
-        if (!IsProtectedEntity(entity))
-          return null;
-
         Area area = Instance.Areas.GetByEntityPosition(entity);
 
         if (area == null)
@@ -3042,37 +3032,14 @@ namespace Oxide.Plugins
           return null;
         }
 
-        if (attacker.Faction != null)
-        {
-          // Factions can damage any structure built on their own land.
-          if (area.FactionId != null && attacker.Faction.Id == area.FactionId)
-            return null;
+        DamageResult result = DetermineDamageResult(attacker, area, entity);
 
-          // Factions who are at war can damage any structure on enemy land, subject to the defensive bonus.
-          if (area.FactionId != null && Instance.Wars.AreFactionsAtWar(attacker.Faction.Id, area.FactionId))
-            return ApplyDefensiveBonus(area, hit);
+        if (result == DamageResult.Ignore)
+          return null;
 
-          // Factions who are at war can damage any structure built by a member of an enemy faction, subject
-          // to the defensive bonus.
-          BasePlayer owner = BasePlayer.FindByID(entity.OwnerID);
-          if (owner != null)
-          {
-            Faction owningFaction = Instance.Factions.GetByMember(owner.UserIDString);
-            if (owningFaction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, owningFaction))
-              return ApplyDefensiveBonus(area, hit);
-          }
-        }
+        if (result == DamageResult.Prevent)
+          return false;
 
-        // If the structure is in a raidable area, it can be damaged subject to the defensive bonus.
-        if (IsRaidableArea(area))
-          return ApplyDefensiveBonus(area, hit);
-
-        // Prevent the damage.
-        return false;
-      }
-
-      static object ApplyDefensiveBonus(Area area, HitInfo hit)
-      {
         float reduction = area.GetDefensiveBonus();
 
         if (reduction >= 1)
@@ -3081,7 +3048,57 @@ namespace Oxide.Plugins
         if (reduction > 0)
           hit.damageTypes.ScaleAll(reduction);
 
+        if (Instance.Options.Zones.Enabled)
+        {
+          BuildingPrivlidge cupboard = entity.GetBuildingPrivilege();
+
+          if (cupboard != null)
+          {
+            float remainingHealth = entity.Health() - hit.damageTypes.Total();
+            if (remainingHealth < entity.MaxHealth() * 0.95)
+              Instance.Zones.CreateForRaid(cupboard);
+          }
+        }
+
         return null;
+      }
+
+      static DamageResult DetermineDamageResult(User attacker, Area area, BaseCombatEntity entity)
+      {
+        // Players can always damage their own entities.
+        if (attacker.Player.userID == entity.OwnerID)
+          return DamageResult.Ignore;
+
+        if (!IsProtectedEntity(entity))
+          return DamageResult.Ignore;
+
+        if (attacker.Faction != null)
+        {
+          // Factions can damage any structure built on their own land.
+          if (area.FactionId != null && attacker.Faction.Id == area.FactionId)
+            return DamageResult.Ignore;
+
+          // Factions who are at war can damage any structure on enemy land, subject to the defensive bonus.
+          if (area.FactionId != null && Instance.Wars.AreFactionsAtWar(attacker.Faction.Id, area.FactionId))
+            return DamageResult.TreatAsRaid;
+
+          // Factions who are at war can damage any structure built by a member of an enemy faction, subject
+          // to the defensive bonus.
+          BasePlayer owner = BasePlayer.FindByID(entity.OwnerID);
+          if (owner != null)
+          {
+            Faction owningFaction = Instance.Factions.GetByMember(owner.UserIDString);
+            if (owningFaction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, owningFaction))
+              return DamageResult.TreatAsRaid;
+          }
+        }
+
+        // If the structure is in a raidable area, it can be damaged subject to the defensive bonus.
+        if (IsRaidableArea(area))
+          return DamageResult.TreatAsRaid;
+
+        // Prevent the damage.
+        return DamageResult.Prevent;
       }
 
       static bool IsProtectedEntity(BaseEntity entity)
@@ -4403,7 +4420,6 @@ namespace Oxide.Plugins
       {
         Area currentArea = CurrentArea;
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
-        Instance.Puts($"Player at {correctArea.Id}");
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
           Api.HandleUserLeftArea(this, currentArea);
@@ -4791,6 +4807,7 @@ namespace Oxide.Plugins
 }﻿namespace Oxide.Plugins
 {
   using Rust;
+  using System;
   using System.Collections.Generic;
   using UnityEngine;
 
@@ -4805,12 +4822,16 @@ namespace Oxide.Plugins
       public ZoneType Type { get; private set; }
       public string Name { get; private set; }
       public MonoBehaviour Owner { get; private set; }
+      public DateTime? EndTime { get; set; }
 
-      public void Init(ZoneType type, string name, MonoBehaviour owner, Vector3 position, float radius, int darkness, float? lifespan = null)
+      public void Init(ZoneType type, string name, MonoBehaviour owner, float radius, int darkness, DateTime? endTime)
       {
         Type = type;
-        Owner = owner;
         Name = name;
+        Owner = owner;
+        EndTime = endTime;
+
+        Vector3 position = GetGroundPosition(owner.transform.position);
 
         gameObject.layer = (int)Layer.Reserved1;
         gameObject.name = $"imperium_zone_{name.ToLowerInvariant()}";
@@ -4822,6 +4843,7 @@ namespace Oxide.Plugins
           var sphere = GameManager.server.CreateEntity(SpherePrefab, position);
 
           SphereEntity entity = sphere.GetComponent<SphereEntity>();
+          entity.lerpRadius = radius * 2;
           entity.currentRadius = radius * 2;
           entity.lerpSpeed = 0f;
 
@@ -4834,8 +4856,8 @@ namespace Oxide.Plugins
         collider.isTrigger = true;
         collider.enabled = true;
 
-        if (lifespan != null)
-          Invoke("DelayedDestroy", (int)lifespan);
+        if (endTime != null)
+          InvokeRepeating("CheckIfShouldDestroy", 10f, 5f);
       }
 
       void OnDestroy()
@@ -4847,6 +4869,9 @@ namespace Oxide.Plugins
 
         foreach (BaseEntity sphere in Spheres)
           sphere.KillMessage();
+
+        if (IsInvoking("CheckIfShouldDestroy"))
+          CancelInvoke("CheckIfShouldDestroy");
       }
 
       void OnTriggerEnter(Collider collider)
@@ -4871,16 +4896,24 @@ namespace Oxide.Plugins
           Api.HandleUserLeftZone(user, this);
       }
 
-      void DelayedDestroy()
+      void CheckIfShouldDestroy()
       {
-        Instance.Zones.Remove(this);
+        if (DateTime.UtcNow >= EndTime)
+          Instance.Zones.Remove(this);
+      }
+
+      Vector3 GetGroundPosition(Vector3 pos)
+      {
+        return new Vector3(pos.x, TerrainMeta.HeightMap.GetHeight(pos), pos.z);
       }
     }
   }
 }
 ﻿namespace Oxide.Plugins
 {
+  using System;
   using System.Collections.Generic;
+  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -4901,36 +4934,58 @@ namespace Oxide.Plugins
           {
             float? radius = GetMonumentZoneRadius(monument);
             if (radius != null)
-              Create(monument, (float)radius);
+            {
+              Vector3 position = monument.transform.position;
+              Vector3 size = monument.Bounds.size;
+              Create(ZoneType.Monument, monument.displayPhrase.english, monument, (float) radius);
+            }
           }
         }
 
-        SupplyDrop[] drops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
-        foreach (SupplyDrop drop in drops)
-          Create(drop);
+        foreach (SupplyDrop drop in UnityEngine.Object.FindObjectsOfType<SupplyDrop>())
+          CreateForSupplyDrop(drop);
       }
 
-      public Zone Create(MonumentInfo monument, float radius)
+      public Zone GetByOwner(MonoBehaviour owner)
       {
-        Vector3 position = monument.transform.position;
-        Vector3 size = monument.Bounds.size;
-        return Create(ZoneType.Monument, monument.displayPhrase.english, monument, position, radius);
+        Zone zone;
+
+        if (Zones.TryGetValue(owner, out zone))
+          return zone;
+
+        return null;
       }
 
-      public Zone Create(SupplyDrop drop)
+      public void CreateForDebrisField(BaseHelicopter helicopter)
       {
-        Vector3 position = GetGroundPosition(drop.transform.position);
+        Vector3 position = helicopter.transform.position;
+        float radius = Instance.Options.Zones.EventZoneRadius;
+        Create(ZoneType.Debris, "Debris Field", helicopter, radius, GetEventEndTime());
+      }
+
+      public void CreateForSupplyDrop(SupplyDrop drop)
+      {
+        Vector3 position = drop.transform.position;
         float radius = Instance.Options.Zones.EventZoneRadius;
         float lifespan = Instance.Options.Zones.EventZoneLifespanSeconds;
-        return Create(ZoneType.SupplyDrop, "Supply Drop", drop, position, radius, lifespan);
+        Create(ZoneType.SupplyDrop, "Supply Drop", drop, radius, GetEventEndTime());
       }
 
-      public Zone Create(BaseHelicopter helicopter)
+      public void CreateForRaid(BuildingPrivlidge cupboard)
       {
-        Vector3 position = GetGroundPosition(helicopter.transform.position);
+        // If the building was already being raided, just extend the lifespan of the existing zone.
+        Zone existingZone = GetByOwner(cupboard);
+        if (existingZone)
+        {
+          existingZone.EndTime = GetEventEndTime();
+          Instance.Puts($"Extending raid zone end time to {existingZone.EndTime} ({existingZone.EndTime.Value.Subtract(DateTime.UtcNow).ToShortString()} from now)");
+          return;
+        }
+
+        Vector3 position = cupboard.transform.position;
         float radius = Instance.Options.Zones.EventZoneRadius;
-        float lifespan = Instance.Options.Zones.EventZoneLifespanSeconds;
-        return Create(ZoneType.Debris, "Debris Field", helicopter, position, radius, lifespan);
+
+        Create(ZoneType.Raid, "Raid", cupboard, radius, GetEventEndTime());
       }
 
       public void Remove(Zone zone)
@@ -4961,19 +5016,17 @@ namespace Oxide.Plugins
         Instance.Puts("Zone objects destroyed.");
       }
 
-      Zone Create(ZoneType type, string name, MonoBehaviour owner, Vector3 position, float radius, float? lifespan = null)
+      void Create(ZoneType type, string name, MonoBehaviour owner, float radius, DateTime? endTime = null)
       {
         var zone = new GameObject().AddComponent<Zone>();
-        zone.Init(type, name, owner, position, radius, Instance.Options.Zones.DomeDarkness, lifespan);
+        zone.Init(type, name, owner, radius, Instance.Options.Zones.DomeDarkness, endTime);
 
-        Instance.Puts($"Created zone {zone.Name} at {position} with radius {radius}");
+        Instance.Puts($"Created zone {zone.Name} at {zone.transform.position} with radius {radius}");
 
-        if (lifespan != null)
-          Instance.Puts($"Zone {zone.Name} will be destroyed in {lifespan} seconds");
+        if (endTime != null)
+          Instance.Puts($"Zone {zone.Name} will be destroyed at {endTime} ({endTime.Value.Subtract(DateTime.UtcNow).ToShortString()} from now)");
 
-        Zones[owner] = zone;
-
-        return zone;
+        Zones.Add(owner, zone);
       }
 
       float? GetMonumentZoneRadius(MonumentInfo monument)
@@ -4990,9 +5043,9 @@ namespace Oxide.Plugins
         return null;
       }
 
-      Vector3 GetGroundPosition(Vector3 pos)
+      DateTime GetEventEndTime()
       {
-        return new Vector3(pos.x, TerrainMeta.HeightMap.GetHeight(pos), pos.z);
+        return DateTime.UtcNow.AddSeconds(Instance.Options.Zones.EventZoneLifespanSeconds);
       }
     }
   }
@@ -5005,7 +5058,8 @@ namespace Oxide.Plugins
     {
       Monument,
       Debris,
-      SupplyDrop
+      SupplyDrop,
+      Raid
     }
   }
 }
@@ -5394,6 +5448,9 @@ namespace Oxide.Plugins
         var user = obj as User;
         if (user != null) return Format(user);
 
+        var area = obj as Area;
+        if (area != null) return Format(area);
+
         var entity = obj as BaseEntity;
         if (entity != null) return Format(entity);
 
@@ -5409,6 +5466,16 @@ namespace Oxide.Plugins
           return "(null)";
         else
           return $"{user.UserName} ({user.Id})";
+      }
+
+      public static string Format(Area area)
+      {
+        if (area == null)
+          return "(null)";
+        else if (!String.IsNullOrEmpty(area.Name))
+          return $"{area.Id} ({area.Name})";
+        else
+          return area.Id;
       }
 
       public static string Format(BaseEntity entity)
@@ -6825,7 +6892,9 @@ namespace Oxide.Plugins
         public const string Headquarters = ImageBaseUrl + "icons/hud/headquarters.png";
         public const string HelicopterIndicatorOn = ImageBaseUrl + "icons/hud/helicopter-on.png";
         public const string HelicopterIndicatorOff = ImageBaseUrl + "icons/hud/helicopter-off.png";
+        public const string Monument = ImageBaseUrl + "icons/hud/badlands.png"; // TODO
         public const string Players = ImageBaseUrl + "icons/hud/players.png";
+        public const string Raid = ImageBaseUrl + "icons/hud/debris.png"; // TODO
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
         public const string SupplyDrop = ImageBaseUrl + "icons/hud/supplydrop.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
@@ -7009,7 +7078,9 @@ namespace Oxide.Plugins
             case ZoneType.Debris:
               return Ui.HudIcon.Debris;
             case ZoneType.Monument:
-              return Ui.HudIcon.Badlands;
+              return Ui.HudIcon.Monument;
+            case ZoneType.Raid:
+              return Ui.HudIcon.Raid;
           }
         }
 

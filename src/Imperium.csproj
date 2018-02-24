@@ -80,7 +80,6 @@
     <Compile Include="Commands\Town\TownHelp.cs" />
     <Compile Include="Commands\Town\TownList.cs" />
     <Compile Include="Commands\Town\TownRemove.cs" />
-    <Compile Include="Commands\Town\Towns.cs" />
     <Compile Include="Commands\War\War.cs" />
     <Compile Include="Commands\Internal\RefreshImages.cs" />
     <Compile Include="Commands\Ui\Map.cs" />

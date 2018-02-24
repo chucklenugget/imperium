@@ -1,7 +1,7 @@
 ﻿// Reference: System.Drawing
 
 /*
- * Copyright (C) 2017 chucklenugget
+ * Copyright (C) 2017-2018 chucklenugget
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.4.3")]
+  [Info("Imperium", "chucklenugget", "1.5.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -109,7 +109,7 @@ namespace Oxide.Plugins
       Zones.Init();
       Hud.Init();
 
-      NextTick(() => {
+      timer.In(30f, () => {
         Hud.GenerateMapOverlayImage();
       });
 

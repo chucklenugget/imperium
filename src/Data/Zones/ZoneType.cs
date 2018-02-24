@@ -6,7 +6,8 @@
     {
       Monument,
       Debris,
-      SupplyDrop
+      SupplyDrop,
+      Raid
     }
   }
 }
