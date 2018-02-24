@@ -29,10 +29,12 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.5.1")]
+  [Info("Imperium", "chucklenugget", "1.6.0")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
+
+    bool Ready;
 
     DynamicConfigFile AreasFile;
     DynamicConfigFile FactionsFile;
@@ -56,26 +58,18 @@ namespace Oxide.Plugins
 
     void Init()
     {
-      Instance = this;
-      GameObject = new GameObject();
-
       AreasFile = GetDataFile("areas");
       FactionsFile = GetDataFile("factions");
       WarsFile = GetDataFile("wars");
-
-      Areas = new AreaManager();
-      Factions = new FactionManager();
-      Hud = new HudManager();
-      Users = new UserManager();
-      Wars = new WarManager();
-      Zones = new ZoneManager();
-
-      PrintToChat($"{Title} v{Version} initialized.");
     }
 
     void Loaded()
     {
       InitLang();
+
+      permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
+      permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
+      permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
 
       try
       {
@@ -94,13 +88,29 @@ namespace Oxide.Plugins
       Puts("Decay reduction is " + (Options.Decay.Enabled ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.Upkeep.Enabled ? "enabled" : "disabled"));
       Puts("Zones are " + (Options.Zones.Enabled ? "enabled" : "disabled"));
+
+      // If the map has already been initialized, we can set up now; otherwise,
+      // we need to wait until the savefile has been loaded.
+      if (TerrainMeta.Size.x > 0) Setup();
     }
 
-    void OnServerInitialized()
+    object OnSaveLoad(Dictionary<BaseEntity, ProtoBuf.Entity> entities)
     {
-      permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
-      permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
-      permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
+      Setup();
+      return null;
+    }
+
+    void Setup()
+    {
+      Instance = this;
+      GameObject = new GameObject();
+
+      Areas = new AreaManager();
+      Factions = new FactionManager();
+      Hud = new HudManager();
+      Users = new UserManager();
+      Wars = new WarManager();
+      Zones = new ZoneManager();
 
       Factions.Init(TryLoad<FactionInfo>(FactionsFile));
       Areas.Init(TryLoad<AreaInfo>(AreasFile));
@@ -109,19 +119,13 @@ namespace Oxide.Plugins
       Zones.Init();
       Hud.Init();
 
-      timer.In(30f, () => {
-        Hud.GenerateMapOverlayImage();
-      });
+      Hud.GenerateMapOverlayImage();
 
       if (Options.Upkeep.Enabled)
         UpkeepCollectionTimer = timer.Every(Options.Upkeep.CheckIntervalMinutes * 60, Upkeep.CollectForAllFactions);
-    }
 
-    void OnServerSave()
-    {
-      AreasFile.WriteObject(Areas.Serialize());
-      FactionsFile.WriteObject(Factions.Serialize());
-      WarsFile.WriteObject(Wars.Serialize());
+      PrintToChat($"{Title} v{Version} initialized.");
+      Ready = true;
     }
 
     void Unload()
@@ -140,6 +144,13 @@ namespace Oxide.Plugins
         UnityEngine.Object.Destroy(GameObject);
 
       Instance = null;
+    }
+
+    void OnServerSave()
+    {
+      AreasFile.WriteObject(Areas.Serialize());
+      FactionsFile.WriteObject(Factions.Serialize());
+      WarsFile.WriteObject(Wars.Serialize());
     }
 
     DynamicConfigFile GetDataFile(string name)

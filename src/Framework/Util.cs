@@ -8,8 +8,12 @@
   {
     static class Util
     {
+      const string NullString = "(null)";
+
       public static string Format(object obj)
       {
+        if (obj == null) return NullString;
+
         var user = obj as User;
         if (user != null) return Format(user);
 
@@ -28,7 +32,7 @@
       public static string Format(User user)
       {
         if (user == null)
-          return "(null)";
+          return NullString;
         else
           return $"{user.UserName} ({user.Id})";
       }
@@ -36,7 +40,7 @@
       public static string Format(Area area)
       {
         if (area == null)
-          return "(null)";
+          return NullString;
         else if (!String.IsNullOrEmpty(area.Name))
           return $"{area.Id} ({area.Name})";
         else
@@ -46,7 +50,7 @@
       public static string Format(BaseEntity entity)
       {
         if (entity == null)
-          return "(null)";
+          return NullString;
         else if (entity.net == null)
           return "(missing networkable)";
         else

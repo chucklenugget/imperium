@@ -129,7 +129,7 @@
     {
       var entity = networkable as BaseEntity;
 
-      if (entity == null)
+      if (!Ready || entity == null)
         return;
 
       // If a claim TC was destroyed, remove the claim from the area.

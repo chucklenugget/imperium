@@ -9,11 +9,10 @@
   {
     class AreaManager
     {
-      const int ENTITY_LOCATION_CACHE_SIZE = 100000;
-
-      MapGrid Grid;
       Dictionary<string, Area> Areas;
       Area[,] Layout;
+
+      public MapGrid MapGrid { get; }
 
       public int Count
       {
@@ -22,9 +21,9 @@
 
       public AreaManager()
       {
-        Grid = new MapGrid(ConVar.Server.worldsize);
+        MapGrid = new MapGrid();
         Areas = new Dictionary<string, Area>();
-        Layout = new Area[Grid.NumberOfCells, Grid.NumberOfCells];
+        Layout = new Area[MapGrid.NumberOfCells, MapGrid.NumberOfCells];
       }
       
       public Area Get(string areaId)
@@ -34,6 +33,11 @@
           return area;
         else
           return null;
+      }
+
+      public Area Get(int row, int col)
+      {
+        return Layout[row, col];
       }
 
       public Area[] GetAll()
@@ -99,8 +103,8 @@
       {
         Vector3 position = entity.transform.position;
 
-        int row = (int)(Grid.MapSize / 2 - position.z) / Grid.CellSize;
-        int col = (int)(position.x + Grid.MapSize / 2) / Grid.CellSize;
+        int row = (int)(MapGrid.MapSize / 2 - position.z) / MapGrid.CellSize;
+        int col = (int)(position.x + MapGrid.MapSize / 2) / MapGrid.CellSize;
 
         return Layout[row, col];
       }
@@ -190,7 +194,7 @@
           count++;
 
         // South
-        if (area.Row < Grid.NumberOfCells - 1 && Layout[area.Row + 1, area.Col].FactionId == owner.Id)
+        if (area.Row < MapGrid.NumberOfCells - 1 && Layout[area.Row + 1, area.Col].FactionId == owner.Id)
           count++;
 
         // West
@@ -198,7 +202,7 @@
           count++;
 
         // East
-        if (area.Col < Grid.NumberOfCells - 1 && Layout[area.Row, area.Col + 1].FactionId == owner.Id)
+        if (area.Col < MapGrid.NumberOfCells - 1 && Layout[area.Row, area.Col + 1].FactionId == owner.Id)
           count++;
 
         return count;
@@ -221,7 +225,7 @@
         }
 
         // South
-        for (var row = area.Row; row < Grid.NumberOfCells; row++)
+        for (var row = area.Row; row < MapGrid.NumberOfCells; row++)
         {
           if (Layout[row, area.Col].FactionId != area.FactionId)
             break;
@@ -239,7 +243,7 @@
         }
 
         // East
-        for (var col = area.Col; col < Grid.NumberOfCells; col++)
+        for (var col = area.Col; col < MapGrid.NumberOfCells; col++)
         {
           if (Layout[area.Row, col].FactionId != area.FactionId)
             break;
@@ -260,13 +264,13 @@
         else
           lookup = new Dictionary<string, AreaInfo>();
 
-        for (var row = 0; row < Grid.NumberOfCells; row++)
+        for (var row = 0; row < MapGrid.NumberOfCells; row++)
         {
-          for (var col = 0; col < Grid.NumberOfCells; col++)
+          for (var col = 0; col < MapGrid.NumberOfCells; col++)
           {
-            string areaId = Grid.GetAreaId(row, col);
-            Vector3 position = Grid.GetPosition(row, col);
-            Vector3 size = new Vector3(Grid.CellSize, 500, Grid.CellSize);
+            string areaId = MapGrid.GetAreaId(row, col);
+            Vector3 position = MapGrid.GetPosition(row, col);
+            Vector3 size = new Vector3(MapGrid.CellSize, 500, MapGrid.CellSize);
 
             AreaInfo info = null;
             lookup.TryGetValue(areaId, out info);

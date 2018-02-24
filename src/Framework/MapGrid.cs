@@ -9,12 +9,21 @@
     {
       const int GRID_CELL_SIZE = 150;
 
+      public int MapSize
+      {
+        get { return (int)TerrainMeta.Size.x; }
+      }
+
       public int CellSize
       {
         get { return GRID_CELL_SIZE; }
       }
 
-      public int MapSize { get; private set; }
+      public float CellSizeRatio
+      {
+        get { return (float)MapSize / CellSize; }
+      }
+
       public int NumberOfCells { get; private set; }
 
       string[] RowIds;
@@ -22,10 +31,9 @@
       string[,] AreaIds;
       Vector3[,] Positions;
 
-      public MapGrid(int mapSize)
+      public MapGrid()
       {
-        MapSize = mapSize;
-        NumberOfCells = (int)Math.Ceiling(mapSize / (float)CellSize);
+        NumberOfCells = (int)Math.Ceiling(MapSize / (float)CellSize);
         RowIds = new string[NumberOfCells];
         ColumnIds = new string[NumberOfCells];
         AreaIds = new string[NumberOfCells, NumberOfCells];

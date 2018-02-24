@@ -54,7 +54,7 @@
 
       static float TranslatePosition(float pos)
       {
-        var mapSize = TerrainMeta.Size.x; // TODO: Different from ConVar.Server.worldsize?
+        var mapSize = TerrainMeta.Size.x;
         return (pos + mapSize / 2f) / mapSize;
       }
       

@@ -24,9 +24,8 @@
         using (var bitmap = new Bitmap(Instance.Options.Map.ImageSize, Instance.Options.Map.ImageSize))
         using (var graphics = Graphics.FromImage(bitmap))
         {
-          var mapSize = ConVar.Server.worldsize;
-          var tileSize = (int)(Instance.Options.Map.ImageSize / (mapSize / 150f));
-          var grid = new MapGrid(mapSize);
+          var grid = Instance.Areas.MapGrid;
+          var tileSize = (int)(Instance.Options.Map.ImageSize / grid.CellSizeRatio);
 
           var colorPicker = new FactionColorPicker();
           var textBrush = new SolidBrush(Color.FromArgb(255, 255, 255, 255));
@@ -35,7 +34,7 @@
           {
             for (int col = 0; col < grid.NumberOfCells; col++)
             {
-              Area area = Instance.Areas.Get(grid.GetAreaId(row, col));
+              Area area = Instance.Areas.Get(row, col);
               var x = (col * tileSize);
               var y = (row * tileSize);
               var rect = new Rectangle(x, y, tileSize, tileSize);

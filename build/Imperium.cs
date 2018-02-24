@@ -34,6 +34,8 @@ namespace Oxide.Plugins
   {
     static Imperium Instance;
 
+    bool Ready;
+
     DynamicConfigFile AreasFile;
     DynamicConfigFile FactionsFile;
     DynamicConfigFile WarsFile;
@@ -56,26 +58,18 @@ namespace Oxide.Plugins
 
     void Init()
     {
-      Instance = this;
-      GameObject = new GameObject();
-
       AreasFile = GetDataFile("areas");
       FactionsFile = GetDataFile("factions");
       WarsFile = GetDataFile("wars");
-
-      Areas = new AreaManager();
-      Factions = new FactionManager();
-      Hud = new HudManager();
-      Users = new UserManager();
-      Wars = new WarManager();
-      Zones = new ZoneManager();
-
-      PrintToChat($"{Title} v{Version} initialized.");
     }
 
     void Loaded()
     {
       InitLang();
+
+      permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
+      permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
+      permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
 
       try
       {
@@ -94,13 +88,29 @@ namespace Oxide.Plugins
       Puts("Decay reduction is " + (Options.Decay.Enabled ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.Upkeep.Enabled ? "enabled" : "disabled"));
       Puts("Zones are " + (Options.Zones.Enabled ? "enabled" : "disabled"));
+
+      // If the map has already been initialized, we can set up now; otherwise,
+      // we need to wait until the savefile has been loaded.
+      if (TerrainMeta.Size.x > 0) Setup();
     }
 
-    void OnServerInitialized()
+    object OnSaveLoad(Dictionary<BaseEntity, ProtoBuf.Entity> entities)
     {
-      permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
-      permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
-      permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
+      Setup();
+      return null;
+    }
+
+    void Setup()
+    {
+      Instance = this;
+      GameObject = new GameObject();
+
+      Areas = new AreaManager();
+      Factions = new FactionManager();
+      Hud = new HudManager();
+      Users = new UserManager();
+      Wars = new WarManager();
+      Zones = new ZoneManager();
 
       Factions.Init(TryLoad<FactionInfo>(FactionsFile));
       Areas.Init(TryLoad<AreaInfo>(AreasFile));
@@ -109,19 +119,13 @@ namespace Oxide.Plugins
       Zones.Init();
       Hud.Init();
 
-      timer.In(30f, () => {
-        Hud.GenerateMapOverlayImage();
-      });
+      Hud.GenerateMapOverlayImage();
 
       if (Options.Upkeep.Enabled)
         UpkeepCollectionTimer = timer.Every(Options.Upkeep.CheckIntervalMinutes * 60, Upkeep.CollectForAllFactions);
-    }
 
-    void OnServerSave()
-    {
-      AreasFile.WriteObject(Areas.Serialize());
-      FactionsFile.WriteObject(Factions.Serialize());
-      WarsFile.WriteObject(Wars.Serialize());
+      PrintToChat($"{Title} v{Version} initialized.");
+      Ready = true;
     }
 
     void Unload()
@@ -140,6 +144,13 @@ namespace Oxide.Plugins
         UnityEngine.Object.Destroy(GameObject);
 
       Instance = null;
+    }
+
+    void OnServerSave()
+    {
+      AreasFile.WriteObject(Areas.Serialize());
+      FactionsFile.WriteObject(Factions.Serialize());
+      WarsFile.WriteObject(Wars.Serialize());
     }
 
     DynamicConfigFile GetDataFile(string name)
@@ -2540,7 +2551,7 @@ namespace Oxide.Plugins
     {
       var entity = networkable as BaseEntity;
 
-      if (entity == null)
+      if (!Ready || entity == null)
         return;
 
       // If a claim TC was destroyed, remove the claim from the area.
@@ -3509,11 +3520,10 @@ namespace Oxide.Plugins
   {
     class AreaManager
     {
-      const int ENTITY_LOCATION_CACHE_SIZE = 100000;
-
-      MapGrid Grid;
       Dictionary<string, Area> Areas;
       Area[,] Layout;
+
+      public MapGrid MapGrid { get; }
 
       public int Count
       {
@@ -3522,9 +3532,9 @@ namespace Oxide.Plugins
 
       public AreaManager()
       {
-        Grid = new MapGrid(ConVar.Server.worldsize);
+        MapGrid = new MapGrid();
         Areas = new Dictionary<string, Area>();
-        Layout = new Area[Grid.NumberOfCells, Grid.NumberOfCells];
+        Layout = new Area[MapGrid.NumberOfCells, MapGrid.NumberOfCells];
       }
       
       public Area Get(string areaId)
@@ -3534,6 +3544,11 @@ namespace Oxide.Plugins
           return area;
         else
           return null;
+      }
+
+      public Area Get(int row, int col)
+      {
+        return Layout[row, col];
       }
 
       public Area[] GetAll()
@@ -3599,8 +3614,8 @@ namespace Oxide.Plugins
       {
         Vector3 position = entity.transform.position;
 
-        int row = (int)(Grid.MapSize / 2 - position.z) / Grid.CellSize;
-        int col = (int)(position.x + Grid.MapSize / 2) / Grid.CellSize;
+        int row = (int)(MapGrid.MapSize / 2 - position.z) / MapGrid.CellSize;
+        int col = (int)(position.x + MapGrid.MapSize / 2) / MapGrid.CellSize;
 
         return Layout[row, col];
       }
@@ -3690,7 +3705,7 @@ namespace Oxide.Plugins
           count++;
 
         // South
-        if (area.Row < Grid.NumberOfCells - 1 && Layout[area.Row + 1, area.Col].FactionId == owner.Id)
+        if (area.Row < MapGrid.NumberOfCells - 1 && Layout[area.Row + 1, area.Col].FactionId == owner.Id)
           count++;
 
         // West
@@ -3698,7 +3713,7 @@ namespace Oxide.Plugins
           count++;
 
         // East
-        if (area.Col < Grid.NumberOfCells - 1 && Layout[area.Row, area.Col + 1].FactionId == owner.Id)
+        if (area.Col < MapGrid.NumberOfCells - 1 && Layout[area.Row, area.Col + 1].FactionId == owner.Id)
           count++;
 
         return count;
@@ -3721,7 +3736,7 @@ namespace Oxide.Plugins
         }
 
         // South
-        for (var row = area.Row; row < Grid.NumberOfCells; row++)
+        for (var row = area.Row; row < MapGrid.NumberOfCells; row++)
         {
           if (Layout[row, area.Col].FactionId != area.FactionId)
             break;
@@ -3739,7 +3754,7 @@ namespace Oxide.Plugins
         }
 
         // East
-        for (var col = area.Col; col < Grid.NumberOfCells; col++)
+        for (var col = area.Col; col < MapGrid.NumberOfCells; col++)
         {
           if (Layout[area.Row, col].FactionId != area.FactionId)
             break;
@@ -3760,13 +3775,13 @@ namespace Oxide.Plugins
         else
           lookup = new Dictionary<string, AreaInfo>();
 
-        for (var row = 0; row < Grid.NumberOfCells; row++)
+        for (var row = 0; row < MapGrid.NumberOfCells; row++)
         {
-          for (var col = 0; col < Grid.NumberOfCells; col++)
+          for (var col = 0; col < MapGrid.NumberOfCells; col++)
           {
-            string areaId = Grid.GetAreaId(row, col);
-            Vector3 position = Grid.GetPosition(row, col);
-            Vector3 size = new Vector3(Grid.CellSize, 500, Grid.CellSize);
+            string areaId = MapGrid.GetAreaId(row, col);
+            Vector3 position = MapGrid.GetPosition(row, col);
+            Vector3 size = new Vector3(MapGrid.CellSize, 500, MapGrid.CellSize);
 
             AreaInfo info = null;
             lookup.TryGetValue(areaId, out info);
@@ -4924,26 +4939,20 @@ namespace Oxide.Plugins
 
       public void Init()
       {
-        if (!Instance.Options.Zones.Enabled)
+        if (!Instance.Options.Zones.Enabled || Instance.Options.Zones.MonumentZones == null)
           return;
 
-        if (Instance.Options.Zones.MonumentZones != null)
+        MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
+        foreach (MonumentInfo monument in monuments)
         {
-          MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
-          foreach (MonumentInfo monument in monuments)
+          float? radius = GetMonumentZoneRadius(monument);
+          if (radius != null)
           {
-            float? radius = GetMonumentZoneRadius(monument);
-            if (radius != null)
-            {
-              Vector3 position = monument.transform.position;
-              Vector3 size = monument.Bounds.size;
-              Create(ZoneType.Monument, monument.displayPhrase.english, monument, (float) radius);
-            }
+            Vector3 position = monument.transform.position;
+            Vector3 size = monument.Bounds.size;
+            Create(ZoneType.Monument, monument.displayPhrase.english, monument, (float) radius);
           }
         }
-
-        foreach (SupplyDrop drop in UnityEngine.Object.FindObjectsOfType<SupplyDrop>())
-          CreateForSupplyDrop(drop);
       }
 
       public Zone GetByOwner(MonoBehaviour owner)
@@ -5226,12 +5235,21 @@ namespace Oxide.Plugins
     {
       const int GRID_CELL_SIZE = 150;
 
+      public int MapSize
+      {
+        get { return (int)TerrainMeta.Size.x; }
+      }
+
       public int CellSize
       {
         get { return GRID_CELL_SIZE; }
       }
 
-      public int MapSize { get; private set; }
+      public float CellSizeRatio
+      {
+        get { return (float)MapSize / CellSize; }
+      }
+
       public int NumberOfCells { get; private set; }
 
       string[] RowIds;
@@ -5239,10 +5257,9 @@ namespace Oxide.Plugins
       string[,] AreaIds;
       Vector3[,] Positions;
 
-      public MapGrid(int mapSize)
+      public MapGrid()
       {
-        MapSize = mapSize;
-        NumberOfCells = (int)Math.Ceiling(mapSize / (float)CellSize);
+        NumberOfCells = (int)Math.Ceiling(MapSize / (float)CellSize);
         RowIds = new string[NumberOfCells];
         ColumnIds = new string[NumberOfCells];
         AreaIds = new string[NumberOfCells, NumberOfCells];
@@ -5335,9 +5352,8 @@ namespace Oxide.Plugins
         using (var bitmap = new Bitmap(Instance.Options.Map.ImageSize, Instance.Options.Map.ImageSize))
         using (var graphics = Graphics.FromImage(bitmap))
         {
-          var mapSize = ConVar.Server.worldsize;
-          var tileSize = (int)(Instance.Options.Map.ImageSize / (mapSize / 150f));
-          var grid = new MapGrid(mapSize);
+          var grid = Instance.Areas.MapGrid;
+          var tileSize = (int)(Instance.Options.Map.ImageSize / grid.CellSizeRatio);
 
           var colorPicker = new FactionColorPicker();
           var textBrush = new SolidBrush(Color.FromArgb(255, 255, 255, 255));
@@ -5346,7 +5362,7 @@ namespace Oxide.Plugins
           {
             for (int col = 0; col < grid.NumberOfCells; col++)
             {
-              Area area = Instance.Areas.Get(grid.GetAreaId(row, col));
+              Area area = Instance.Areas.Get(row, col);
               var x = (col * tileSize);
               var y = (row * tileSize);
               var rect = new Rectangle(x, y, tileSize, tileSize);
@@ -5443,8 +5459,12 @@ namespace Oxide.Plugins
   {
     static class Util
     {
+      const string NullString = "(null)";
+
       public static string Format(object obj)
       {
+        if (obj == null) return NullString;
+
         var user = obj as User;
         if (user != null) return Format(user);
 
@@ -5463,7 +5483,7 @@ namespace Oxide.Plugins
       public static string Format(User user)
       {
         if (user == null)
-          return "(null)";
+          return NullString;
         else
           return $"{user.UserName} ({user.Id})";
       }
@@ -5471,7 +5491,7 @@ namespace Oxide.Plugins
       public static string Format(Area area)
       {
         if (area == null)
-          return "(null)";
+          return NullString;
         else if (!String.IsNullOrEmpty(area.Name))
           return $"{area.Id} ({area.Name})";
         else
@@ -5481,7 +5501,7 @@ namespace Oxide.Plugins
       public static string Format(BaseEntity entity)
       {
         if (entity == null)
-          return "(null)";
+          return NullString;
         else if (entity.net == null)
           return "(missing networkable)";
         else
@@ -6821,7 +6841,7 @@ namespace Oxide.Plugins
 
       static float TranslatePosition(float pos)
       {
-        var mapSize = TerrainMeta.Size.x; // TODO: Different from ConVar.Server.worldsize?
+        var mapSize = TerrainMeta.Size.x;
         return (pos + mapSize / 2f) / mapSize;
       }
       

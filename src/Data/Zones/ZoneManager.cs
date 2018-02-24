@@ -13,26 +13,20 @@
 
       public void Init()
       {
-        if (!Instance.Options.Zones.Enabled)
+        if (!Instance.Options.Zones.Enabled || Instance.Options.Zones.MonumentZones == null)
           return;
 
-        if (Instance.Options.Zones.MonumentZones != null)
+        MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
+        foreach (MonumentInfo monument in monuments)
         {
-          MonumentInfo[] monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
-          foreach (MonumentInfo monument in monuments)
+          float? radius = GetMonumentZoneRadius(monument);
+          if (radius != null)
           {
-            float? radius = GetMonumentZoneRadius(monument);
-            if (radius != null)
-            {
-              Vector3 position = monument.transform.position;
-              Vector3 size = monument.Bounds.size;
-              Create(ZoneType.Monument, monument.displayPhrase.english, monument, (float) radius);
-            }
+            Vector3 position = monument.transform.position;
+            Vector3 size = monument.Bounds.size;
+            Create(ZoneType.Monument, monument.displayPhrase.english, monument, (float) radius);
           }
         }
-
-        foreach (SupplyDrop drop in UnityEngine.Object.FindObjectsOfType<SupplyDrop>())
-          CreateForSupplyDrop(drop);
       }
 
       public Zone GetByOwner(MonoBehaviour owner)
