@@ -1,7 +1,7 @@
 ﻿// Reference: System.Drawing
 
 /*
- * Copyright (C) 2017 chucklenugget
+ * Copyright (C) 2017-2018 chucklenugget
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -109,7 +109,7 @@ namespace Oxide.Plugins
       Zones.Init();
       Hud.Init();
 
-      NextTick(() => {
+      timer.In(30f, () => {
         Hud.GenerateMapOverlayImage();
       });
 
@@ -6781,8 +6781,7 @@ namespace Oxide.Plugins
 
       public static MapMarker ForUser(User user)
       {
-        return new MapMarker
-        {
+        return new MapMarker {
           IconUrl = Ui.MapIcon.Player,
           X = TranslatePosition(user.Player.transform.position.x),
           Z = TranslatePosition(user.Player.transform.position.z)
