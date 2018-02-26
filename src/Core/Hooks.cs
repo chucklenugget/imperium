@@ -84,7 +84,7 @@
         return null;
 
       User defender = Users.Get(player);
-      return Pvp.AlterTrapTrigger(trap, defender);
+      return Pvp.HandleTrapTrigger(trap, defender);
     }
 
     object CanBeTargeted(BaseCombatEntity target, MonoBehaviour turret)
@@ -107,7 +107,7 @@
       if (defender == null || entity == null)
         return null;
 
-      return Pvp.AlterTurretTrigger(entity, defender);
+      return Pvp.HandleTurretTarget(entity, defender);
     }
 
     void OnEntitySpawned(BaseNetworkable entity)

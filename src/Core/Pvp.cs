@@ -34,7 +34,7 @@
         return false;
       }
 
-      public static object AlterTrapTrigger(BaseTrap trap, User defender)
+      public static object HandleTrapTrigger(BaseTrap trap, User defender)
       {
         if (!Instance.Options.Pvp.RestrictPvp)
           return null;
@@ -55,15 +55,16 @@
         if (defender.Faction != null && trapArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, trapArea.FactionId))
           return null;
 
-        // If both the trap and the defender are in a PVP area, the trap can trigger.
-        if (IsPvpArea(trapArea) && IsPvpArea(defender.CurrentArea))
+        // If the defender is in a PVP area or zone, the trap can trigger.
+        // TODO: Ensure the trap is also in the PVP zone.
+        if (IsUserInPvpLocation(defender))
           return null;
 
         // Stop the trap from triggering.
         return false;
       }
 
-      public static object AlterTurretTrigger(BaseCombatEntity turret, User defender)
+      public static object HandleTurretTarget(BaseCombatEntity turret, User defender)
       {
         if (!Instance.Options.Pvp.RestrictPvp)
           return null;
@@ -84,8 +85,9 @@
         if (defender.Faction != null && turretArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, turretArea.FactionId))
           return null;
 
-        // If both the turret and the defender are in a PVP area, the trap can trigger.
-        if (IsPvpArea(turretArea) && IsPvpArea(defender.CurrentArea))
+        // If the defender is in a PVP area or zone, the turret can trigger.
+        // TODO: Ensure the turret is also in the PVP zone.
+        if (IsUserInPvpLocation(defender))
           return null;
 
         return false;
@@ -105,6 +107,8 @@
             return Instance.Options.Pvp.AllowedInEventZones;
           case ZoneType.Monument:
             return Instance.Options.Pvp.AllowedInMonumentZones;
+          case ZoneType.Raid:
+            return Instance.Options.Pvp.AllowedInRaidZones;
           default:
             throw new InvalidOperationException($"Unknown zone type {zone.Type}");
         }

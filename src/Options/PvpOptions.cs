@@ -27,12 +27,16 @@
       [JsonProperty("allowedInMonumentZones")]
       public bool AllowedInMonumentZones;
 
+      [JsonProperty("allowedInRaidZones")]
+      public bool AllowedInRaidZones;
+
       public static PvpOptions Default = new PvpOptions {
         RestrictPvp = false,
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
         AllowedInEventZones = true,
         AllowedInMonumentZones = true,
+        AllowedInRaidZones = true,
         AllowedInTowns = true,
         AllowedInWilderness = true,
       };

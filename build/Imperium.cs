@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.5.1")]
+  [Info("Imperium", "chucklenugget", "1.6.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -2506,7 +2506,7 @@ namespace Oxide.Plugins
         return null;
 
       User defender = Users.Get(player);
-      return Pvp.AlterTrapTrigger(trap, defender);
+      return Pvp.HandleTrapTrigger(trap, defender);
     }
 
     object CanBeTargeted(BaseCombatEntity target, MonoBehaviour turret)
@@ -2529,7 +2529,7 @@ namespace Oxide.Plugins
       if (defender == null || entity == null)
         return null;
 
-      return Pvp.AlterTurretTrigger(entity, defender);
+      return Pvp.HandleTurretTarget(entity, defender);
     }
 
     void OnEntitySpawned(BaseNetworkable entity)
@@ -2900,7 +2900,7 @@ namespace Oxide.Plugins
         return false;
       }
 
-      public static object AlterTrapTrigger(BaseTrap trap, User defender)
+      public static object HandleTrapTrigger(BaseTrap trap, User defender)
       {
         if (!Instance.Options.Pvp.RestrictPvp)
           return null;
@@ -2921,15 +2921,16 @@ namespace Oxide.Plugins
         if (defender.Faction != null && trapArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, trapArea.FactionId))
           return null;
 
-        // If both the trap and the defender are in a PVP area, the trap can trigger.
-        if (IsPvpArea(trapArea) && IsPvpArea(defender.CurrentArea))
+        // If the defender is in a PVP area or zone, the trap can trigger.
+        // TODO: Ensure the trap is also in the PVP zone.
+        if (IsUserInPvpLocation(defender))
           return null;
 
         // Stop the trap from triggering.
         return false;
       }
 
-      public static object AlterTurretTrigger(BaseCombatEntity turret, User defender)
+      public static object HandleTurretTarget(BaseCombatEntity turret, User defender)
       {
         if (!Instance.Options.Pvp.RestrictPvp)
           return null;
@@ -2950,8 +2951,9 @@ namespace Oxide.Plugins
         if (defender.Faction != null && turretArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, turretArea.FactionId))
           return null;
 
-        // If both the turret and the defender are in a PVP area, the trap can trigger.
-        if (IsPvpArea(turretArea) && IsPvpArea(defender.CurrentArea))
+        // If the defender is in a PVP area or zone, the turret can trigger.
+        // TODO: Ensure the turret is also in the PVP zone.
+        if (IsUserInPvpLocation(defender))
           return null;
 
         return false;
@@ -2971,6 +2973,8 @@ namespace Oxide.Plugins
             return Instance.Options.Pvp.AllowedInEventZones;
           case ZoneType.Monument:
             return Instance.Options.Pvp.AllowedInMonumentZones;
+          case ZoneType.Raid:
+            return Instance.Options.Pvp.AllowedInRaidZones;
           default:
             throw new InvalidOperationException($"Unknown zone type {zone.Type}");
         }
@@ -3008,8 +3012,9 @@ namespace Oxide.Plugins
       enum DamageResult
       {
         Prevent,
-        Ignore,
-        TreatAsRaid
+        NotProtected,
+        Friendly,
+        BeingAttacked
       }
 
       static string[] ProtectedPrefabs = new[]
@@ -3033,7 +3038,21 @@ namespace Oxide.Plugins
         "box.wooden.large"
       };
 
-      public static object HandleDamageAgainstStructure(User attacker, BaseCombatEntity entity, HitInfo hit)
+      static string[] RaidTriggeringPrefabs = new[]
+      {
+        "door.hinged",
+        "door.double.hinged",
+        "window.bars",
+        "wall.window",
+        "floor.ladder.hatch",
+        "floor.frame",
+        "wall.frame",
+        "wall.external",
+        "gates.external",
+        "cupboard"
+      };
+
+      public static object HandleDamageAgainstStructure(User attacker, BaseEntity entity, HitInfo hit)
       {
         Area area = Instance.Areas.GetByEntityPosition(entity);
 
@@ -3045,7 +3064,7 @@ namespace Oxide.Plugins
 
         DamageResult result = DetermineDamageResult(attacker, area, entity);
 
-        if (result == DamageResult.Ignore)
+        if (result == DamageResult.NotProtected || result == DamageResult.Friendly)
           return null;
 
         if (result == DamageResult.Prevent)
@@ -3063,10 +3082,10 @@ namespace Oxide.Plugins
         {
           BuildingPrivlidge cupboard = entity.GetBuildingPrivilege();
 
-          if (cupboard != null)
+          if (cupboard != null && IsRaidTriggeringEntity(entity))
           {
             float remainingHealth = entity.Health() - hit.damageTypes.Total();
-            if (remainingHealth < entity.MaxHealth() * 0.95)
+            if (remainingHealth < 1)
               Instance.Zones.CreateForRaid(cupboard);
           }
         }
@@ -3074,24 +3093,24 @@ namespace Oxide.Plugins
         return null;
       }
 
-      static DamageResult DetermineDamageResult(User attacker, Area area, BaseCombatEntity entity)
+      static DamageResult DetermineDamageResult(User attacker, Area area, BaseEntity entity)
       {
         // Players can always damage their own entities.
         if (attacker.Player.userID == entity.OwnerID)
-          return DamageResult.Ignore;
+          return DamageResult.Friendly;
 
         if (!IsProtectedEntity(entity))
-          return DamageResult.Ignore;
+          return DamageResult.NotProtected;
 
         if (attacker.Faction != null)
         {
           // Factions can damage any structure built on their own land.
           if (area.FactionId != null && attacker.Faction.Id == area.FactionId)
-            return DamageResult.Ignore;
+            return DamageResult.Friendly;
 
           // Factions who are at war can damage any structure on enemy land, subject to the defensive bonus.
           if (area.FactionId != null && Instance.Wars.AreFactionsAtWar(attacker.Faction.Id, area.FactionId))
-            return DamageResult.TreatAsRaid;
+            return DamageResult.BeingAttacked;
 
           // Factions who are at war can damage any structure built by a member of an enemy faction, subject
           // to the defensive bonus.
@@ -3100,13 +3119,13 @@ namespace Oxide.Plugins
           {
             Faction owningFaction = Instance.Factions.GetByMember(owner.UserIDString);
             if (owningFaction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, owningFaction))
-              return DamageResult.TreatAsRaid;
+              return DamageResult.BeingAttacked;
           }
         }
 
         // If the structure is in a raidable area, it can be damaged subject to the defensive bonus.
         if (IsRaidableArea(area))
-          return DamageResult.TreatAsRaid;
+          return DamageResult.BeingAttacked;
 
         // Prevent the damage.
         return DamageResult.Prevent;
@@ -3122,6 +3141,21 @@ namespace Oxide.Plugins
 
         // Some additional entities (doors, boxes, etc.) are also protected.
         if (ProtectedPrefabs.Any(prefab => entity.ShortPrefabName.Contains(prefab)))
+          return true;
+
+        return false;
+      }
+
+      static bool IsRaidTriggeringEntity(BaseEntity entity)
+      {
+        var buildingBlock = entity as BuildingBlock;
+
+        // All building blocks except for twig are protected.
+        if (buildingBlock != null)
+          return buildingBlock.grade != BuildingGrade.Enum.Twigs;
+
+        // Destriction of some additional entities (doors, etc.) will also trigger raids.
+        if (RaidTriggeringPrefabs.Any(prefab => entity.ShortPrefabName.Contains(prefab)))
           return true;
 
         return false;
@@ -6282,12 +6316,16 @@ namespace Oxide.Plugins
       [JsonProperty("allowedInMonumentZones")]
       public bool AllowedInMonumentZones;
 
+      [JsonProperty("allowedInRaidZones")]
+      public bool AllowedInRaidZones;
+
       public static PvpOptions Default = new PvpOptions {
         RestrictPvp = false,
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
         AllowedInEventZones = true,
         AllowedInMonumentZones = true,
+        AllowedInRaidZones = true,
         AllowedInTowns = true,
         AllowedInWilderness = true,
       };
