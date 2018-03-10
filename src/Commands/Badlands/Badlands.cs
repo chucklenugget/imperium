@@ -23,7 +23,7 @@
         return;
       }
 
-      if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_BADLANDS))
+      if (!user.HasPermission(Permission.AdminBadlands))
       {
         user.SendChatMessage(Messages.NoPermission);
         return;

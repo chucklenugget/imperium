@@ -4,7 +4,7 @@
   {
     void OnClaimAssignCommand(User user, string[] args)
     {
-      if (!user.HasPermission(PERM_CHANGE_CLAIMS))
+      if (!user.HasPermission(Permission.AdminClaims))
       {
         user.SendChatMessage(Messages.NoPermission);
         return;

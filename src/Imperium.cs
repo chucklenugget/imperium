@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.6.1")]
+  [Info("Imperium", "chucklenugget", "1.6.2")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -51,11 +51,6 @@ namespace Oxide.Plugins
     WarManager Wars;
     ZoneManager Zones;
 
-    const string PERM_CHANGE_FACTIONS = "imperium.factions";
-    const string PERM_CHANGE_CLAIMS = "imperium.claims";
-    const string PERM_CHANGE_BADLANDS = "imperium.badlands";
-    const string PERM_CHANGE_TOWNS = "imperium.towns";
-
     void Init()
     {
       AreasFile = GetDataFile("areas");
@@ -66,10 +61,7 @@ namespace Oxide.Plugins
     void Loaded()
     {
       InitLang();
-
-      permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
-      permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
-      permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
+      Permission.RegisterAll(this);
 
       try
       {
@@ -252,7 +244,7 @@ namespace Oxide.Plugins
 
     bool EnsureUserCanManageTowns(User user, Faction faction)
     {
-      if (!user.HasPermission(PERM_CHANGE_TOWNS))
+      if (!user.HasPermission(Permission.ManageTowns))
       {
         user.SendChatMessage(Messages.NoPermission);
         return false;

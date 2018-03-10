@@ -1,7 +1,6 @@
 ﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
-  using System.Linq;
 
   public partial class Imperium
   {
@@ -13,7 +12,7 @@
         return;
       }
 
-      if (!user.HasPermission(PERM_CHANGE_CLAIMS))
+      if (!user.HasPermission(Permission.AdminClaims))
       {
         user.SendChatMessage(Messages.NoPermission);
         return;

@@ -44,7 +44,7 @@
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";
       public const string CommandIsOnCooldown = "You can't do that again so quickly. Try again in {0} seconds.";
-      public const string NoPermission = "You don't have permission to do that.";
+      public const string NoPermission = "You don't have permission to do that. If you believe this is incorrect, please contact an admin.";
 
       public const string MemberAdded = "You have added <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
       public const string MemberRemoved = "You have removed <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";

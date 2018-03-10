@@ -8,6 +8,12 @@
     {
       var idRegex = new Regex("^[a-zA-Z0-9]{2,6}$");
 
+      if (!user.HasPermission(Permission.ManageFactions))
+      {
+        user.SendChatMessage(Messages.NoPermission);
+        return;
+      }
+
       if (user.Faction != null)
       {
         user.SendChatMessage(Messages.AlreadyMemberOfFaction);

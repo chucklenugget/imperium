@@ -31,7 +31,7 @@
 
       if (Options.Towns.Enabled)
       {
-        if (user.HasPermission(PERM_CHANGE_TOWNS))
+        if (user.HasPermission(Permission.ManageTowns))
           sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns, or create one yourself");
         else
           sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns");
@@ -39,7 +39,7 @@
 
       if (Options.Badlands.Enabled)
       {
-        if (user.HasPermission(PERM_CHANGE_BADLANDS))
+        if (user.HasPermission(Permission.AdminBadlands))
           sb.AppendLine("<color=#ffd479>/badlands</color> Find or change badlands areas");
         else
           sb.AppendLine("<color=#ffd479>/badlands</color> Find badlands (PVP) areas");

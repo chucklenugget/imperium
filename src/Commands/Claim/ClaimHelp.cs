@@ -23,7 +23,7 @@
 
       sb.AppendLine("  <color=#ffd479>/claim help</color>: Prints this message");
 
-      if (user.HasPermission(PERM_CHANGE_CLAIMS))
+      if (user.HasPermission(Permission.AdminClaims))
       {
         sb.AppendLine("Admin commands:");
         sb.AppendLine("  <color=#ffd479>/claim assign FACTION</color>: Use the hammer to assign a claim to another faction");

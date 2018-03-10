@@ -12,7 +12,7 @@
       sb.AppendLine("  <color=#ffd479>/towns [list]</color>: Lists all towns on the island");
       sb.AppendLine("  <color=#ffd479>/towns help</color>: Prints this message");
 
-      if (user.HasPermission(PERM_CHANGE_TOWNS))
+      if (user.HasPermission(Permission.ManageTowns))
       {
         sb.AppendLine("Mayor commands:");
         sb.AppendLine("  <color=#ffd479>/towns create \"NAME\"</color>: Create a new town");

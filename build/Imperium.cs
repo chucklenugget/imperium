@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.6.1")]
+  [Info("Imperium", "chucklenugget", "1.6.2")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -51,11 +51,6 @@ namespace Oxide.Plugins
     WarManager Wars;
     ZoneManager Zones;
 
-    const string PERM_CHANGE_FACTIONS = "imperium.factions";
-    const string PERM_CHANGE_CLAIMS = "imperium.claims";
-    const string PERM_CHANGE_BADLANDS = "imperium.badlands";
-    const string PERM_CHANGE_TOWNS = "imperium.towns";
-
     void Init()
     {
       AreasFile = GetDataFile("areas");
@@ -66,10 +61,7 @@ namespace Oxide.Plugins
     void Loaded()
     {
       InitLang();
-
-      permission.RegisterPermission(PERM_CHANGE_BADLANDS, this);
-      permission.RegisterPermission(PERM_CHANGE_CLAIMS, this);
-      permission.RegisterPermission(PERM_CHANGE_TOWNS, this);
+      Permission.RegisterAll(this);
 
       try
       {
@@ -252,7 +244,7 @@ namespace Oxide.Plugins
 
     bool EnsureUserCanManageTowns(User user, Faction faction)
     {
-      if (!user.HasPermission(PERM_CHANGE_TOWNS))
+      if (!user.HasPermission(Permission.ManageTowns))
       {
         user.SendChatMessage(Messages.NoPermission);
         return false;
@@ -405,7 +397,7 @@ namespace Oxide.Plugins
 
       if (Options.Towns.Enabled)
       {
-        if (user.HasPermission(PERM_CHANGE_TOWNS))
+        if (user.HasPermission(Permission.ManageTowns))
           sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns, or create one yourself");
         else
           sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns");
@@ -413,7 +405,7 @@ namespace Oxide.Plugins
 
       if (Options.Badlands.Enabled)
       {
-        if (user.HasPermission(PERM_CHANGE_BADLANDS))
+        if (user.HasPermission(Permission.AdminBadlands))
           sb.AppendLine("<color=#ffd479>/badlands</color> Find or change badlands areas");
         else
           sb.AppendLine("<color=#ffd479>/badlands</color> Find badlands (PVP) areas");
@@ -448,7 +440,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      if (!permission.UserHasPermission(player.UserIDString, PERM_CHANGE_BADLANDS))
+      if (!user.HasPermission(Permission.AdminBadlands))
       {
         user.SendChatMessage(Messages.NoPermission);
         return;
@@ -715,7 +707,7 @@ namespace Oxide.Plugins
   {
     void OnClaimAssignCommand(User user, string[] args)
     {
-      if (!user.HasPermission(PERM_CHANGE_CLAIMS))
+      if (!user.HasPermission(Permission.AdminClaims))
       {
         user.SendChatMessage(Messages.NoPermission);
         return;
@@ -796,7 +788,6 @@ namespace Oxide.Plugins
 }﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
-  using System.Linq;
 
   public partial class Imperium
   {
@@ -808,7 +799,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      if (!user.HasPermission(PERM_CHANGE_CLAIMS))
+      if (!user.HasPermission(Permission.AdminClaims))
       {
         user.SendChatMessage(Messages.NoPermission);
         return;
@@ -913,7 +904,7 @@ namespace Oxide.Plugins
 
       sb.AppendLine("  <color=#ffd479>/claim help</color>: Prints this message");
 
-      if (user.HasPermission(PERM_CHANGE_CLAIMS))
+      if (user.HasPermission(Permission.AdminClaims))
       {
         sb.AppendLine("Admin commands:");
         sb.AppendLine("  <color=#ffd479>/claim assign FACTION</color>: Use the hammer to assign a claim to another faction");
@@ -1222,6 +1213,12 @@ namespace Oxide.Plugins
     {
       var idRegex = new Regex("^[a-zA-Z0-9]{2,6}$");
 
+      if (!user.HasPermission(Permission.ManageFactions))
+      {
+        user.SendChatMessage(Messages.NoPermission);
+        return;
+      }
+
       if (user.Faction != null)
       {
         user.SendChatMessage(Messages.AlreadyMemberOfFaction);
@@ -1340,25 +1337,18 @@ namespace Oxide.Plugins
       sb.AppendLine("Available commands:");
       sb.AppendLine("  <color=#ffd479>/faction</color>: Show information about your faction");
       sb.AppendLine("  <color=#ffd479>/f MESSAGE...</color>: Send a message to all online members of your faction");
-      sb.AppendLine("  <color=#ffd479>/faction create</color>: Create a new faction");
+
+      if (user.HasPermission(Permission.ManageFactions))
+        sb.AppendLine("  <color=#ffd479>/faction create</color>: Create a new faction");
+
       sb.AppendLine("  <color=#ffd479>/faction join FACTION</color>: Join a faction if you have been invited");
       sb.AppendLine("  <color=#ffd479>/faction leave</color>: Leave your current faction");
-
       sb.AppendLine("  <color=#ffd479>/faction invite \"PLAYER\"</color>: Invite another player to join your faction");
       sb.AppendLine("  <color=#ffd479>/faction kick \"PLAYER\"</color>: Kick a player out of your faction");
       sb.AppendLine("  <color=#ffd479>/faction promote \"PLAYER\"</color>: Promote a faction member to manager");
       sb.AppendLine("  <color=#ffd479>/faction demote \"PLAYER\"</color>: Remove a faction member as manager");
       sb.AppendLine("  <color=#ffd479>/faction disband forever</color>: Disband your faction immediately (no undo!)");
-
       sb.AppendLine("  <color=#ffd479>/faction help</color>: Prints this message");
-
-      if (user.HasPermission(PERM_CHANGE_FACTIONS))
-      {
-        sb.AppendLine("Admin commands:");
-        sb.AppendLine("  <color=#ffd479>/faction force promote FACTION \"PLAYER\"</color>: Forcibly promote a member of a faction to manager");
-        sb.AppendLine("  <color=#ffd479>/faction force demote FACTION \"PLAYER\"</color>: Forcibly promote a member of a faction to manager");
-        sb.AppendLine("  <color=#ffd479>/faction force delete FACTION</color>: Delete a faction (no undo!)");
-      }
 
       user.SendChatMessage(sb);
     }
@@ -1919,7 +1909,7 @@ namespace Oxide.Plugins
       sb.AppendLine("  <color=#ffd479>/towns [list]</color>: Lists all towns on the island");
       sb.AppendLine("  <color=#ffd479>/towns help</color>: Prints this message");
 
-      if (user.HasPermission(PERM_CHANGE_TOWNS))
+      if (user.HasPermission(Permission.ManageTowns))
       {
         sb.AppendLine("Mayor commands:");
         sb.AppendLine("  <color=#ffd479>/towns create \"NAME\"</color>: Create a new town");
@@ -2749,7 +2739,7 @@ namespace Oxide.Plugins
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";
       public const string CommandIsOnCooldown = "You can't do that again so quickly. Try again in {0} seconds.";
-      public const string NoPermission = "You don't have permission to do that.";
+      public const string NoPermission = "You don't have permission to do that. If you believe this is incorrect, please contact an admin.";
 
       public const string MemberAdded = "You have added <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
       public const string MemberRemoved = "You have removed <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
@@ -5480,6 +5470,28 @@ namespace Oxide.Plugins
       public const string WaterWellC = PrefabPrefix + "tiny/water_well_c.prefab";
       public const string WaterWellD = PrefabPrefix + "tiny/water_well_d.prefab";
       public const string WaterWellE = PrefabPrefix + "tiny/water_well_e.prefab";
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System.Reflection;
+
+  public partial class Imperium : RustPlugin
+  {
+    public static class Permission
+    {
+      public const string AdminFactions = "imperium.factions.admin";
+      public const string AdminClaims = "imperium.claims.admin";
+      public const string AdminBadlands = "imperium.badlands.admin";
+      public const string ManageFactions = "imperium.factions";
+      public const string ManageTowns = "imperium.towns";
+
+      public static void RegisterAll(Imperium instance)
+      {
+        foreach (FieldInfo field in typeof(Permission).GetFields(BindingFlags.Public | BindingFlags.Static))
+          instance.permission.RegisterPermission((string)field.GetRawConstantValue(), instance);
+      }
     }
   }
 }
