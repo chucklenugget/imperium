@@ -13,6 +13,7 @@
       public const string TownsDisabled = "Towns are currently disabled.";
       public const string UpkeepDisabled = "Upkeep is currently disabled.";
       public const string WarDisabled = "War is currently disabled.";
+      public const string PvpModeDisabled = "PVP Mode is currently not available.";
 
       public const string AreaIsBadlands = "<color=#ffd479>{0}</color> is a part of the badlands.";
       public const string AreaIsClaimed = "<color=#ffd479>{0}</color> has been claimed by <color=#ffd479>[{1}]</color>.";
@@ -125,6 +126,10 @@
       public const string EnteredWilderness = "<color=#ffd479>BORDER:</color> You have entered the wilderness.";
       public const string EnteredTown = "<color=#ffd479>BORDER:</color> You have entered the town of <color=#ffd479>{0}</color>, controlled by <color=#ffd479>[{1}]</color>.";
       public const string EnteredClaimedArea = "<color=#ffd479>BORDER:</color> You have entered land claimed by <color=#ffd479>[{0}]</color>.";
+
+      public const string EnteredPvpMode = "<color=#ff0000>PVP ENABLED:</color> You are now in PVP mode. You can now hurt, and be hurt by, other players who are also in PVP mode.";
+      public const string ExitedPvpMode = "<color=#00ff00>PVP DISABLED:</color> You are no longer in PVP mode. You can't be harmed by other players except inside of normal PVP areas.";
+      public const string PvpModeOnCooldown = "You must wait at least {0} seconds to exit or re-enter PVP mode.";
 
       public const string FactionCreatedAnnouncement = "<color=#00ff00>FACTION CREATED:</color> A new faction <color=#ffd479>[{0}]</color> has been created!";
       public const string FactionDisbandedAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded!";

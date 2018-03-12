@@ -30,6 +30,12 @@
       [JsonProperty("allowedInRaidZones")]
       public bool AllowedInRaidZones;
 
+      [JsonProperty("enablePvpCommand")]
+      public bool EnablePvpCommand;
+
+      [JsonProperty("commandCooldownSeconds")]
+      public int CommandCooldownSeconds;
+
       public static PvpOptions Default = new PvpOptions {
         RestrictPvp = false,
         AllowedInBadlands = true,
@@ -39,6 +45,8 @@
         AllowedInRaidZones = true,
         AllowedInTowns = true,
         AllowedInWilderness = true,
+        EnablePvpCommand = false,
+        CommandCooldownSeconds = 60
       };
     }
   }

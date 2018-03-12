@@ -7,6 +7,11 @@
   {
     static class Pvp
     {
+      static string[] BlockedPrefabs = new[] {
+        "fireball_small_shotgun",
+        "fireexplosion"
+      };
+
       public static object HandleDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
       {
         if (!Instance.Options.Pvp.RestrictPvp)
@@ -26,11 +31,30 @@
         if (attacker.Faction != null && defender.Faction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, defender.Faction))
           return null;
 
-        // If both the attacker and the defender are in a PVP area or zone, they can damage one another.
-        if (IsUserInPvpLocation(attacker) && IsUserInPvpLocation(defender))
+        // If both the attacker and the defender are in PVP mode, or in a PVP area/zone, they can damage one another.
+        if (IsUserInDanger(attacker) && IsUserInDanger(defender))
           return null;
 
         // Stop the damage.
+        return false;
+      }
+
+      public static object HandleIncidentalDamage(User defender, HitInfo hit)
+      {
+        if (!Instance.Options.Pvp.RestrictPvp)
+          return null;
+
+        if (hit.Initiator == null)
+          return null;
+
+        // If the damage is coming from something other than a blocked prefab, allow it.
+        if (!BlockedPrefabs.Contains(hit.Initiator.ShortPrefabName))
+          return null;
+
+        // If the player is in a PVP area or in PVP mode, allow the damage.
+        if (IsUserInDanger(defender))
+          return null;
+
         return false;
       }
 
@@ -57,7 +81,7 @@
 
         // If the defender is in a PVP area or zone, the trap can trigger.
         // TODO: Ensure the trap is also in the PVP zone.
-        if (IsUserInPvpLocation(defender))
+        if (IsUserInDanger(defender))
           return null;
 
         // Stop the trap from triggering.
@@ -87,15 +111,15 @@
 
         // If the defender is in a PVP area or zone, the turret can trigger.
         // TODO: Ensure the turret is also in the PVP zone.
-        if (IsUserInPvpLocation(defender))
+        if (IsUserInDanger(defender))
           return null;
 
         return false;
       }
 
-      static bool IsUserInPvpLocation(User user)
+      static bool IsUserInDanger(User user)
       {
-        return IsPvpArea(user.CurrentArea) || user.CurrentZones.Any(IsPvpZone);
+        return user.IsInPvpMode || IsPvpArea(user.CurrentArea) || user.CurrentZones.Any(IsPvpZone);
       }
 
       static bool IsPvpZone(Zone zone)

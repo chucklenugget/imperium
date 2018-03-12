@@ -8,7 +8,7 @@
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!user.Map.IsVisible && !EnforceCommandCooldown(user))
+      if (!user.Map.IsVisible && !EnforceCommandCooldown(user, "map", Options.Map.CommandCooldownSeconds))
         return;
 
       user.Map.Toggle();

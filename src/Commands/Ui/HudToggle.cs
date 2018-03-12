@@ -11,7 +11,7 @@
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!EnforceCommandCooldown(user))
+      if (!EnforceCommandCooldown(user, "hud", Options.Map.CommandCooldownSeconds))
         return;
 
       user.Hud.Toggle();

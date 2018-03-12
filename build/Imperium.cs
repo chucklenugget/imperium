@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.6.2")]
+  [Info("Imperium", "chucklenugget", "1.7.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -299,17 +299,17 @@ namespace Oxide.Plugins
       return true;
     }
 
-    bool EnforceCommandCooldown(User user)
+    bool EnforceCommandCooldown(User user, string command, int cooldownSeconds)
     {
-      int waitSeconds = user.GetSecondsUntilNextCommand();
+      int secondsRemaining = user.GetSecondsLeftOnCooldown(command);
 
-      if (waitSeconds > 0)
+      if (secondsRemaining > 0)
       {
-        user.SendChatMessage(Messages.CommandIsOnCooldown, waitSeconds);
+        user.SendChatMessage(Messages.CommandIsOnCooldown, secondsRemaining);
         return false;
       }
 
-      user.CommandCooldownExpirationTime = DateTime.UtcNow.AddSeconds(Options.Map.CommandCooldownSeconds);
+      user.SetCooldownExpiration(command, DateTime.UtcNow.AddSeconds(cooldownSeconds));
       return true;
     }
 
@@ -412,6 +412,39 @@ namespace Oxide.Plugins
       }
 
       user.SendChatMessage(sb);
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    [ChatCommand("pvp")]
+    void OnPvpCommand(BasePlayer player, string command, string[] args)
+    {
+      User user = Users.Get(player);
+
+      if (!Options.Pvp.EnablePvpCommand)
+      {
+        user.SendChatMessage(Messages.PvpModeDisabled);
+        return;
+      }
+
+      if (!EnforceCommandCooldown(user, "pvp", Options.Pvp.CommandCooldownSeconds))
+        return;
+
+      if (user.IsInPvpMode)
+      {
+        user.IsInPvpMode = false;
+        user.SendChatMessage(Messages.ExitedPvpMode);
+      }
+      else
+      {
+        user.IsInPvpMode = true;
+        user.SendChatMessage(Messages.EnteredPvpMode);
+      }
+
+      user.Hud.Refresh();
     }
   }
 }
@@ -1989,7 +2022,7 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!EnforceCommandCooldown(user))
+      if (!EnforceCommandCooldown(user, "hud", Options.Map.CommandCooldownSeconds))
         return;
 
       user.Hud.Toggle();
@@ -2006,7 +2039,7 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!user.Map.IsVisible && !EnforceCommandCooldown(user))
+      if (!user.Map.IsVisible && !EnforceCommandCooldown(user, "map", Options.Map.CommandCooldownSeconds))
         return;
 
       user.Map.Toggle();
@@ -2026,7 +2059,7 @@ namespace Oxide.Plugins
       User user = Users.Get(player);
       if (user == null) return;
 
-      if (!user.Map.IsVisible && !EnforceCommandCooldown(user))
+      if (!user.Map.IsVisible && !EnforceCommandCooldown(user, "map", Options.Map.CommandCooldownSeconds))
         return;
 
       user.Map.Toggle();
@@ -2464,28 +2497,26 @@ namespace Oxide.Plugins
       if (hit.damageTypes.Has(Rust.DamageType.Decay))
         return Decay.AlterDecayDamage(entity, hit);
 
-      if (hit.InitiatorPlayer == null)
-        return null;
+      User attacker = null;
+      User defender = entity.GetComponent<User>();
 
-      User attacker = Instance.Users.Get(hit.InitiatorPlayer);
-      var defendingPlayer = entity as BasePlayer;
+      if (hit.InitiatorPlayer != null)
+        attacker = hit.InitiatorPlayer.GetComponent<User>();
 
-      if (attacker == null)
-        return null;
+      // A player is being injured by something other than a player/NPC.
+      if (attacker == null && defender != null)
+        return Pvp.HandleIncidentalDamage(defender, hit);
 
-      if (defendingPlayer != null)
-      {
-        // One player is damaging another.
-        User defender = Instance.Users.Get(defendingPlayer);
-
-        if (defender == null)
-          return null;
-
+      // One player is damaging another player.
+      if (attacker != null && defender != null)
         return Pvp.HandleDamageBetweenPlayers(attacker, defender, hit);
-      }
 
       // A player is damaging a structure.
-      return Raiding.HandleDamageAgainstStructure(attacker, entity, hit);
+      if (attacker != null && defender == null)
+        return Raiding.HandleDamageAgainstStructure(attacker, entity, hit);
+
+      // This case shouldn't happen, except if somehow two offline players hit each other?
+      return null;
     }
 
     object OnTrapTrigger(BaseTrap trap, GameObject obj)
@@ -2708,6 +2739,7 @@ namespace Oxide.Plugins
       public const string TownsDisabled = "Towns are currently disabled.";
       public const string UpkeepDisabled = "Upkeep is currently disabled.";
       public const string WarDisabled = "War is currently disabled.";
+      public const string PvpModeDisabled = "PVP Mode is currently not available.";
 
       public const string AreaIsBadlands = "<color=#ffd479>{0}</color> is a part of the badlands.";
       public const string AreaIsClaimed = "<color=#ffd479>{0}</color> has been claimed by <color=#ffd479>[{1}]</color>.";
@@ -2821,6 +2853,10 @@ namespace Oxide.Plugins
       public const string EnteredTown = "<color=#ffd479>BORDER:</color> You have entered the town of <color=#ffd479>{0}</color>, controlled by <color=#ffd479>[{1}]</color>.";
       public const string EnteredClaimedArea = "<color=#ffd479>BORDER:</color> You have entered land claimed by <color=#ffd479>[{0}]</color>.";
 
+      public const string EnteredPvpMode = "<color=#ff0000>PVP ENABLED:</color> You are now in PVP mode. You can now hurt, and be hurt by, other players who are also in PVP mode.";
+      public const string ExitedPvpMode = "<color=#00ff00>PVP DISABLED:</color> You are no longer in PVP mode. You can't be harmed by other players except inside of normal PVP areas.";
+      public const string PvpModeOnCooldown = "You must wait at least {0} seconds to exit or re-enter PVP mode.";
+
       public const string FactionCreatedAnnouncement = "<color=#00ff00>FACTION CREATED:</color> A new faction <color=#ffd479>[{0}]</color> has been created!";
       public const string FactionDisbandedAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded!";
       public const string FactionMemberJoinedAnnouncement = "<color=#00ff00>MEMBER JOINED:</color> <color=#ffd479>{0}</color> has joined <color=#ffd479>[{1}]</color>!";
@@ -2863,6 +2899,11 @@ namespace Oxide.Plugins
   {
     static class Pvp
     {
+      static string[] BlockedPrefabs = new[] {
+        "fireball_small_shotgun",
+        "fireexplosion"
+      };
+
       public static object HandleDamageBetweenPlayers(User attacker, User defender, HitInfo hit)
       {
         if (!Instance.Options.Pvp.RestrictPvp)
@@ -2882,11 +2923,30 @@ namespace Oxide.Plugins
         if (attacker.Faction != null && defender.Faction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, defender.Faction))
           return null;
 
-        // If both the attacker and the defender are in a PVP area or zone, they can damage one another.
-        if (IsUserInPvpLocation(attacker) && IsUserInPvpLocation(defender))
+        // If both the attacker and the defender are in PVP mode, or in a PVP area/zone, they can damage one another.
+        if (IsUserInDanger(attacker) && IsUserInDanger(defender))
           return null;
 
         // Stop the damage.
+        return false;
+      }
+
+      public static object HandleIncidentalDamage(User defender, HitInfo hit)
+      {
+        if (!Instance.Options.Pvp.RestrictPvp)
+          return null;
+
+        if (hit.Initiator == null)
+          return null;
+
+        // If the damage is coming from something other than a blocked prefab, allow it.
+        if (!BlockedPrefabs.Contains(hit.Initiator.ShortPrefabName))
+          return null;
+
+        // If the player is in a PVP area or in PVP mode, allow the damage.
+        if (IsUserInDanger(defender))
+          return null;
+
         return false;
       }
 
@@ -2913,7 +2973,7 @@ namespace Oxide.Plugins
 
         // If the defender is in a PVP area or zone, the trap can trigger.
         // TODO: Ensure the trap is also in the PVP zone.
-        if (IsUserInPvpLocation(defender))
+        if (IsUserInDanger(defender))
           return null;
 
         // Stop the trap from triggering.
@@ -2943,15 +3003,15 @@ namespace Oxide.Plugins
 
         // If the defender is in a PVP area or zone, the turret can trigger.
         // TODO: Ensure the turret is also in the PVP zone.
-        if (IsUserInPvpLocation(defender))
+        if (IsUserInDanger(defender))
           return null;
 
         return false;
       }
 
-      static bool IsUserInPvpLocation(User user)
+      static bool IsUserInDanger(User user)
       {
-        return IsPvpArea(user.CurrentArea) || user.CurrentZones.Any(IsPvpZone);
+        return user.IsInPvpMode || IsPvpArea(user.CurrentArea) || user.CurrentZones.Any(IsPvpZone);
       }
 
       static bool IsPvpZone(Zone zone)
@@ -4343,6 +4403,7 @@ namespace Oxide.Plugins
     class User : MonoBehaviour
     {
       string OriginalName;
+      Dictionary<string, DateTime> CommandCooldownExpirations;
 
       public BasePlayer Player { get; private set; }
       public UserMap Map { get; private set; }
@@ -4352,7 +4413,9 @@ namespace Oxide.Plugins
       public HashSet<Zone> CurrentZones { get; private set; }
       public Faction Faction { get; private set; }
       public Interaction CurrentInteraction { get; private set; }
-      public DateTime CommandCooldownExpirationTime { get; set; }
+      public DateTime MapCommandCooldownExpiration { get; set; }
+      public DateTime PvpCommandCooldownExpiration { get; set; }
+      public bool IsInPvpMode { get; set; }
 
       public string Id
       {
@@ -4372,9 +4435,9 @@ namespace Oxide.Plugins
       public void Init(BasePlayer player)
       {
         Player = player;
-        CommandCooldownExpirationTime = DateTime.MinValue;
         OriginalName = player.displayName;
         CurrentZones = new HashSet<Zone>();
+        CommandCooldownExpirations = new Dictionary<string, DateTime>();
 
         Map = new UserMap(this);
         Hud = new UserHud(this);
@@ -4450,9 +4513,19 @@ namespace Oxide.Plugins
         Hud.Refresh();
       }
 
-      public int GetSecondsUntilNextCommand()
+      public int GetSecondsLeftOnCooldown(string command)
       {
-        return (int)Math.Max(0, CommandCooldownExpirationTime.Subtract(DateTime.UtcNow).TotalSeconds);
+        DateTime expiration;
+
+        if (!CommandCooldownExpirations.TryGetValue(command, out expiration))
+          return 0;
+
+        return (int)Math.Max(0, expiration.Subtract(DateTime.UtcNow).TotalSeconds);
+      }
+
+      public void SetCooldownExpiration(string command, DateTime time)
+      {
+        CommandCooldownExpirations[command] = time;
       }
 
       void CheckArea()
@@ -6331,6 +6404,12 @@ namespace Oxide.Plugins
       [JsonProperty("allowedInRaidZones")]
       public bool AllowedInRaidZones;
 
+      [JsonProperty("enablePvpCommand")]
+      public bool EnablePvpCommand;
+
+      [JsonProperty("commandCooldownSeconds")]
+      public int CommandCooldownSeconds;
+
       public static PvpOptions Default = new PvpOptions {
         RestrictPvp = false,
         AllowedInBadlands = true,
@@ -6340,6 +6419,8 @@ namespace Oxide.Plugins
         AllowedInRaidZones = true,
         AllowedInTowns = true,
         AllowedInWilderness = true,
+        EnablePvpCommand = false,
+        CommandCooldownSeconds = 60
       };
     }
   }
@@ -6961,9 +7042,11 @@ namespace Oxide.Plugins
         public const string Headquarters = ImageBaseUrl + "icons/hud/headquarters.png";
         public const string HelicopterIndicatorOn = ImageBaseUrl + "icons/hud/helicopter-on.png";
         public const string HelicopterIndicatorOff = ImageBaseUrl + "icons/hud/helicopter-off.png";
-        public const string Monument = ImageBaseUrl + "icons/hud/badlands.png"; // TODO
+        public const string Monument = ImageBaseUrl + "icons/hud/monument.png";
         public const string Players = ImageBaseUrl + "icons/hud/players.png";
-        public const string Raid = ImageBaseUrl + "icons/hud/debris.png"; // TODO
+        public const string PvpMode = ImageBaseUrl + "icons/hud/pvp.png";
+        public const string Raid = ImageBaseUrl + "icons/hud/raid.png";
+        public const string Ruins = ImageBaseUrl + "icons/hud/ruins.png";
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
         public const string SupplyDrop = ImageBaseUrl + "icons/hud/supplydrop.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
@@ -7078,31 +7161,31 @@ namespace Oxide.Plugins
 
         Area area = User.CurrentArea;
 
-        if (area.Type != AreaType.Wilderness)
+        container.Add(new CuiPanel {
+          Image = { Color = GetTopLineBackgroundColor() },
+          RectTransform = { AnchorMin = "0 0.7", AnchorMax = "1 1" }
+        }, Ui.Element.HudPanel, Ui.Element.HudPanelTop);
+
+        if (area.Type == AreaType.Badlands)
         {
-          container.Add(new CuiPanel {
-            Image = { Color = PanelColor.BackgroundNormal },
-            RectTransform = { AnchorMin = "0 0.7", AnchorMax = "1 1" }
-          }, Ui.Element.HudPanel, Ui.Element.HudPanelTop);
-
-          if (area.IsClaimed)
-          {
-            string defensiveBonus = String.Format("{0}%", area.GetDefensiveBonus() * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, PanelColor.TextNormal, defensiveBonus);
-          }
-
-          if (area.IsTaxableClaim)
-          {
-            string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, PanelColor.TextNormal, taxRate, 0.33f);
-          }
-
-          if (area.Type == AreaType.Badlands)
-          {
-            string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.Taxes.BadlandsGatherBonus * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, PanelColor.TextNormal, harvestBonus);
-          }
+          string harvestBonus = String.Format("+{0}%", Instance.Options.Taxes.BadlandsGatherBonus * 100);
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, GetTopLineTextColor(), harvestBonus);
         }
+        else if (area.IsWarZone)
+        {
+          string defensiveBonus = String.Format("+{0}%", area.GetDefensiveBonus() * 100);
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, GetTopLineTextColor(), defensiveBonus);
+        }
+        else
+        {
+          string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, GetTopLineTextColor(), taxRate);
+        }
+
+        if (Instance.Options.Upkeep.Enabled && User.Faction != null && !User.Faction.IsUpkeepPaid)
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Ruins, GetTopLineTextColor(), "Claim upkeep past due!", 0.3f);
+        else if (User.IsInPvpMode)
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.PvpMode, GetTopLineTextColor(), "PVP Enabled", 0.3f);
 
         container.Add(new CuiPanel {
           Image = { Color = GetLocationBackgroundColor() },
@@ -7132,6 +7215,22 @@ namespace Oxide.Plugins
         AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.88f);
 
         return container;
+      }
+
+      string GetTopLineBackgroundColor()
+      {
+        if (User.IsInPvpMode)
+          return PanelColor.BackgroundDanger;
+        else
+          return PanelColor.BackgroundNormal;
+      }
+
+      string GetTopLineTextColor()
+      {
+        if (User.IsInPvpMode)
+          return PanelColor.TextDanger;
+        else
+          return PanelColor.TextNormal;
       }
 
       string GetLocationIcon()
@@ -7266,14 +7365,14 @@ namespace Oxide.Plugins
           Text = {
             Text = text,
             Color = textColor,
-            FontSize = 14,
+            FontSize = 13,
             Align = TextAnchor.MiddleLeft
           },
           RectTransform = {
             AnchorMin = $"{left + IconSize} 0",
             AnchorMax = "1 1",
-            OffsetMin = "12 0",
-            OffsetMax = "12 0"
+            OffsetMin = "11 0",
+            OffsetMax = "11 0"
           }
         }, parent, Ui.Element.HudPanelText + guid);
       }

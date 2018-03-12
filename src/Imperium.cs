@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.6.2")]
+  [Info("Imperium", "chucklenugget", "1.7.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -299,17 +299,17 @@ namespace Oxide.Plugins
       return true;
     }
 
-    bool EnforceCommandCooldown(User user)
+    bool EnforceCommandCooldown(User user, string command, int cooldownSeconds)
     {
-      int waitSeconds = user.GetSecondsUntilNextCommand();
+      int secondsRemaining = user.GetSecondsLeftOnCooldown(command);
 
-      if (waitSeconds > 0)
+      if (secondsRemaining > 0)
       {
-        user.SendChatMessage(Messages.CommandIsOnCooldown, waitSeconds);
+        user.SendChatMessage(Messages.CommandIsOnCooldown, secondsRemaining);
         return false;
       }
 
-      user.CommandCooldownExpirationTime = DateTime.UtcNow.AddSeconds(Options.Map.CommandCooldownSeconds);
+      user.SetCooldownExpiration(command, DateTime.UtcNow.AddSeconds(cooldownSeconds));
       return true;
     }
 

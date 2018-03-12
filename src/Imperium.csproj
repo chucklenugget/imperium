@@ -31,6 +31,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\Badlands\BadlandsHelp.cs" />
+    <Compile Include="Commands\Pvp.cs" />
     <Compile Include="Core\Decay.cs" />
     <Compile Include="Core\Raiding.cs" />
     <Compile Include="Core\Upkeep.cs" />

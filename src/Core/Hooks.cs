@@ -52,28 +52,26 @@
       if (hit.damageTypes.Has(Rust.DamageType.Decay))
         return Decay.AlterDecayDamage(entity, hit);
 
-      if (hit.InitiatorPlayer == null)
-        return null;
+      User attacker = null;
+      User defender = entity.GetComponent<User>();
 
-      User attacker = Instance.Users.Get(hit.InitiatorPlayer);
-      var defendingPlayer = entity as BasePlayer;
+      if (hit.InitiatorPlayer != null)
+        attacker = hit.InitiatorPlayer.GetComponent<User>();
 
-      if (attacker == null)
-        return null;
+      // A player is being injured by something other than a player/NPC.
+      if (attacker == null && defender != null)
+        return Pvp.HandleIncidentalDamage(defender, hit);
 
-      if (defendingPlayer != null)
-      {
-        // One player is damaging another.
-        User defender = Instance.Users.Get(defendingPlayer);
-
-        if (defender == null)
-          return null;
-
+      // One player is damaging another player.
+      if (attacker != null && defender != null)
         return Pvp.HandleDamageBetweenPlayers(attacker, defender, hit);
-      }
 
       // A player is damaging a structure.
-      return Raiding.HandleDamageAgainstStructure(attacker, entity, hit);
+      if (attacker != null && defender == null)
+        return Raiding.HandleDamageAgainstStructure(attacker, entity, hit);
+
+      // This case shouldn't happen, except if somehow two offline players hit each other?
+      return null;
     }
 
     object OnTrapTrigger(BaseTrap trap, GameObject obj)

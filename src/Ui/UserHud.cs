@@ -74,31 +74,31 @@
 
         Area area = User.CurrentArea;
 
-        if (area.Type != AreaType.Wilderness)
+        container.Add(new CuiPanel {
+          Image = { Color = GetTopLineBackgroundColor() },
+          RectTransform = { AnchorMin = "0 0.7", AnchorMax = "1 1" }
+        }, Ui.Element.HudPanel, Ui.Element.HudPanelTop);
+
+        if (area.Type == AreaType.Badlands)
         {
-          container.Add(new CuiPanel {
-            Image = { Color = PanelColor.BackgroundNormal },
-            RectTransform = { AnchorMin = "0 0.7", AnchorMax = "1 1" }
-          }, Ui.Element.HudPanel, Ui.Element.HudPanelTop);
-
-          if (area.IsClaimed)
-          {
-            string defensiveBonus = String.Format("{0}%", area.GetDefensiveBonus() * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, PanelColor.TextNormal, defensiveBonus);
-          }
-
-          if (area.IsTaxableClaim)
-          {
-            string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, PanelColor.TextNormal, taxRate, 0.33f);
-          }
-
-          if (area.Type == AreaType.Badlands)
-          {
-            string harvestBonus = String.Format("+{0}% Bonus", Instance.Options.Taxes.BadlandsGatherBonus * 100);
-            AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, PanelColor.TextNormal, harvestBonus);
-          }
+          string harvestBonus = String.Format("+{0}%", Instance.Options.Taxes.BadlandsGatherBonus * 100);
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, GetTopLineTextColor(), harvestBonus);
         }
+        else if (area.IsWarZone)
+        {
+          string defensiveBonus = String.Format("+{0}%", area.GetDefensiveBonus() * 100);
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, GetTopLineTextColor(), defensiveBonus);
+        }
+        else
+        {
+          string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, GetTopLineTextColor(), taxRate);
+        }
+
+        if (Instance.Options.Upkeep.Enabled && User.Faction != null && !User.Faction.IsUpkeepPaid)
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Ruins, GetTopLineTextColor(), "Claim upkeep past due!", 0.3f);
+        else if (User.IsInPvpMode)
+          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.PvpMode, GetTopLineTextColor(), "PVP Enabled", 0.3f);
 
         container.Add(new CuiPanel {
           Image = { Color = GetLocationBackgroundColor() },
@@ -128,6 +128,22 @@
         AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.88f);
 
         return container;
+      }
+
+      string GetTopLineBackgroundColor()
+      {
+        if (User.IsInPvpMode)
+          return PanelColor.BackgroundDanger;
+        else
+          return PanelColor.BackgroundNormal;
+      }
+
+      string GetTopLineTextColor()
+      {
+        if (User.IsInPvpMode)
+          return PanelColor.TextDanger;
+        else
+          return PanelColor.TextNormal;
       }
 
       string GetLocationIcon()
@@ -262,14 +278,14 @@
           Text = {
             Text = text,
             Color = textColor,
-            FontSize = 14,
+            FontSize = 13,
             Align = TextAnchor.MiddleLeft
           },
           RectTransform = {
             AnchorMin = $"{left + IconSize} 0",
             AnchorMax = "1 1",
-            OffsetMin = "12 0",
-            OffsetMax = "12 0"
+            OffsetMin = "11 0",
+            OffsetMax = "11 0"
           }
         }, parent, Ui.Element.HudPanelText + guid);
       }

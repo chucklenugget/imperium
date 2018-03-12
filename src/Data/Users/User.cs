@@ -10,6 +10,7 @@
     class User : MonoBehaviour
     {
       string OriginalName;
+      Dictionary<string, DateTime> CommandCooldownExpirations;
 
       public BasePlayer Player { get; private set; }
       public UserMap Map { get; private set; }
@@ -19,7 +20,9 @@
       public HashSet<Zone> CurrentZones { get; private set; }
       public Faction Faction { get; private set; }
       public Interaction CurrentInteraction { get; private set; }
-      public DateTime CommandCooldownExpirationTime { get; set; }
+      public DateTime MapCommandCooldownExpiration { get; set; }
+      public DateTime PvpCommandCooldownExpiration { get; set; }
+      public bool IsInPvpMode { get; set; }
 
       public string Id
       {
@@ -39,9 +42,9 @@
       public void Init(BasePlayer player)
       {
         Player = player;
-        CommandCooldownExpirationTime = DateTime.MinValue;
         OriginalName = player.displayName;
         CurrentZones = new HashSet<Zone>();
+        CommandCooldownExpirations = new Dictionary<string, DateTime>();
 
         Map = new UserMap(this);
         Hud = new UserHud(this);
@@ -117,9 +120,19 @@
         Hud.Refresh();
       }
 
-      public int GetSecondsUntilNextCommand()
+      public int GetSecondsLeftOnCooldown(string command)
       {
-        return (int)Math.Max(0, CommandCooldownExpirationTime.Subtract(DateTime.UtcNow).TotalSeconds);
+        DateTime expiration;
+
+        if (!CommandCooldownExpirations.TryGetValue(command, out expiration))
+          return 0;
+
+        return (int)Math.Max(0, expiration.Subtract(DateTime.UtcNow).TotalSeconds);
+      }
+
+      public void SetCooldownExpiration(string command, DateTime time)
+      {
+        CommandCooldownExpirations[command] = time;
       }
 
       void CheckArea()
