@@ -15,9 +15,6 @@
       [JsonProperty("allowedInClaimedLand")]
       public bool AllowedInClaimedLand;
 
-      [JsonProperty("allowedInTowns")]
-      public bool AllowedInTowns;
-
       [JsonProperty("allowedInWilderness")]
       public bool AllowedInWilderness;
 
@@ -43,7 +40,6 @@
         AllowedInEventZones = true,
         AllowedInMonumentZones = true,
         AllowedInRaidZones = true,
-        AllowedInTowns = true,
         AllowedInWilderness = true,
         EnablePvpCommand = false,
         CommandCooldownSeconds = 60

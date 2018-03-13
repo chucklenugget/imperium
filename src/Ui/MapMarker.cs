@@ -31,16 +31,6 @@
         };
       }
 
-      public static MapMarker ForTown(Area area)
-      {
-        return new MapMarker {
-          IconUrl = Ui.MapIcon.Town,
-          Label = Util.RemoveSpecialCharacters(area.Name),
-          X = TranslatePosition(area.ClaimCupboard.transform.position.x),
-          Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
-        };
-      }
-
       public static MapMarker ForMonument(MonumentInfo monument)
       {
         string iconUrl = GetIconForMonument(monument);

@@ -15,9 +15,6 @@
       [JsonProperty("allowedInClaimedLand")]
       public bool AllowedInClaimedLand;
 
-      [JsonProperty("allowedInTowns")]
-      public bool AllowedInTowns;
-
       [JsonProperty("allowedInWilderness")]
       public bool AllowedInWilderness;
 
@@ -25,7 +22,6 @@
         RestrictRaiding = false,
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
-        AllowedInTowns = true,
         AllowedInWilderness = true
       };
     }

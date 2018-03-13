@@ -12,13 +12,9 @@
       [JsonProperty("claimedLandDecayReduction")]
       public float ClaimedLandDecayReduction;
 
-      [JsonProperty("townDecayReduction")]
-      public float TownDecayReduction;
-
       public static DecayOptions Default = new DecayOptions {
         Enabled = false,
-        ClaimedLandDecayReduction = 0.5f,
-        TownDecayReduction = 1f
+        ClaimedLandDecayReduction = 0.5f
       };
     }
   }

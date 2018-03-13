@@ -147,8 +147,6 @@
           case AreaType.Claimed:
           case AreaType.Headquarters:
             return Instance.Options.Pvp.AllowedInClaimedLand;
-          case AreaType.Town:
-            return Instance.Options.Pvp.AllowedInTowns;
           case AreaType.Wilderness:
             return Instance.Options.Pvp.AllowedInWilderness;
           default:

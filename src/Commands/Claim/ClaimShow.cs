@@ -23,9 +23,6 @@
         case AreaType.Headquarters:
           user.SendChatMessage(Messages.AreaIsHeadquarters, area.Id, area.FactionId);
           return;
-        case AreaType.Town:
-          user.SendChatMessage(Messages.AreaIsTown, area.Id, area.Name, area.FactionId);
-          return;
         default:
           user.SendChatMessage(Messages.AreaIsWilderness, area.Id);
           return;

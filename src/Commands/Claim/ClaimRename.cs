@@ -38,12 +38,6 @@
         return;
       }
 
-      if (area.Type == AreaType.Town)
-      {
-        user.SendChatMessage(Messages.CannotRenameAreaIsTown, area.Id, area.Name);
-        return;
-      }
-
       user.SendChatMessage(Messages.AreaRenamed, area.Id, name);
       Log($"{Util.Format(user)} renamed {area.Id} to {name}");
 

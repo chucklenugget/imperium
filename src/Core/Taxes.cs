@@ -29,12 +29,7 @@
         if (itemDef == null)
           return;
 
-        int bonus;
-        if (area.Type == AreaType.Town)
-          bonus = (int)(item.amount * Instance.Options.Taxes.TownGatherBonus);
-        else
-          bonus = (int)(item.amount * Instance.Options.Taxes.ClaimedLandGatherBonus);
-
+        int bonus = (int)(item.amount * Instance.Options.Taxes.ClaimedLandGatherBonus);
         var tax = (int)(item.amount * faction.TaxRate);
 
         faction.TaxChest.inventory.AddItem(itemDef, tax + bonus);

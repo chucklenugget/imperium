@@ -30,9 +30,6 @@
       [JsonProperty("taxes")]
       public TaxOptions Taxes;
 
-      [JsonProperty("towns")]
-      public TownOptions Towns;
-
       [JsonProperty("upkeep")]
       public UpkeepOptions Upkeep;
 
@@ -50,7 +47,6 @@
         Map = MapOptions.Default,
         Pvp = PvpOptions.Default,
         Raiding = RaidingOptions.Default,
-        Towns = TownOptions.Default,
         Taxes = TaxOptions.Default,
         Upkeep = UpkeepOptions.Default,
         War = WarOptions.Default,

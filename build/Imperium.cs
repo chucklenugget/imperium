@@ -75,7 +75,6 @@ namespace Oxide.Plugins
       Puts("Area claims are " + (Options.Claims.Enabled ? "enabled" : "disabled"));
       Puts("Taxation is " + (Options.Taxes.Enabled ? "enabled" : "disabled"));
       Puts("Badlands are " + (Options.Badlands.Enabled ? "enabled" : "disabled"));
-      Puts("Towns are " + (Options.Towns.Enabled ? "enabled" : "disabled"));
       Puts("War is " + (Options.War.Enabled ? "enabled" : "disabled"));
       Puts("Decay reduction is " + (Options.Decay.Enabled ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.Upkeep.Enabled ? "enabled" : "disabled"));
@@ -242,40 +241,6 @@ namespace Oxide.Plugins
       return true;
     }
 
-    bool EnsureUserCanManageTowns(User user, Faction faction)
-    {
-      if (!user.HasPermission(Permission.ManageTowns))
-      {
-        user.SendChatMessage(Messages.NoPermission);
-        return false;
-      }
-
-      if (faction == null)
-      {
-        user.SendChatMessage(Messages.NotMemberOfFaction);
-        return false;
-      }
-
-      return true;
-    }
-
-    bool EnsureCupboardCanBeUsedForTown(User user, BuildingPrivlidge cupboard)
-    {
-      if (cupboard == null)
-      {
-        user.SendChatMessage(Messages.SelectingCupboardFailedInvalidTarget);
-        return false;
-      }
-
-      if (!cupboard.IsAuthed(user.Player))
-      {
-        user.SendChatMessage(Messages.SelectingCupboardFailedNotAuthorized);
-        return false;
-      }
-
-      return true;
-    }
-
     bool EnsureUserAndFactionCanEngageInDiplomacy(User user, Faction faction)
     {
       if (faction == null)
@@ -394,14 +359,6 @@ namespace Oxide.Plugins
 
       if (Options.War.Enabled)
         sb.AppendLine("<color=#ffd479>/war</color> See active wars, declare war, or offer peace");
-
-      if (Options.Towns.Enabled)
-      {
-        if (user.HasPermission(Permission.ManageTowns))
-          sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns, or create one yourself");
-        else
-          sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns");
-      }
 
       if (Options.Badlands.Enabled)
       {
@@ -1047,12 +1004,6 @@ namespace Oxide.Plugins
         return;
       }
 
-      if (area.Type == AreaType.Town)
-      {
-        user.SendChatMessage(Messages.CannotRenameAreaIsTown, area.Id, area.Name);
-        return;
-      }
-
       user.SendChatMessage(Messages.AreaRenamed, area.Id, name);
       Log($"{Util.Format(user)} renamed {area.Id} to {name}");
 
@@ -1083,9 +1034,6 @@ namespace Oxide.Plugins
           return;
         case AreaType.Headquarters:
           user.SendChatMessage(Messages.AreaIsHeadquarters, area.Id, area.FactionId);
-          return;
-        case AreaType.Town:
-          user.SendChatMessage(Messages.AreaIsTown, area.Id, area.Name, area.FactionId);
           return;
         default:
           user.SendChatMessage(Messages.AreaIsWilderness, area.Id);
@@ -1793,224 +1741,6 @@ namespace Oxide.Plugins
 }
 ﻿namespace Oxide.Plugins
 {
-  using System.Linq;
-
-  public partial class Imperium
-  {
-    [ChatCommand("towns")]
-    void OnTownCommand(BasePlayer player, string command, string[] args)
-    {
-      User user = Users.Get(player);
-      if (user == null) return;
-
-      if (!Options.Towns.Enabled)
-      {
-        user.SendChatMessage(Messages.TownsDisabled);
-        return;
-      }
-
-      if (args.Length == 0)
-      {
-        OnTownListCommand(user);
-        return;
-      }
-
-      var restArguments = args.Skip(1).ToArray();
-
-      switch (args[0].ToLower())
-      {
-        case "create":
-          OnTownCreateCommand(user, restArguments);
-          break;
-        case "expand":
-          OnTownExpandCommand(user);
-          break;
-        case "remove":
-          OnTownRemoveCommand(user);
-          break;
-        case "disband":
-          OnTownDisbandCommand(user);
-          break;
-        case "list":
-          OnTownListCommand(user);
-          break;
-        default:
-          OnTownHelpCommand(user);
-          break;
-      }
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  public partial class Imperium
-  {
-    void OnTownCreateCommand(User user, string[] args)
-    {
-      Faction faction = Factions.GetByMember(user);
-
-      if (!EnsureUserCanManageTowns(user, faction))
-        return;
-
-      if (args.Length == 0)
-      {
-        user.SendChatMessage(Messages.Usage, "/town create NAME");
-        return;
-      }
-
-      Town town = Areas.GetTownByMayor(user);
-      if (town != null)
-      {
-        user.SendChatMessage(Messages.CannotCreateTownAlreadyMayor, town.Name);
-        return;
-      }
-
-      var name = Util.NormalizeAreaName(args[0]);
-
-      town = Areas.GetTown(name);
-      if (town != null)
-      {
-        user.SendChatMessage(Messages.CannotCreateTownSameNameAlreadyExists, town.Name);
-        return;
-      }
-
-      user.SendChatMessage(Messages.SelectTownCupboardToCreate, name);
-      user.BeginInteraction(new CreatingTownInteraction(faction, name));
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  public partial class Imperium
-  {
-    void OnTownDisbandCommand(User user)
-    {
-      Faction faction = Factions.GetByMember(user);
-
-      if (!EnsureUserCanManageTowns(user, faction))
-        return;
-
-      Town town = Areas.GetTownByMayor(user);
-      if (town == null)
-      {
-        user.SendChatMessage(Messages.NotMayorOfTown);
-        return;
-      }
-
-      PrintToChat(Messages.TownDisbandedAnnouncement, faction.Id, town.Name);
-      Log($"{Util.Format(user)} disbanded the town faction {town.Name}");
-
-      foreach (Area area in town.Areas)
-        Areas.RemoveFromTown(area);
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  public partial class Imperium
-  {
-    void OnTownExpandCommand(User user)
-    {
-      Faction faction = Factions.GetByMember(user);
-
-      if (!EnsureUserCanManageTowns(user, faction))
-        return;
-
-      Town town = Areas.GetTownByMayor(user);
-      if (town == null)
-      {
-        user.SendChatMessage(Messages.NotMayorOfTown);
-        return;
-      }
-
-      user.SendChatMessage(Messages.SelectTownCupboardToExpand, town.Name);
-      user.BeginInteraction(new AddingAreaToTownInteraction(faction, town));
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using System.Text;
-
-  public partial class Imperium
-  {
-    void OnTownHelpCommand(User user)
-    {
-      var sb = new StringBuilder();
-
-      sb.AppendLine("Available commands:");
-      sb.AppendLine("  <color=#ffd479>/towns [list]</color>: Lists all towns on the island");
-      sb.AppendLine("  <color=#ffd479>/towns help</color>: Prints this message");
-
-      if (user.HasPermission(Permission.ManageTowns))
-      {
-        sb.AppendLine("Mayor commands:");
-        sb.AppendLine("  <color=#ffd479>/towns create \"NAME\"</color>: Create a new town");
-        sb.AppendLine("  <color=#ffd479>/towns expand</color>: Add an area to your town");
-        sb.AppendLine("  <color=#ffd479>/towns remove</color>: Remove an area from your town");
-        sb.AppendLine("  <color=#ffd479>/towns disband</color>: Disband your town immediately (no undo!)");
-      }
-
-      user.SendChatMessage(sb);
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using System;
-  using System.Linq;
-  using System.Text;
-
-  public partial class Imperium
-  {
-    void OnTownListCommand(User user)
-    {
-      Town[] towns = Areas.GetAllTowns();
-      var sb = new StringBuilder();
-
-      if (towns.Length == 0)
-      {
-        sb.AppendFormat(String.Format("No towns have been founded."));
-      }
-      else
-      {
-        sb.AppendLine(String.Format("<color=#ffd479>There are {0} towns on the island:</color>", towns.Length));
-        foreach (Town town in towns)
-        {
-          float distance = (float) Math.Floor(town.GetDistanceFromEntity(user.Player));
-          sb.AppendLine(String.Format("  <color=#ffd479>{0}:</color> {1:0.00}m ({2})", town.Name, distance, Util.Format(town.Areas)));
-        }
-      }
-
-      user.SendChatMessage(sb);
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  public partial class Imperium
-  {
-    void OnTownRemoveCommand(User user)
-    {
-      Faction faction = Factions.GetByMember(user);
-
-      if (!EnsureUserCanManageTowns(user, faction))
-        return;
-
-      Town town = Areas.GetTownByMayor(user);
-      if (town == null)
-      {
-        user.SendChatMessage(Messages.NotMayorOfTown);
-        return;
-      }
-
-      user.SendChatMessage(Messages.SelectTownCupboardToRemove);
-      user.BeginInteraction(new RemovingAreaFromTownInteraction(faction, town));
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
   public partial class Imperium
   {
     [ConsoleCommand("imperium.hud.toggle")]
@@ -2413,9 +2143,6 @@ namespace Oxide.Plugins
         if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
           reduction = Instance.Options.Decay.ClaimedLandDecayReduction;
 
-        if (area.Type == AreaType.Town)
-          reduction = Instance.Options.Decay.TownDecayReduction;
-
         if (reduction >= 1)
           return false;
 
@@ -2656,11 +2383,6 @@ namespace Oxide.Plugins
         // The player has entered the wilderness.
         user.SendChatMessage(Messages.EnteredWilderness);
       }
-      else if (area.Type == AreaType.Town && previousArea.Type != AreaType.Town)
-      {
-        // The player has entered a town.
-        user.SendChatMessage(Messages.EnteredTown, area.Name, area.FactionId);
-      }
       else if (area.IsClaimed && !previousArea.IsClaimed)
       {
         // The player has entered a faction's territory.
@@ -2736,7 +2458,6 @@ namespace Oxide.Plugins
       public const string AreaClaimsDisabled = "Area claims are currently disabled.";
       public const string TaxationDisabled = "Taxation is currently disabled.";
       public const string BadlandsDisabled = "Badlands are currently disabled.";
-      public const string TownsDisabled = "Towns are currently disabled.";
       public const string UpkeepDisabled = "Upkeep is currently disabled.";
       public const string WarDisabled = "War is currently disabled.";
       public const string PvpModeDisabled = "PVP Mode is currently not available.";
@@ -2745,11 +2466,9 @@ namespace Oxide.Plugins
       public const string AreaIsClaimed = "<color=#ffd479>{0}</color> has been claimed by <color=#ffd479>[{1}]</color>.";
       public const string AreaIsHeadquarters = "<color=#ffd479>{0}</color> is the headquarters of <color=#ffd479>[{1}]</color>.";
       public const string AreaIsWilderness = "<color=#ffd479>{0}</color> has not been claimed by a faction.";
-      public const string AreaIsTown = "<color=#ffd479>{0}</color> is part of the town of <color=#ffd479>{1}</color>, which is managed by <color=#ffd479>[{2}]</color>.";
       public const string AreaNotBadlands = "<color=#ffd479>{0}</color> is not a part of the badlands.";
       public const string AreaNotOwnedByYourFaction = "<color=#ffd479>{0} is not owned by your faction.";
       public const string AreaNotWilderness = "<color=#ffd479>{0}</color> is not currently wilderness.";
-      public const string AreaNotPartOfTown = "<color=#ffd479>{0}</color> is not part of a town.";
       public const string AreaNotContiguous = "<color=#ffd479>{0}</color> is not connected to territory owned by <color=#ffd479>[{1}]</color>.";
 
       public const string InteractionCanceled = "Command canceled.";
@@ -2761,7 +2480,6 @@ namespace Oxide.Plugins
       public const string FactionTooSmallToOwnLand = "To own land, a faction must have least {0} members.";
       public const string FactionOwnsTooMuchLand = "<color=#ffd479>[{0}]</color> already owns the maximum number of areas (<color=#ffd479>{1}</color>).";
       public const string FactionHasTooManyMembers = "<color=#ffd479>[{0}]</color> already has the maximum number of members (<color=#ffd479>{1}</color>).";
-      public const string NotMayorOfTown = "You are not the mayor of a town. To create one, use <color=#ffd479>/town create NAME</color>.";
       public const string FactionDoesNotOwnLand = "Your faction must own at least one area.";
       public const string FactionAlreadyExists = "There is already a faction named <color=#ffd479>[{0}]</color>.";
       public const string FactionDoesNotExist = "There is no faction named <color=#ffd479>[{0}]</color>.";
@@ -2811,7 +2529,6 @@ namespace Oxide.Plugins
 
       public const string InvalidAreaName = "An area name must be at least <color=#ffd479>{0}</color> characters long.";
       public const string UnknownArea = "Unknown area <color=#ffd479>{0}</color>.";
-      public const string CannotRenameAreaIsTown = "Cannot rename <color=#ffd479>{0}</color>, because it is part of the town <color=#ffd479>{1}</color>.";
       public const string AreaRenamed = "<color=#ffd479>{0}</color> is now known as <color=#ffd479>{1}</color>.";
 
       public const string ClaimsList = "<color=#ffd479>[{0}]</color> has claimed: <color=#ffd479>{1}</color>";
@@ -2829,19 +2546,6 @@ namespace Oxide.Plugins
       public const string BadlandsSet = "Badlands areas are now: <color=#ffd479>{0}</color>";
       public const string BadlandsList = "Badlands areas are: <color=#ffd479>{0}</color>. Gather bonus is <color=#ffd479>{1}%</color>.";
 
-      public const string CannotCreateTownAlreadyMayor = "You cannot create a new town, because you are already the mayor of <color=#ffd479>{0}</color>. To expand the town instead, use <color=#ffd479>/town expand</color>.";
-      public const string CannotCreateTownSameNameAlreadyExists = "You cannot create a new town named <color=#ffd479>{0}</color>, because a town with that name already exists. To expand the town instead, use <color=#ffd479>/town expand</color>.";
-      public const string CannotAddToTownAreaIsHeadquarters = "<color=#ffd479>{0}</color> cannot be added to a town, because it is currently your faction's headquarters.";
-      public const string CannotAddToTownOneAlreadyExists = "<color=#ffd479>{0}</color> cannot be added to town, because it is already part of the town of <color=#ffd479>{1}</color>.";
-
-      public const string SelectTownCupboardToCreate = "Use the hammer to select a tool cupboard to represent <color=#ffd479>{0}</color>. Say <color=#ffd479>/cancel</color> to cancel.";
-      public const string SelectTownCupboardToExpand = "Use the hammer to select a tool cupboard to add to <color=#ffd479>{0}</color>. Say <color=#ffd479>/cancel</color> to cancel.";
-      public const string SelectTownCupboardToRemove = "Use the hammer to select the tool cupboard representing the town you want to remove. Say <color=#ffd479>/cancel</color> to cancel.";
-      public const string SelectingTownCupboardFailedNotTownCupboard = "That tool cupboard doesn't represent a town!";
-      public const string SelectingTownCupboardFailedNotMayor = "That tool cupboard represents <color=#ffd479>{0}</color>, which you are not the mayor of!";
-      public const string AreaAddedToTown = "You have added the area <color=#ffd479>{0}</color> to the town of <color=#ffd479>{1}</color>.";
-      public const string AreaRemovedFromTown = "You have removed the area <color=#ffd479>{0}</color> from the town of <color=#ffd479>{1}</color>.";
-
       public const string CannotDeclareWarAgainstYourself = "You cannot declare war against yourself!";
       public const string CannotDeclareWarAlreadyAtWar = "You area already at war with <color=#ffd479>[{0}]</color>!";
       public const string CannotDeclareWarInvalidCassusBelli = "You cannot declare war against <color=#ffd479>[{0}]</color>, because your reason doesn't meet the minimum length.";
@@ -2850,7 +2554,6 @@ namespace Oxide.Plugins
 
       public const string EnteredBadlands = "<color=#ff0000>BORDER:</color> You have entered the badlands! Player violence is allowed here.";
       public const string EnteredWilderness = "<color=#ffd479>BORDER:</color> You have entered the wilderness.";
-      public const string EnteredTown = "<color=#ffd479>BORDER:</color> You have entered the town of <color=#ffd479>{0}</color>, controlled by <color=#ffd479>[{1}]</color>.";
       public const string EnteredClaimedArea = "<color=#ffd479>BORDER:</color> You have entered land claimed by <color=#ffd479>[{0}]</color>.";
 
       public const string EnteredPvpMode = "<color=#ff0000>PVP ENABLED:</color> You are now in PVP mode. You can now hurt, and be hurt by, other players who are also in PVP mode.";
@@ -2873,8 +2576,6 @@ namespace Oxide.Plugins
       public const string AreaClaimLostFactionDisbandedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> <color=#ffd479>[{0}]</color> has been disbanded, losing its claim on <color=#ffd479>{1}</color>!";
       public const string AreaClaimLostUpkeepNotPaidAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color>: <color=#ffd479>[{0}]</color> has lost their claim on <color=#ffd479>{1}</color> after it fell into ruin!";
       public const string HeadquartersChangedAnnouncement = "<color=#00ff00>HQ CHANGED:</color> The headquarters of <color=#ffd479>[{0}]</color> is now <color=#ffd479>{1}</color>.";
-      public const string TownCreatedAnnouncement = "<color=#00ff00>TOWN FOUNDED:</color> <color=#ffd479>[{0}]</color> has founded the town of <color=#ffd479>{1}</color> in <color=#ffd479>{2}</color>.";
-      public const string TownDisbandedAnnouncement = "<color=#ff0000>TOWN DISBANDED:</color> <color=#ffd479>[{0}]</color> has disbanded the town of <color=#ffd479>{1}</color>.";
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
       public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended, since <color=#ffd479>[{2}]</color> no longer holds any land.";
@@ -3039,8 +2740,6 @@ namespace Oxide.Plugins
           case AreaType.Claimed:
           case AreaType.Headquarters:
             return Instance.Options.Pvp.AllowedInClaimedLand;
-          case AreaType.Town:
-            return Instance.Options.Pvp.AllowedInTowns;
           case AreaType.Wilderness:
             return Instance.Options.Pvp.AllowedInWilderness;
           default:
@@ -3223,8 +2922,6 @@ namespace Oxide.Plugins
           case AreaType.Claimed:
           case AreaType.Headquarters:
             return Instance.Options.Raiding.AllowedInClaimedLand;
-          case AreaType.Town:
-            return Instance.Options.Raiding.AllowedInTowns;
           case AreaType.Wilderness:
             return Instance.Options.Raiding.AllowedInWilderness;
           default:
@@ -3265,12 +2962,7 @@ namespace Oxide.Plugins
         if (itemDef == null)
           return;
 
-        int bonus;
-        if (area.Type == AreaType.Town)
-          bonus = (int)(item.amount * Instance.Options.Taxes.TownGatherBonus);
-        else
-          bonus = (int)(item.amount * Instance.Options.Taxes.ClaimedLandGatherBonus);
-
+        int bonus = (int)(item.amount * Instance.Options.Taxes.ClaimedLandGatherBonus);
         var tax = (int)(item.amount * faction.TaxRate);
 
         faction.TaxChest.inventory.AddItem(itemDef, tax + bonus);
@@ -3675,25 +3367,6 @@ namespace Oxide.Plugins
         return Areas.Values.FirstOrDefault(a => a.ClaimCupboard != null && a.ClaimCupboard.net.ID == cupboardId);
       }
 
-      public Town GetTown(string name)
-      {
-        Area[] areas = GetAllByType(AreaType.Town).Where(area => area.Name == name).ToArray();
-        if (areas.Length == 0)
-          return null;
-        else
-          return new Town(areas);
-      }
-
-      public Town[] GetAllTowns()
-      {
-        return GetAllByType(AreaType.Town).GroupBy(a => a.Name).Select(group => new Town(group)).ToArray();
-      }
-
-      public Town GetTownByMayor(User user)
-      {
-        return GetAllTowns().FirstOrDefault(town => town.MayorId == user.Id);
-      }
-
       public Area GetByEntityPosition(BaseEntity entity)
       {
         Vector3 position = entity.transform.position;
@@ -3724,23 +3397,6 @@ namespace Oxide.Plugins
         }
 
         area.Type = AreaType.Headquarters;
-        Api.HandleAreaChanged(area);
-      }
-
-      public void AddToTown(string name, User mayor, Area area)
-      {
-        area.Type = AreaType.Town;
-        area.Name = name;
-        area.ClaimantId = mayor.Id;
-
-        Api.HandleAreaChanged(area);
-      }
-
-      public void RemoveFromTown(Area area)
-      {
-        area.Type = AreaType.Claimed;
-        area.Name = null;
-
         Api.HandleAreaChanged(area);
       }
 
@@ -3914,7 +3570,6 @@ namespace Oxide.Plugins
       Wilderness,
       Claimed,
       Headquarters,
-      Town,
       Badlands
     }
   }
@@ -4358,40 +4013,6 @@ namespace Oxide.Plugins
     }
   }
 }﻿namespace Oxide.Plugins
-{
-  using System.Collections.Generic;
-  using System.Linq;
-
-  public partial class Imperium
-  {
-    class Town
-    {
-      public string Name { get; private set; }
-      public Area[] Areas { get; private set; }
-      public string FactionId { get; private set; }
-      public string MayorId { get; private set; }
-
-      public Town(IEnumerable<Area> areas)
-      {
-        Areas = areas.ToArray();
-        Name = Areas[0].Name;
-        FactionId = Areas[0].FactionId;
-        MayorId = Areas[0].ClaimantId;
-      }
-
-      public float GetDistanceFromEntity(BaseEntity entity)
-      {
-        return Areas.Min(area => area.GetDistanceFromEntity(entity));
-      }
-
-      public int GetPopulation()
-      {
-        return Areas.SelectMany(area => area.ClaimCupboard.authorizedPlayers.Select(p => p.userid)).Distinct().Count();
-      }
-    }
-  }
-}
-﻿namespace Oxide.Plugins
 {
   using System;
   using System.Collections.Generic;
@@ -5558,7 +5179,6 @@ namespace Oxide.Plugins
       public const string AdminClaims = "imperium.claims.admin";
       public const string AdminBadlands = "imperium.badlands.admin";
       public const string ManageFactions = "imperium.factions";
-      public const string ManageTowns = "imperium.towns";
 
       public static void RegisterAll(Imperium instance)
       {
@@ -5706,59 +5326,6 @@ namespace Oxide.Plugins
         }
 
         return distance[source.Length, target.Length];
-      }
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using System;
-
-  public partial class Imperium
-  {
-    class AddingAreaToTownInteraction : Interaction
-    {
-      public Faction Faction { get; private set; }
-      public Town Town { get; private set; }
-
-      public AddingAreaToTownInteraction(Faction faction, Town town)
-      {
-        Faction = faction;
-        Town = town;
-      }
-
-      public override bool TryComplete(HitInfo hit)
-      {
-        var cupboard = hit.HitEntity as BuildingPrivlidge;
-
-        if (!Instance.EnsureUserCanManageTowns(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
-          return false;
-
-        Area area = Instance.Areas.GetByClaimCupboard(cupboard);
-
-        if (area == null)
-        {
-          User.SendChatMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
-          return false;
-        }
-
-        if (area.Type == AreaType.Headquarters)
-        {
-          User.SendChatMessage(Messages.CannotAddToTownAreaIsHeadquarters, area.Id);
-          return false;
-        }
-
-        if (area.Type == AreaType.Town)
-        {
-          User.SendChatMessage(Messages.CannotAddToTownOneAlreadyExists, area.Id, area.Name);
-          return false;
-        }
-
-        User.SendChatMessage(Messages.AreaAddedToTown, area.Id, Town.Name);
-        Instance.Log($"{Util.Format(User)} added {area.Id} to town {Town.Name}");
-
-        Instance.Areas.AddToTown(Town.Name, User, area);
-        return true;
       }
     }
   }
@@ -5921,108 +5488,10 @@ namespace Oxide.Plugins
 {
   public partial class Imperium
   {
-    class CreatingTownInteraction : Interaction
-    {
-      public Faction Faction { get; private set; }
-      public string Name { get; private set; }
-
-      public CreatingTownInteraction(Faction faction, string name)
-      {
-        Faction = faction;
-        Name = name;
-      }
-
-      public override bool TryComplete(HitInfo hit)
-      {
-        var cupboard = hit.HitEntity as BuildingPrivlidge;
-
-        if (!Instance.EnsureUserCanManageTowns(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
-          return false;
-
-        Area area = Instance.Areas.GetByClaimCupboard(cupboard);
-
-        if (area == null)
-        {
-          User.SendChatMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
-          return false;
-        }
-
-        if (area.Type == AreaType.Headquarters)
-        {
-          User.SendChatMessage(Messages.CannotAddToTownAreaIsHeadquarters, area.Id);
-          return false;
-        }
-
-        if (area.Type == AreaType.Town)
-        {
-          User.SendChatMessage(Messages.CannotAddToTownOneAlreadyExists, area.Id, area.Name);
-          return false;
-        }
-
-        Instance.PrintToChat(Messages.TownCreatedAnnouncement, Faction.Id, Name, area.Id);
-        Instance.Log($"{Util.Format(User)} created the town {Name} in {area.Id} on behalf of {Faction.Id}");
-
-        Instance.Areas.AddToTown(Name, User, area);
-        return true;
-      }
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  public partial class Imperium
-  {
     abstract class Interaction
     {
       public User User { get; set; }
       public abstract bool TryComplete(HitInfo hit);
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using System;
-
-  public partial class Imperium
-  {
-    class RemovingAreaFromTownInteraction : Interaction
-    {
-      public Faction Faction { get; private set; }
-      public Town Town { get; private set; }
-
-      public RemovingAreaFromTownInteraction(Faction faction, Town town)
-      {
-        Faction = faction;
-        Town = town;
-      }
-
-      public override bool TryComplete(HitInfo hit)
-      {
-        var cupboard = hit.HitEntity as BuildingPrivlidge;
-
-        if (!Instance.EnsureUserCanManageTowns(User, Faction) || !Instance.EnsureCupboardCanBeUsedForClaim(User, cupboard))
-          return false;
-
-        Area area = Instance.Areas.GetByClaimCupboard(cupboard);
-
-        if (area == null)
-        {
-          User.SendChatMessage(Messages.SelectingCupboardFailedNotClaimCupboard);
-          return false;
-        }
-
-        if (area.Type != AreaType.Town)
-        {
-          User.SendChatMessage(Messages.AreaNotPartOfTown, area.Id);
-          return false;
-        }
-
-        User.SendChatMessage(Messages.AreaRemovedFromTown, area.Id, area.Name);
-        Instance.Log($"{Util.Format(User)} removed {area.Id} from the town of {area.Name} on behalf of {Faction.Id}");
-
-        Instance.Areas.RemoveFromTown(area);
-        return true;
-      }
     }
   }
 }
@@ -6252,13 +5721,9 @@ namespace Oxide.Plugins
       [JsonProperty("claimedLandDecayReduction")]
       public float ClaimedLandDecayReduction;
 
-      [JsonProperty("townDecayReduction")]
-      public float TownDecayReduction;
-
       public static DecayOptions Default = new DecayOptions {
         Enabled = false,
-        ClaimedLandDecayReduction = 0.5f,
-        TownDecayReduction = 1f
+        ClaimedLandDecayReduction = 0.5f
       };
     }
   }
@@ -6337,9 +5802,6 @@ namespace Oxide.Plugins
       [JsonProperty("taxes")]
       public TaxOptions Taxes;
 
-      [JsonProperty("towns")]
-      public TownOptions Towns;
-
       [JsonProperty("upkeep")]
       public UpkeepOptions Upkeep;
 
@@ -6357,7 +5819,6 @@ namespace Oxide.Plugins
         Map = MapOptions.Default,
         Pvp = PvpOptions.Default,
         Raiding = RaidingOptions.Default,
-        Towns = TownOptions.Default,
         Taxes = TaxOptions.Default,
         Upkeep = UpkeepOptions.Default,
         War = WarOptions.Default,
@@ -6389,9 +5850,6 @@ namespace Oxide.Plugins
       [JsonProperty("allowedInClaimedLand")]
       public bool AllowedInClaimedLand;
 
-      [JsonProperty("allowedInTowns")]
-      public bool AllowedInTowns;
-
       [JsonProperty("allowedInWilderness")]
       public bool AllowedInWilderness;
 
@@ -6417,7 +5875,6 @@ namespace Oxide.Plugins
         AllowedInEventZones = true,
         AllowedInMonumentZones = true,
         AllowedInRaidZones = true,
-        AllowedInTowns = true,
         AllowedInWilderness = true,
         EnablePvpCommand = false,
         CommandCooldownSeconds = 60
@@ -6442,9 +5899,6 @@ namespace Oxide.Plugins
       [JsonProperty("allowedInClaimedLand")]
       public bool AllowedInClaimedLand;
 
-      [JsonProperty("allowedInTowns")]
-      public bool AllowedInTowns;
-
       [JsonProperty("allowedInWilderness")]
       public bool AllowedInWilderness;
 
@@ -6452,7 +5906,6 @@ namespace Oxide.Plugins
         RestrictRaiding = false,
         AllowedInBadlands = true,
         AllowedInClaimedLand = true,
-        AllowedInTowns = true,
         AllowedInWilderness = true
       };
     }
@@ -6478,9 +5931,6 @@ namespace Oxide.Plugins
       [JsonProperty("claimedLandGatherBonus")]
       public float ClaimedLandGatherBonus;
 
-      [JsonProperty("townGatherBonus")]
-      public float TownGatherBonus;
-
       [JsonProperty("badlandsGatherBonus")]
       public float BadlandsGatherBonus;
 
@@ -6489,25 +5939,7 @@ namespace Oxide.Plugins
         DefaultTaxRate = 0.1f,
         MaxTaxRate = 0.2f,
         ClaimedLandGatherBonus = 0.1f,
-        TownGatherBonus = 0.1f,
         BadlandsGatherBonus = 0.1f
-      };
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  using Newtonsoft.Json;
-
-  public partial class Imperium : RustPlugin
-  {
-    class TownOptions
-    {
-      [JsonProperty("enabled")]
-      public bool Enabled;
-
-      public static TownOptions Default = new TownOptions {
-        Enabled = true
       };
     }
   }
@@ -6949,16 +6381,6 @@ namespace Oxide.Plugins
         };
       }
 
-      public static MapMarker ForTown(Area area)
-      {
-        return new MapMarker {
-          IconUrl = Ui.MapIcon.Town,
-          Label = Util.RemoveSpecialCharacters(area.Name),
-          X = TranslatePosition(area.ClaimCupboard.transform.position.x),
-          Z = TranslatePosition(area.ClaimCupboard.transform.position.z)
-        };
-      }
-
       public static MapMarker ForMonument(MonumentInfo monument)
       {
         string iconUrl = GetIconForMonument(monument);
@@ -7050,7 +6472,6 @@ namespace Oxide.Plugins
         public const string Sleepers = ImageBaseUrl + "icons/hud/sleepers.png";
         public const string SupplyDrop = ImageBaseUrl + "icons/hud/supplydrop.png";
         public const string Taxes = ImageBaseUrl + "icons/hud/taxes.png";
-        public const string Town = ImageBaseUrl + "icons/hud/town.png";
         public const string Warning = ImageBaseUrl + "icons/hud/warning.png";
         public const string WarZone = ImageBaseUrl + "icons/hud/warzone.png";
         public const string Wilderness = ImageBaseUrl + "icons/hud/wilderness.png";
@@ -7265,8 +6686,6 @@ namespace Oxide.Plugins
             return Ui.HudIcon.Claimed;
           case AreaType.Headquarters:
             return Ui.HudIcon.Headquarters;
-          case AreaType.Town:
-            return Ui.HudIcon.Town;
           default:
             return Ui.HudIcon.Wilderness;
         }
@@ -7294,8 +6713,6 @@ namespace Oxide.Plugins
               return $"{area.Id}: {area.Name} ({area.FactionId} HQ)";
             else
               return $"{area.Id}: {area.FactionId} Headquarters";
-          case AreaType.Town:
-            return $"{area.Id}: {area.Name} ({area.FactionId})";
           default:
             return $"{area.Id}: Wilderness";
         }
@@ -7308,18 +6725,10 @@ namespace Oxide.Plugins
 
         Area area = User.CurrentArea;
 
-        if (area.IsWarZone)
+        if (area.IsWarZone || area.Type == AreaType.Badlands)
           return PanelColor.BackgroundDanger;
-
-        switch (area.Type)
-        {
-          case AreaType.Badlands:
-            return PanelColor.BackgroundDanger;
-          case AreaType.Town:
-            return PanelColor.BackgroundSafe;
-          default:
-            return PanelColor.BackgroundNormal;
-        }
+        else
+          return PanelColor.BackgroundNormal;
       }
 
       string GetLocationTextColor()
@@ -7329,18 +6738,10 @@ namespace Oxide.Plugins
 
         Area area = User.CurrentArea;
 
-        if (area.IsWarZone)
+        if (area.IsWarZone || area.Type == AreaType.Badlands)
           return PanelColor.TextDanger;
-
-        switch (area.Type)
-        {
-          case AreaType.Badlands:
-            return PanelColor.TextDanger;
-          case AreaType.Town:
-            return PanelColor.TextSafe;
-          default:
-            return PanelColor.TextNormal;
-        }
+        else
+          return PanelColor.TextNormal;
       }
 
       void AddWidget(CuiElementContainer container, string parent, string iconName, string textColor, string text, float left = 0f)
@@ -7483,9 +6884,6 @@ namespace Oxide.Plugins
           var faction = Instance.Factions.Get(area.FactionId);
           AddMarker(container, MapMarker.ForHeadquarters(area, faction));
         }
-
-        foreach (Area area in Instance.Areas.GetAllByType(AreaType.Town))
-          AddMarker(container, MapMarker.ForTown(area));
 
         AddMarker(container, MapMarker.ForUser(User));
 

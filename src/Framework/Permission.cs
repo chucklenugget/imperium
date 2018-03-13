@@ -10,7 +10,6 @@
       public const string AdminClaims = "imperium.claims.admin";
       public const string AdminBadlands = "imperium.badlands.admin";
       public const string ManageFactions = "imperium.factions";
-      public const string ManageTowns = "imperium.towns";
 
       public static void RegisterAll(Imperium instance)
       {

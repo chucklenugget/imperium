@@ -80,25 +80,6 @@
         return Areas.Values.FirstOrDefault(a => a.ClaimCupboard != null && a.ClaimCupboard.net.ID == cupboardId);
       }
 
-      public Town GetTown(string name)
-      {
-        Area[] areas = GetAllByType(AreaType.Town).Where(area => area.Name == name).ToArray();
-        if (areas.Length == 0)
-          return null;
-        else
-          return new Town(areas);
-      }
-
-      public Town[] GetAllTowns()
-      {
-        return GetAllByType(AreaType.Town).GroupBy(a => a.Name).Select(group => new Town(group)).ToArray();
-      }
-
-      public Town GetTownByMayor(User user)
-      {
-        return GetAllTowns().FirstOrDefault(town => town.MayorId == user.Id);
-      }
-
       public Area GetByEntityPosition(BaseEntity entity)
       {
         Vector3 position = entity.transform.position;
@@ -129,23 +110,6 @@
         }
 
         area.Type = AreaType.Headquarters;
-        Api.HandleAreaChanged(area);
-      }
-
-      public void AddToTown(string name, User mayor, Area area)
-      {
-        area.Type = AreaType.Town;
-        area.Name = name;
-        area.ClaimantId = mayor.Id;
-
-        Api.HandleAreaChanged(area);
-      }
-
-      public void RemoveFromTown(Area area)
-      {
-        area.Type = AreaType.Claimed;
-        area.Name = null;
-
         Api.HandleAreaChanged(area);
       }
 

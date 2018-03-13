@@ -171,8 +171,6 @@
           case AreaType.Claimed:
           case AreaType.Headquarters:
             return Instance.Options.Raiding.AllowedInClaimedLand;
-          case AreaType.Town:
-            return Instance.Options.Raiding.AllowedInTowns;
           case AreaType.Wilderness:
             return Instance.Options.Raiding.AllowedInWilderness;
           default:

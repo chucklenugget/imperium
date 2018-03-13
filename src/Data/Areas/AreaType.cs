@@ -7,7 +7,6 @@
       Wilderness,
       Claimed,
       Headquarters,
-      Town,
       Badlands
     }
   }

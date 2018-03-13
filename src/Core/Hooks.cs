@@ -211,11 +211,6 @@
         // The player has entered the wilderness.
         user.SendChatMessage(Messages.EnteredWilderness);
       }
-      else if (area.Type == AreaType.Town && previousArea.Type != AreaType.Town)
-      {
-        // The player has entered a town.
-        user.SendChatMessage(Messages.EnteredTown, area.Name, area.FactionId);
-      }
       else if (area.IsClaimed && !previousArea.IsClaimed)
       {
         // The player has entered a faction's territory.

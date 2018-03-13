@@ -22,9 +22,6 @@
         if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
           reduction = Instance.Options.Decay.ClaimedLandDecayReduction;
 
-        if (area.Type == AreaType.Town)
-          reduction = Instance.Options.Decay.TownDecayReduction;
-
         if (reduction >= 1)
           return false;
 

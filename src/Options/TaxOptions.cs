@@ -18,9 +18,6 @@
       [JsonProperty("claimedLandGatherBonus")]
       public float ClaimedLandGatherBonus;
 
-      [JsonProperty("townGatherBonus")]
-      public float TownGatherBonus;
-
       [JsonProperty("badlandsGatherBonus")]
       public float BadlandsGatherBonus;
 
@@ -29,7 +26,6 @@
         DefaultTaxRate = 0.1f,
         MaxTaxRate = 0.2f,
         ClaimedLandGatherBonus = 0.1f,
-        TownGatherBonus = 0.1f,
         BadlandsGatherBonus = 0.1f
       };
     }

@@ -178,8 +178,6 @@
             return Ui.HudIcon.Claimed;
           case AreaType.Headquarters:
             return Ui.HudIcon.Headquarters;
-          case AreaType.Town:
-            return Ui.HudIcon.Town;
           default:
             return Ui.HudIcon.Wilderness;
         }
@@ -207,8 +205,6 @@
               return $"{area.Id}: {area.Name} ({area.FactionId} HQ)";
             else
               return $"{area.Id}: {area.FactionId} Headquarters";
-          case AreaType.Town:
-            return $"{area.Id}: {area.Name} ({area.FactionId})";
           default:
             return $"{area.Id}: Wilderness";
         }
@@ -221,18 +217,10 @@
 
         Area area = User.CurrentArea;
 
-        if (area.IsWarZone)
+        if (area.IsWarZone || area.Type == AreaType.Badlands)
           return PanelColor.BackgroundDanger;
-
-        switch (area.Type)
-        {
-          case AreaType.Badlands:
-            return PanelColor.BackgroundDanger;
-          case AreaType.Town:
-            return PanelColor.BackgroundSafe;
-          default:
-            return PanelColor.BackgroundNormal;
-        }
+        else
+          return PanelColor.BackgroundNormal;
       }
 
       string GetLocationTextColor()
@@ -242,18 +230,10 @@
 
         Area area = User.CurrentArea;
 
-        if (area.IsWarZone)
+        if (area.IsWarZone || area.Type == AreaType.Badlands)
           return PanelColor.TextDanger;
-
-        switch (area.Type)
-        {
-          case AreaType.Badlands:
-            return PanelColor.TextDanger;
-          case AreaType.Town:
-            return PanelColor.TextSafe;
-          default:
-            return PanelColor.TextNormal;
-        }
+        else
+          return PanelColor.TextNormal;
       }
 
       void AddWidget(CuiElementContainer container, string parent, string iconName, string textColor, string text, float left = 0f)

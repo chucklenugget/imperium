@@ -75,7 +75,6 @@ namespace Oxide.Plugins
       Puts("Area claims are " + (Options.Claims.Enabled ? "enabled" : "disabled"));
       Puts("Taxation is " + (Options.Taxes.Enabled ? "enabled" : "disabled"));
       Puts("Badlands are " + (Options.Badlands.Enabled ? "enabled" : "disabled"));
-      Puts("Towns are " + (Options.Towns.Enabled ? "enabled" : "disabled"));
       Puts("War is " + (Options.War.Enabled ? "enabled" : "disabled"));
       Puts("Decay reduction is " + (Options.Decay.Enabled ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.Upkeep.Enabled ? "enabled" : "disabled"));
@@ -226,40 +225,6 @@ namespace Oxide.Plugins
     }
 
     bool EnsureCupboardCanBeUsedForClaim(User user, BuildingPrivlidge cupboard)
-    {
-      if (cupboard == null)
-      {
-        user.SendChatMessage(Messages.SelectingCupboardFailedInvalidTarget);
-        return false;
-      }
-
-      if (!cupboard.IsAuthed(user.Player))
-      {
-        user.SendChatMessage(Messages.SelectingCupboardFailedNotAuthorized);
-        return false;
-      }
-
-      return true;
-    }
-
-    bool EnsureUserCanManageTowns(User user, Faction faction)
-    {
-      if (!user.HasPermission(Permission.ManageTowns))
-      {
-        user.SendChatMessage(Messages.NoPermission);
-        return false;
-      }
-
-      if (faction == null)
-      {
-        user.SendChatMessage(Messages.NotMemberOfFaction);
-        return false;
-      }
-
-      return true;
-    }
-
-    bool EnsureCupboardCanBeUsedForTown(User user, BuildingPrivlidge cupboard)
     {
       if (cupboard == null)
       {

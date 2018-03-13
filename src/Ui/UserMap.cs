@@ -84,9 +84,6 @@
           AddMarker(container, MapMarker.ForHeadquarters(area, faction));
         }
 
-        foreach (Area area in Instance.Areas.GetAllByType(AreaType.Town))
-          AddMarker(container, MapMarker.ForTown(area));
-
         AddMarker(container, MapMarker.ForUser(User));
 
         container.Add(new CuiButton {

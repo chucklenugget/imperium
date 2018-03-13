@@ -29,14 +29,6 @@
       if (Options.War.Enabled)
         sb.AppendLine("<color=#ffd479>/war</color> See active wars, declare war, or offer peace");
 
-      if (Options.Towns.Enabled)
-      {
-        if (user.HasPermission(Permission.ManageTowns))
-          sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns, or create one yourself");
-        else
-          sb.AppendLine("<color=#ffd479>/towns</color> Find nearby towns");
-      }
-
       if (Options.Badlands.Enabled)
       {
         if (user.HasPermission(Permission.AdminBadlands))
