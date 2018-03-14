@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.7.1")]
+  [Info("Imperium", "chucklenugget", "1.8.0")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -38,6 +38,7 @@ namespace Oxide.Plugins
 
     DynamicConfigFile AreasFile;
     DynamicConfigFile FactionsFile;
+    DynamicConfigFile PinsFile;
     DynamicConfigFile WarsFile;
 
     GameObject GameObject;
@@ -47,6 +48,7 @@ namespace Oxide.Plugins
     AreaManager Areas;
     FactionManager Factions;
     HudManager Hud;
+    PinManager Pins;
     UserManager Users;
     WarManager Wars;
     ZoneManager Zones;
@@ -55,6 +57,7 @@ namespace Oxide.Plugins
     {
       AreasFile = GetDataFile("areas");
       FactionsFile = GetDataFile("factions");
+      PinsFile = GetDataFile("pins");
       WarsFile = GetDataFile("wars");
     }
 
@@ -75,6 +78,7 @@ namespace Oxide.Plugins
       Puts("Area claims are " + (Options.Claims.Enabled ? "enabled" : "disabled"));
       Puts("Taxation is " + (Options.Taxes.Enabled ? "enabled" : "disabled"));
       Puts("Badlands are " + (Options.Badlands.Enabled ? "enabled" : "disabled"));
+      Puts("Map pins are " + (Options.Map.PinsEnabled ? "enabled" : "disabled"));
       Puts("War is " + (Options.War.Enabled ? "enabled" : "disabled"));
       Puts("Decay reduction is " + (Options.Decay.Enabled ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.Upkeep.Enabled ? "enabled" : "disabled"));
@@ -99,12 +103,14 @@ namespace Oxide.Plugins
       Areas = new AreaManager();
       Factions = new FactionManager();
       Hud = new HudManager();
+      Pins = new PinManager();
       Users = new UserManager();
       Wars = new WarManager();
       Zones = new ZoneManager();
 
       Factions.Init(TryLoad<FactionInfo>(FactionsFile));
       Areas.Init(TryLoad<AreaInfo>(AreasFile));
+      Pins.Init(TryLoad<PinInfo>(PinsFile));
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
       Zones.Init();
@@ -125,6 +131,7 @@ namespace Oxide.Plugins
       Zones.Destroy();
       Users.Destroy();
       Wars.Destroy();
+      Pins.Destroy();
       Areas.Destroy();
       Factions.Destroy();
 
@@ -141,6 +148,7 @@ namespace Oxide.Plugins
     {
       AreasFile.WriteObject(Areas.Serialize());
       FactionsFile.WriteObject(Factions.Serialize());
+      PinsFile.WriteObject(Pins.Serialize());
       WarsFile.WriteObject(Wars.Serialize());
     }
 

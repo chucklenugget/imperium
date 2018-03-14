@@ -19,6 +19,9 @@
       [JsonProperty("minAreaNameLength")]
       public int MinAreaNameLength;
 
+      [JsonProperty("maxAreaNameLength")]
+      public int MaxAreaNameLength;
+
       [JsonProperty("minFactionMembers")]
       public int MinFactionMembers;
 
@@ -30,6 +33,7 @@
         Costs = new List<int> { 0, 100, 200, 300, 400, 500 },
         MaxClaims = null,
         MinAreaNameLength = 3,
+        MaxAreaNameLength = 20,
         MinFactionMembers = 3,
         RequireContiguousClaims = false
       };

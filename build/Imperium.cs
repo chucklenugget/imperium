@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.7.1")]
+  [Info("Imperium", "chucklenugget", "1.8.0")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -38,6 +38,7 @@ namespace Oxide.Plugins
 
     DynamicConfigFile AreasFile;
     DynamicConfigFile FactionsFile;
+    DynamicConfigFile PinsFile;
     DynamicConfigFile WarsFile;
 
     GameObject GameObject;
@@ -47,6 +48,7 @@ namespace Oxide.Plugins
     AreaManager Areas;
     FactionManager Factions;
     HudManager Hud;
+    PinManager Pins;
     UserManager Users;
     WarManager Wars;
     ZoneManager Zones;
@@ -55,6 +57,7 @@ namespace Oxide.Plugins
     {
       AreasFile = GetDataFile("areas");
       FactionsFile = GetDataFile("factions");
+      PinsFile = GetDataFile("pins");
       WarsFile = GetDataFile("wars");
     }
 
@@ -75,6 +78,7 @@ namespace Oxide.Plugins
       Puts("Area claims are " + (Options.Claims.Enabled ? "enabled" : "disabled"));
       Puts("Taxation is " + (Options.Taxes.Enabled ? "enabled" : "disabled"));
       Puts("Badlands are " + (Options.Badlands.Enabled ? "enabled" : "disabled"));
+      Puts("Map pins are " + (Options.Map.PinsEnabled ? "enabled" : "disabled"));
       Puts("War is " + (Options.War.Enabled ? "enabled" : "disabled"));
       Puts("Decay reduction is " + (Options.Decay.Enabled ? "enabled" : "disabled"));
       Puts("Claim upkeep is " + (Options.Upkeep.Enabled ? "enabled" : "disabled"));
@@ -99,12 +103,14 @@ namespace Oxide.Plugins
       Areas = new AreaManager();
       Factions = new FactionManager();
       Hud = new HudManager();
+      Pins = new PinManager();
       Users = new UserManager();
       Wars = new WarManager();
       Zones = new ZoneManager();
 
       Factions.Init(TryLoad<FactionInfo>(FactionsFile));
       Areas.Init(TryLoad<AreaInfo>(AreasFile));
+      Pins.Init(TryLoad<PinInfo>(PinsFile));
       Users.Init();
       Wars.Init(TryLoad<WarInfo>(WarsFile));
       Zones.Init();
@@ -125,6 +131,7 @@ namespace Oxide.Plugins
       Zones.Destroy();
       Users.Destroy();
       Wars.Destroy();
+      Pins.Destroy();
       Areas.Destroy();
       Factions.Destroy();
 
@@ -141,6 +148,7 @@ namespace Oxide.Plugins
     {
       AreasFile.WriteObject(Areas.Serialize());
       FactionsFile.WriteObject(Factions.Serialize());
+      PinsFile.WriteObject(Pins.Serialize());
       WarsFile.WriteObject(Wars.Serialize());
     }
 
@@ -966,6 +974,8 @@ namespace Oxide.Plugins
   }
 }﻿namespace Oxide.Plugins
 {
+  using System;
+
   public partial class Imperium
   {
     void OnClaimRenameCommand(User user, string[] args)
@@ -984,9 +994,9 @@ namespace Oxide.Plugins
       var areaId = Util.NormalizeAreaId(args[0]);
       var name = Util.NormalizeAreaName(args[1]);
 
-      if (name == null || name.Length < Options.Claims.MinAreaNameLength)
+      if (name == null || name.Length < Options.Claims.MinAreaNameLength || name.Length > Options.Claims.MaxAreaNameLength)
       {
-        user.SendChatMessage(Messages.InvalidAreaName, Options.Claims.MinAreaNameLength);
+        user.SendChatMessage(Messages.InvalidAreaName, Options.Claims.MinAreaNameLength, Options.Claims.MaxAreaNameLength);
         return;
       }
 
@@ -1625,6 +1635,283 @@ namespace Oxide.Plugins
 
   public partial class Imperium
   {
+    [ChatCommand("pin")]
+    void OnPinCommand(BasePlayer player, string command, string[] args)
+    {
+      User user = Users.Get(player);
+      if (user == null) return;
+
+      if (!Options.Map.PinsEnabled)
+      {
+        user.SendChatMessage(Messages.PinsDisabled);
+        return;
+      };
+
+      if (args.Length == 0)
+      {
+        OnPinHelpCommand(user);
+        return;
+      }
+
+      var restArguments = args.Skip(1).ToArray();
+
+      switch (args[0].ToLower())
+      {
+        case "add":
+          OnPinAddCommand(user, restArguments);
+          break;
+        case "remove":
+          OnPinRemoveCommand(user, restArguments);
+          break;
+        case "list":
+          OnPinListCommand(user, restArguments);
+          break;
+        case "delete":
+          OnPinDeleteCommand(user, restArguments);
+          break;
+        case "help":
+        default:
+          OnPinHelpCommand(user);
+          break;
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+  using System.Collections.Generic;
+  using UnityEngine;
+
+  public partial class Imperium
+  {
+    void OnPinAddCommand(User user, string[] args)
+    {
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/pin add TYPE \"NAME\"");
+        return;
+      }
+
+      if (user.Faction == null)
+      {
+        user.SendChatMessage(Messages.NotMemberOfFaction);
+        return;
+      }
+
+      Area area = user.CurrentArea;
+      if (area.FactionId == null || area.FactionId != user.Faction.Id)
+      {
+        user.SendChatMessage(Messages.AreaNotOwnedByYourFaction, area.Id);
+        return;
+      }
+
+      PinType type;
+      if (!Util.TryParseEnum(args[0], out type))
+      {
+        user.SendChatMessage(Messages.InvalidPinType, args[0]);
+        return;
+      }
+
+      string name = Util.NormalizePinName(args[1]);
+      if (name == null || name.Length < Options.Map.MinPinNameLength || name.Length > Options.Map.MaxPinNameLength)
+      {
+        user.SendChatMessage(Messages.InvalidPinName, Options.Map.MinPinNameLength, Options.Map.MaxPinNameLength);
+        return;
+      }
+
+      Pin existingPin = Pins.Get(name);
+      if (existingPin != null)
+      {
+        user.SendChatMessage(Messages.CannotCreatePinAlreadyExists, existingPin.Name, existingPin.AreaId);
+        return;
+      }
+
+      if (Options.Map.PinCost > 0)
+      {
+        ItemDefinition scrapDef = ItemManager.FindItemDefinition("scrap");
+        List<Item> stacks = user.Player.inventory.FindItemIDs(scrapDef.itemid);
+
+        if (!Instance.TryCollectFromStacks(scrapDef, stacks, Options.Map.PinCost))
+        {
+          user.SendChatMessage(Messages.CannotCreatePinCannotAfford, Options.Map.PinCost);
+          return;
+        }
+      }
+
+      Vector3 position = user.Player.transform.position;
+
+      var pin = new Pin(position, area, user, type, name);
+      Pins.Add(pin);
+
+      PrintToChat(Messages.PinAddedAnnouncement, user.Faction.Id, name, type.ToString().ToLower(), area.Id);
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+
+  public partial class Imperium
+  {
+    void OnPinDeleteCommand(User user, string[] args)
+    {
+      if (args.Length != 1)
+      {
+        user.SendChatMessage(Messages.Usage, "/pin delete \"NAME\"");
+        return;
+      }
+
+      if (!user.HasPermission(Permission.AdminPins))
+      {
+        user.SendChatMessage(Messages.NoPermission);
+        return;
+      }
+
+      string name = Util.NormalizePinName(args[0]);
+      Pin pin = Pins.Get(name);
+
+      if (pin == null)
+      {
+        user.SendChatMessage(Messages.UnknownPin, name);
+        return;
+      }
+
+      Pins.Remove(pin);
+      user.SendChatMessage(Messages.PinRemoved, pin.Name);
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
+  using System.Text;
+
+  public partial class Imperium
+  {
+    void OnPinHelpCommand(User user)
+    {
+      var sb = new StringBuilder();
+
+      sb.AppendLine("Available commands:");
+      sb.AppendLine("  <color=#ffd479>/pin list [TYPE]</color>: List all pins (or all of a certain type)");
+      sb.AppendLine("  <color=#ffd479>/pin add TYPE \"NAME\"</color>: Create a pin at your current location");
+      sb.AppendLine("  <color=#ffd479>/pin remove \"NAME\"</color>: Remove a pin you created");
+      sb.AppendLine("  <color=#ffd479>/pin help</color>: Prints this message");
+
+      if (user.HasPermission(Permission.AdminPins))
+      {
+        sb.AppendLine("Admin commands:");
+        sb.AppendLine("  <color=#ffd479>/pin delete XY</color>: Delete a pin from an area");
+      }
+
+      sb.Append("Available pin types: ");
+      foreach (string type in Enum.GetNames(typeof(PinType)).OrderBy(str => str.ToLowerInvariant()))
+        sb.AppendFormat("<color=#ffd479>{0}</color>, ", type.ToLowerInvariant());
+      sb.Remove(sb.Length - 2, 2);
+      sb.AppendLine();
+
+      user.SendChatMessage(sb);
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+  using System.Linq;
+  using System.Text;
+
+  public partial class Imperium
+  {
+    void OnPinListCommand(User user, string[] args)
+    {
+      if (args.Length > 1)
+      {
+        user.SendChatMessage(Messages.Usage, "/pin list [TYPE]");
+        return;
+      }
+
+      Pin[] pins = Pins.GetAll();
+
+      if (args.Length == 1)
+      {
+        PinType type;
+        if (!Util.TryParseEnum(args[0], out type))
+        {
+          user.SendChatMessage(Messages.InvalidPinType, args[0]);
+          return;
+        }
+
+        pins = pins.Where(pin => pin.Type == type).ToArray();
+      }
+
+      if (pins.Length == 0)
+      {
+        user.SendChatMessage("There are no matching pins.");
+        return;
+      }
+
+      var sb = new StringBuilder();
+      sb.AppendLine(String.Format("There are <color=#ffd479>{0}</color> matching map pins:", pins.Length));
+      foreach (Pin pin in pins.OrderBy(pin => pin.GetDistanceFrom(user.Player)))
+      {
+        int distance = (int)Math.Floor(pin.GetDistanceFrom(user.Player));
+        sb.AppendLine(String.Format("  <color=#ffd479>{0} ({1}):</color> {2} (<color=#ffd479>{3}m</color> away)", pin.Name, pin.Type.ToString().ToLowerInvariant(), pin.AreaId, distance));
+      }
+
+      user.SendChatMessage(sb);
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+
+  public partial class Imperium
+  {
+    void OnPinRemoveCommand(User user, string[] args)
+    {
+      if (args.Length != 1)
+      {
+        user.SendChatMessage(Messages.Usage, "/pin remove \"NAME\"");
+        return;
+      }
+
+      if (user.Faction == null)
+      {
+        user.SendChatMessage(Messages.NotMemberOfFaction);
+        return;
+      }
+
+      string name = Util.NormalizePinName(args[0]);
+      Pin pin = Pins.Get(name);
+
+      if (pin == null)
+      {
+        user.SendChatMessage(Messages.UnknownPin, name);
+        return;
+      }
+
+      Area area = Areas.Get(pin.AreaId);
+      if (area.FactionId != user.Faction.Id)
+      {
+        user.SendChatMessage(Messages.CannotRemovePinAreaNotOwnedByYourFaction, pin.Name, pin.AreaId);
+        return;
+      }
+
+      Pins.Remove(pin);
+      user.SendChatMessage(Messages.PinRemoved, pin.Name);
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System.Linq;
+
+  public partial class Imperium
+  {
     [ChatCommand("tax")]
     void OnTaxCommand(BasePlayer player, string command, string[] args)
     {
@@ -2047,74 +2334,84 @@ namespace Oxide.Plugins
   {
     static class Api
     {
-      public static void HandleAreaChanged(Area area)
+      public static void OnAreaChanged(Area area)
       {
-        Interface.Call("OnAreaChanged", area);
+        Interface.Call(nameof(OnAreaChanged), area);
       }
 
-      public static void HandleUserEnteredArea(User user, Area area)
+      public static void OnUserEnteredArea(User user, Area area)
       {
-        Interface.Call("OnUserEnteredArea", user, area);
+        Interface.Call(nameof(OnUserEnteredArea), user, area);
       }
 
-      public static void HandleUserLeftArea(User user, Area area)
+      public static void OnUserLeftArea(User user, Area area)
       {
-        Interface.Call("OnUserLeftArea", user, area);
+        Interface.Call(nameof(OnUserLeftArea), user, area);
       }
 
-      public static void HandleUserEnteredZone(User user, Zone zone)
+      public static void OnUserEnteredZone(User user, Zone zone)
       {
-        Interface.Call("OnUserEnteredZone", user, zone);
+        Interface.Call(nameof(OnUserEnteredZone), user, zone);
       }
 
-      public static void HandleUserLeftZone(User user, Zone zone)
+      public static void OnUserLeftZone(User user, Zone zone)
       {
-        Interface.Call("OnUserLeftZone", user, zone);
+        Interface.Call(nameof(OnUserLeftZone), user, zone);
       }
 
-      public static void HandleFactionCreated(Faction faction)
+      public static void OnFactionCreated(Faction faction)
       {
-        Interface.Call("OnFactionCreated", faction);
+        Interface.Call(nameof(OnFactionCreated), faction);
       }
 
-      public static void HandleFactionDisbanded(Faction faction)
+      public static void OnFactionDisbanded(Faction faction)
       {
-        Interface.Call("OnFactionDisbanded", faction);
+        Interface.Call(nameof(OnFactionDisbanded), faction);
       }
 
-      public static void HandleFactionTaxesChanged(Faction faction)
+      public static void OnFactionTaxesChanged(Faction faction)
       {
-        Interface.Call("OnFactionTaxesChanged", faction);
+        Interface.Call(nameof(OnFactionTaxesChanged), faction);
       }
 
-      public static void HandlePlayerJoinedFaction(Faction faction, User user)
+      public static void OnPlayerJoinedFaction(Faction faction, User user)
       {
-        Interface.Call("OnPlayerJoinedFaction", faction, user);
+        Interface.Call(nameof(OnPlayerJoinedFaction), faction, user);
       }
 
-      public static void HandlePlayerLeftFaction(Faction faction, User user)
+      public static void OnPlayerLeftFaction(Faction faction, User user)
       {
-        Interface.Call("OnPlayerLeftFaction", faction, user);
+        Interface.Call(nameof(OnPlayerLeftFaction), faction, user);
       }
 
-      public static void HandlePlayerInvitedToFaction(Faction faction, User user)
+      public static void OnPlayerInvitedToFaction(Faction faction, User user)
       {
-        Interface.Call("OnPlayerInvitedToFaction", faction, user);
+        Interface.Call(nameof(OnPlayerInvitedToFaction), faction, user);
       }
 
-      public static void HandlePlayerUninvitedFromFaction(Faction faction, User user)
+      public static void OnPlayerUninvitedFromFaction(Faction faction, User user)
       {
-        Interface.Call("OnPlayerUninvitedFromFaction", faction, user);
+        Interface.Call(nameof(OnPlayerUninvitedFromFaction), faction, user);
       }
 
-      public static void HandlePlayerPromoted(Faction faction, User user)
+      public static void OnPlayerPromoted(Faction faction, User user)
       {
-        Interface.Call("OnPlayerPromoted", faction, user);
+        Interface.Call(nameof(OnPlayerPromoted), faction, user);
       }
 
-      public static void HandlePlayerDemoted(Faction faction, User user)
+      public static void OnPlayerDemoted(Faction faction, User user)
       {
-        Interface.Call("OnPlayerDemoted", faction, user);
+        Interface.Call(nameof(OnPlayerDemoted), faction, user);
+      }
+
+      public static void OnPinCreated(Pin pin)
+      {
+        Interface.Call(nameof(OnPinCreated), pin);
+      }
+
+      public static void OnPinRemoved(Pin pin)
+      {
+        Interface.Call(nameof(OnPinRemoved), pin);
       }
     }
   }
@@ -2436,6 +2733,7 @@ namespace Oxide.Plugins
     void OnAreaChanged(Area area)
     {
       Wars.EndAllWarsForEliminatedFactions();
+      Pins.RemoveAllPinsInUnclaimedAreas();
       Hud.GenerateMapOverlayImage();
       Hud.RefreshForAllPlayers();
     }
@@ -2460,6 +2758,7 @@ namespace Oxide.Plugins
       public const string BadlandsDisabled = "Badlands are currently disabled.";
       public const string UpkeepDisabled = "Upkeep is currently disabled.";
       public const string WarDisabled = "War is currently disabled.";
+      public const string PinsDisabled = "Map pins are currently disabled.";
       public const string PvpModeDisabled = "PVP Mode is currently not available.";
 
       public const string AreaIsBadlands = "<color=#ffd479>{0}</color> is a part of the badlands.";
@@ -2467,7 +2766,7 @@ namespace Oxide.Plugins
       public const string AreaIsHeadquarters = "<color=#ffd479>{0}</color> is the headquarters of <color=#ffd479>[{1}]</color>.";
       public const string AreaIsWilderness = "<color=#ffd479>{0}</color> has not been claimed by a faction.";
       public const string AreaNotBadlands = "<color=#ffd479>{0}</color> is not a part of the badlands.";
-      public const string AreaNotOwnedByYourFaction = "<color=#ffd479>{0} is not owned by your faction.";
+      public const string AreaNotOwnedByYourFaction = "<color=#ffd479>{0}</color> is not owned by your faction.";
       public const string AreaNotWilderness = "<color=#ffd479>{0}</color> is not currently wilderness.";
       public const string AreaNotContiguous = "<color=#ffd479>{0}</color> is not connected to territory owned by <color=#ffd479>[{1}]</color>.";
 
@@ -2489,7 +2788,7 @@ namespace Oxide.Plugins
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";
       public const string CommandIsOnCooldown = "You can't do that again so quickly. Try again in {0} seconds.";
-      public const string NoPermission = "You don't have permission to do that. If you believe this is incorrect, please contact an admin.";
+      public const string NoPermission = "You don't have permission to do that.";
 
       public const string MemberAdded = "You have added <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
       public const string MemberRemoved = "You have removed <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
@@ -2527,7 +2826,7 @@ namespace Oxide.Plugins
       public const string ClaimRemoved = "You have removed your faction's claim on <color=#ffd479>{0}</color>.";
       public const string ClaimTransferred = "You have transferred ownership of <color=#ffd479>{0}</color> to <color=#ffd479>[{1}]</color>.";
 
-      public const string InvalidAreaName = "An area name must be at least <color=#ffd479>{0}</color> characters long.";
+      public const string InvalidAreaName = "Area names must be between <color=#ffd479>{0}</color> and <color=#ffd479>{1}</color> characters long.";
       public const string UnknownArea = "Unknown area <color=#ffd479>{0}</color>.";
       public const string AreaRenamed = "<color=#ffd479>{0}</color> is now known as <color=#ffd479>{1}</color>.";
 
@@ -2560,6 +2859,14 @@ namespace Oxide.Plugins
       public const string ExitedPvpMode = "<color=#00ff00>PVP DISABLED:</color> You are no longer in PVP mode. You can't be harmed by other players except inside of normal PVP areas.";
       public const string PvpModeOnCooldown = "You must wait at least {0} seconds to exit or re-enter PVP mode.";
 
+      public const string InvalidPinType = "Unknown map pin type <color=#ffd479>{0}</color>. Say <color=#ffd479>/pin types</color> to see a list of available types.";
+      public const string InvalidPinName = "Map pin names must be between <color=#ffd479>{0}</color> and <color=#ffd479>{1}</color> characters long.";
+      public const string CannotCreatePinCannotAfford = "Creating a new map pin costs <color=#ffd479>{0}</color> scrap. Add this amount to your inventory and try again.";
+      public const string CannotCreatePinAlreadyExists = "Cannot create a new map pin named <color=#ffd479>{0}</color>, since one already exists with the same name in <color=#ffd479>{1}</color>.";
+      public const string UnknownPin = "Unknown map pin <color=#ffd479>{0}</color>.";
+      public const string CannotRemovePinAreaNotOwnedByYourFaction = "Cannot remove the map pin named <color=#ffd479>{0}</color>, because the area <color=#ffd479>{1} is not owned by your faction.";
+      public const string PinRemoved = "Removed map pin <color=#ffd479>{0}</color>.";
+
       public const string FactionCreatedAnnouncement = "<color=#00ff00>FACTION CREATED:</color> A new faction <color=#ffd479>[{0}]</color> has been created!";
       public const string FactionDisbandedAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded!";
       public const string FactionMemberJoinedAnnouncement = "<color=#00ff00>MEMBER JOINED:</color> <color=#ffd479>{0}</color> has joined <color=#ffd479>[{1}]</color>!";
@@ -2579,6 +2886,7 @@ namespace Oxide.Plugins
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
       public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended, since <color=#ffd479>[{2}]</color> no longer holds any land.";
+      public const string PinAddedAnnouncement = "<color=#00ff00>POINT OF INTEREST:</color> <color=#ffd479>[{0}]</color> announces the creation of <color=#ffd479>{1}</color>, a new {2} located in <color=#ffd479>{3}</color>!";
     }
 
     void InitLang()
@@ -3186,7 +3494,7 @@ namespace Oxide.Plugins
         var user = collider.GetComponentInParent<User>();
 
         if (user != null && user.CurrentArea != this)
-          Api.HandleUserEnteredArea(user, this);
+          Api.OnUserEnteredArea(user, this);
       }
 
       void OnTriggerExit(Collider collider)
@@ -3197,7 +3505,7 @@ namespace Oxide.Plugins
         var user = collider.GetComponentInParent<User>();
 
         if (user != null)
-          Api.HandleUserLeftArea(user, this);
+          Api.OnUserLeftArea(user, this);
       }
 
       public float GetDistanceFromEntity(BaseEntity entity)
@@ -3384,7 +3692,7 @@ namespace Oxide.Plugins
         area.ClaimantId = claimant.Id;
         area.ClaimCupboard = cupboard;
 
-        Api.HandleAreaChanged(area);
+        Api.OnAreaChanged(area);
       }
 
       public void SetHeadquarters(Area area, Faction faction)
@@ -3393,11 +3701,11 @@ namespace Oxide.Plugins
         foreach (Area otherArea in GetAllClaimedByFaction(faction).Where(a => a.Type == AreaType.Headquarters))
         {
           otherArea.Type = AreaType.Claimed;
-          Api.HandleAreaChanged(otherArea);
+          Api.OnAreaChanged(otherArea);
         }
 
         area.Type = AreaType.Headquarters;
-        Api.HandleAreaChanged(area);
+        Api.OnAreaChanged(area);
       }
 
       public void Unclaim(IEnumerable<Area> areas)
@@ -3414,7 +3722,7 @@ namespace Oxide.Plugins
           area.ClaimantId = null;
           area.ClaimCupboard = null;
 
-          Api.HandleAreaChanged(area);
+          Api.OnAreaChanged(area);
         }
       }
 
@@ -3427,7 +3735,7 @@ namespace Oxide.Plugins
           area.ClaimantId = null;
           area.ClaimCupboard = null;
 
-          Api.HandleAreaChanged(area);
+          Api.OnAreaChanged(area);
         }
       }
 
@@ -3655,7 +3963,7 @@ namespace Oxide.Plugins
 
         InviteIds.Remove(user.Id);
 
-        Api.HandlePlayerJoinedFaction(this, user);
+        Api.OnPlayerJoinedFaction(this, user);
         return true;
       }
 
@@ -3680,7 +3988,7 @@ namespace Oxide.Plugins
         MemberIds.Remove(user.Id);
         ManagerIds.Remove(user.Id);
 
-        Api.HandlePlayerLeftFaction(this, user);
+        Api.OnPlayerLeftFaction(this, user);
         return true;
       }
 
@@ -3689,7 +3997,7 @@ namespace Oxide.Plugins
         if (!InviteIds.Add(user.Id))
           return false;
 
-        Api.HandlePlayerInvitedToFaction(this, user);
+        Api.OnPlayerInvitedToFaction(this, user);
         return true;
       }
 
@@ -3698,7 +4006,7 @@ namespace Oxide.Plugins
         if (!InviteIds.Remove(user.Id))
           return false;
 
-        Api.HandlePlayerUninvitedFromFaction(this, user);
+        Api.OnPlayerUninvitedFromFaction(this, user);
         return true;
       }
 
@@ -3710,7 +4018,7 @@ namespace Oxide.Plugins
         if (!ManagerIds.Add(user.Id))
           return false;
 
-        Api.HandlePlayerPromoted(this, user);
+        Api.OnPlayerPromoted(this, user);
         return true;
       }
 
@@ -3722,7 +4030,7 @@ namespace Oxide.Plugins
         if (!ManagerIds.Remove(user.Id))
           return false;
 
-        Api.HandlePlayerDemoted(this, user);
+        Api.OnPlayerDemoted(this, user);
         return true;
       }
 
@@ -3922,7 +4230,7 @@ namespace Oxide.Plugins
         faction = new Faction(id, owner);
         Factions.Add(id, faction);
 
-        Api.HandleFactionCreated(faction);
+        Api.OnFactionCreated(faction);
 
         return faction;
       }
@@ -3933,7 +4241,7 @@ namespace Oxide.Plugins
           user.SetFaction(null);
 
         Factions.Remove(faction.Id);
-        Api.HandleFactionDisbanded(faction);
+        Api.OnFactionDisbanded(faction);
       }
 
       public Faction[] GetAll()
@@ -3978,13 +4286,13 @@ namespace Oxide.Plugins
       public void SetTaxRate(Faction faction, float taxRate)
       {
         faction.TaxRate = taxRate;
-        Api.HandleFactionTaxesChanged(faction);
+        Api.OnFactionTaxesChanged(faction);
       }
 
       public void SetTaxChest(Faction faction, StorageContainer taxChest)
       {
         faction.TaxChest = taxChest;
-        Api.HandleFactionTaxesChanged(faction);
+        Api.OnFactionTaxesChanged(faction);
       }
 
       public void Init(IEnumerable<FactionInfo> factionInfos)
@@ -4013,6 +4321,179 @@ namespace Oxide.Plugins
     }
   }
 }﻿namespace Oxide.Plugins
+{
+  using UnityEngine;
+
+  public partial class Imperium
+  {
+    class Pin
+    {
+      public Vector3 Position { get; }
+      public string AreaId { get; }
+      public string CreatorId { get; set; }
+      public PinType Type { get; set; }
+      public string Name { get; set; }
+
+      public Pin(Vector3 position, Area area, User creator, PinType type, string name)
+      {
+        Position = position;
+        AreaId = area.Id;
+        CreatorId = creator.Id;
+        Type = type;
+        Name = name;
+      }
+
+      public Pin(PinInfo info)
+      {
+        Position = info.Position;
+        AreaId = info.AreaId;
+        CreatorId = info.CreatorId;
+        Type = info.Type;
+        Name = info.Name;
+      }
+
+      public float GetDistanceFrom(BaseEntity entity)
+      {
+        return GetDistanceFrom(entity.transform.position);
+      }
+
+      public float GetDistanceFrom(Vector3 position)
+      {
+        return Vector3.Distance(position, Position);
+      }
+
+      public PinInfo Serialize()
+      {
+        return new PinInfo {
+          Position = Position,
+          AreaId = AreaId,
+          CreatorId = CreatorId,
+          Type = Type,
+          Name = Name
+        };
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using Newtonsoft.Json;
+  using Newtonsoft.Json.Converters;
+  using UnityEngine;
+
+  public partial class Imperium : RustPlugin
+  {
+    class PinInfo
+    {
+      [JsonProperty("name")]
+      public string Name;
+
+      [JsonProperty("type"), JsonConverter(typeof(StringEnumConverter))]
+      public PinType Type;
+
+      [JsonProperty("position"), JsonConverter(typeof(UnityVector3Converter))]
+      public Vector3 Position;
+
+      [JsonProperty("areaId")]
+      public string AreaId;
+
+      [JsonProperty("creatorId")]
+      public string CreatorId;
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
+
+  public partial class Imperium
+  {
+    class PinManager
+    {
+      Dictionary<string, Pin> Pins;
+
+      public PinManager()
+      {
+        Pins = new Dictionary<string, Pin>(StringComparer.OrdinalIgnoreCase);
+      }
+
+      public Pin Get(string name)
+      {
+        Pin pin;
+
+        if (!Pins.TryGetValue(name, out pin))
+          return null;
+
+        return pin;
+      }
+
+      public Pin[] GetAll()
+      {
+        return Pins.Values.ToArray();
+      }
+
+      public void Add(Pin pin)
+      {
+        Pins.Add(pin.Name, pin);
+        Api.OnPinCreated(pin);
+      }
+
+      public void Remove(Pin pin)
+      {
+        Pins.Remove(pin.Name);
+        Api.OnPinRemoved(pin);
+      }
+
+      public void RemoveAllPinsInUnclaimedAreas()
+      {
+        foreach (Pin pin in GetAll())
+        {
+          Area area = Instance.Areas.Get(pin.AreaId);
+          if (!area.IsClaimed) Remove(pin);
+        }
+      }
+
+      public void Init(IEnumerable<PinInfo> pinInfos)
+      {
+        Instance.Puts($"Creating pins for {pinInfos.Count()} pins...");
+
+        foreach (PinInfo info in pinInfos)
+        {
+          var pin = new Pin(info);
+          Pins.Add(pin.Name, pin);
+        }
+
+        Instance.Puts("Pins created.");
+      }
+
+      public void Destroy()
+      {
+        Pins.Clear();
+      }
+
+      public PinInfo[] Serialize()
+      {
+        return Pins.Values.Select(pin => pin.Serialize()).ToArray();
+      }
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    enum PinType
+    {
+      Arena,
+      Hotel,
+      Marina,
+      Shop,
+      Town
+    }
+  }
+}
+﻿namespace Oxide.Plugins
 {
   using System;
   using System.Collections.Generic;
@@ -4155,8 +4636,8 @@ namespace Oxide.Plugins
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
-          Api.HandleUserLeftArea(this, currentArea);
-          Api.HandleUserEnteredArea(this, correctArea);
+          Api.OnUserLeftArea(this, currentArea);
+          Api.OnUserEnteredArea(this, correctArea);
         }
       }
 
@@ -4615,7 +5096,7 @@ namespace Oxide.Plugins
         var user = collider.GetComponentInParent<User>();
 
         if (user != null && !user.CurrentZones.Contains(this))
-          Api.HandleUserEnteredZone(user, this);
+          Api.OnUserEnteredZone(user, this);
       }
 
       void OnTriggerExit(Collider collider)
@@ -4626,7 +5107,7 @@ namespace Oxide.Plugins
         var user = collider.GetComponentInParent<User>();
 
         if (user != null && user.CurrentZones.Contains(this))
-          Api.HandleUserLeftZone(user, this);
+          Api.OnUserLeftZone(user, this);
       }
 
       void CheckIfShouldDestroy()
@@ -5178,6 +5659,7 @@ namespace Oxide.Plugins
       public const string AdminFactions = "imperium.factions.admin";
       public const string AdminClaims = "imperium.claims.admin";
       public const string AdminBadlands = "imperium.badlands.admin";
+      public const string AdminPins = "imperium.pins.admin";
       public const string ManageFactions = "imperium.factions";
 
       public static void RegisterAll(Imperium instance)
@@ -5189,6 +5671,37 @@ namespace Oxide.Plugins
   }
 }
 ﻿namespace Oxide.Plugins
+{
+  using System;
+  using Newtonsoft.Json;
+  using UnityEngine;
+
+  public partial class Imperium : RustPlugin
+  {
+    class UnityVector3Converter : JsonConverter
+    {
+      public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+      {
+        var vector = (Vector3) value;
+        writer.WriteValue($"{vector.x} {vector.y} {vector.z}");
+      }
+
+      public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+      {
+        string[] tokens = reader.Value.ToString().Trim().Split(' ');
+        float x = Convert.ToSingle(tokens[0]);
+        float y = Convert.ToSingle(tokens[1]);
+        float z = Convert.ToSingle(tokens[2]);
+        return new Vector3(x, y, z);
+      }
+
+      public override bool CanConvert(Type objectType)
+      {
+        return objectType == typeof(Vector3);
+      }
+    }
+  }
+}﻿namespace Oxide.Plugins
 {
   using System;
   using System.Collections;
@@ -5269,6 +5782,11 @@ namespace Oxide.Plugins
         return RemoveSpecialCharacters(input.Trim());
       }
 
+      public static string NormalizePinName(string input)
+      {
+        return RemoveSpecialCharacters(input.Trim());
+      }
+
       public static string NormalizeFactionId(string input)
       {
         string factionId = input.Trim();
@@ -5281,8 +5799,8 @@ namespace Oxide.Plugins
 
       public static string RemoveSpecialCharacters(string str)
       {
-        if (string.IsNullOrEmpty(str))
-          return string.Empty;
+        if (String.IsNullOrEmpty(str))
+          return String.Empty;
 
         StringBuilder sb = new StringBuilder(str.Length);
         foreach (char c in str)
@@ -5326,6 +5844,24 @@ namespace Oxide.Plugins
         }
 
         return distance[source.Length, target.Length];
+      }
+
+      public static bool TryParseEnum<T>(string str, out T value) where T : struct
+      {
+        if (!typeof(T).IsEnum)
+          throw new ArgumentException("Type parameter must be an enum");
+
+        foreach (var name in Enum.GetNames(typeof(T)))
+        {
+          if (String.Equals(name, str, StringComparison.OrdinalIgnoreCase))
+          {
+            value = (T)Enum.Parse(typeof(T), name);
+            return true;
+          }
+        }
+
+        value = default(T);
+        return false;
       }
     }
   }
@@ -5690,6 +6226,9 @@ namespace Oxide.Plugins
       [JsonProperty("minAreaNameLength")]
       public int MinAreaNameLength;
 
+      [JsonProperty("maxAreaNameLength")]
+      public int MaxAreaNameLength;
+
       [JsonProperty("minFactionMembers")]
       public int MinFactionMembers;
 
@@ -5701,6 +6240,7 @@ namespace Oxide.Plugins
         Costs = new List<int> { 0, 100, 200, 300, 400, 500 },
         MaxClaims = null,
         MinAreaNameLength = 3,
+        MaxAreaNameLength = 20,
         MinFactionMembers = 3,
         RequireContiguousClaims = false
       };
@@ -5753,6 +6293,18 @@ namespace Oxide.Plugins
   {
     class MapOptions
     {
+      [JsonProperty("pinsEnabled")]
+      public bool PinsEnabled;
+
+      [JsonProperty("minPinNameLength")]
+      public int MinPinNameLength;
+
+      [JsonProperty("maxPinNameLength")]
+      public int MaxPinNameLength;
+
+      [JsonProperty("pinCost")]
+      public int PinCost;
+
       [JsonProperty("commandCooldownSeconds")]
       public int CommandCooldownSeconds;
 
@@ -5763,6 +6315,10 @@ namespace Oxide.Plugins
       public int ImageSize;
 
       public static MapOptions Default = new MapOptions {
+        PinsEnabled = true,
+        MinPinNameLength = 2,
+        MaxPinNameLength = 20,
+        PinCost = 100,
         CommandCooldownSeconds = 10,
         ImageUrl = "",
         ImageSize = 1440
@@ -6392,6 +6948,17 @@ namespace Oxide.Plugins
         };
       }
 
+      public static MapMarker ForPin(Pin pin)
+      {
+        string iconUrl = GetIconForPin(pin);
+        return new MapMarker {
+          IconUrl = iconUrl,
+          Label = pin.Name,
+          X = TranslatePosition(pin.Position.x),
+          Z = TranslatePosition(pin.Position.z)
+        };
+      }
+
       static float TranslatePosition(float pos)
       {
         var mapSize = TerrainMeta.Size.x;
@@ -6419,6 +6986,25 @@ namespace Oxide.Plugins
         if (monument.name.Contains("trainyard")) return Ui.MapIcon.Trainyard;
         if (monument.name.Contains("water_treatment_plant")) return Ui.MapIcon.WaterTreatmentPlant;
         return Ui.MapIcon.Unknown;
+      }
+    }
+
+    static string GetIconForPin(Pin pin)
+    {
+      switch (pin.Type)
+      {
+        case PinType.Arena:
+          return Ui.MapIcon.Arena;
+        case PinType.Hotel:
+          return Ui.MapIcon.Hotel;
+        case PinType.Marina:
+          return Ui.MapIcon.Marina;
+        case PinType.Shop:
+          return Ui.MapIcon.Shop;
+        case PinType.Town:
+          return Ui.MapIcon.Town;
+        default:
+          return Ui.MapIcon.Unknown;
       }
     }
   }
@@ -6480,14 +7066,17 @@ namespace Oxide.Plugins
       public static class MapIcon
       {
         public const string Airfield = ImageBaseUrl + "icons/map/airfield.png";
+        public const string Arena = ImageBaseUrl + "icons/map/arena.png";
         public const string Cave = ImageBaseUrl + "icons/map/cave.png";
         public const string Dome = ImageBaseUrl + "icons/map/dome.png";
         public const string GasStation = ImageBaseUrl + "icons/map/gas-station.png";
         public const string Harbor = ImageBaseUrl + "icons/map/harbor.png";
         public const string Headquarters = ImageBaseUrl + "icons/map/headquarters.png";
+        public const string Hotel = ImageBaseUrl + "icons/map/hotel.png";
         public const string Junkyard = ImageBaseUrl + "icons/map/junkyard.png";
         public const string LaunchSite = ImageBaseUrl + "icons/map/launch-site.png";
         public const string Lighthouse = ImageBaseUrl + "icons/map/lighthouse.png";
+        public const string Marina = ImageBaseUrl + "icons/map/marina.png";
         public const string MilitaryTunnel = ImageBaseUrl + "icons/map/military-tunnel.png";
         public const string MiningOutpost = ImageBaseUrl + "icons/map/mining-outpost.png";
         public const string Player = ImageBaseUrl + "icons/map/player.png";
@@ -6495,6 +7084,7 @@ namespace Oxide.Plugins
         public const string Quarry = ImageBaseUrl + "icons/map/quarry.png";
         public const string SatelliteDish = ImageBaseUrl + "icons/map/satellite-dish.png";
         public const string SewerBranch = ImageBaseUrl + "icons/map/sewer-branch.png";
+        public const string Shop = ImageBaseUrl + "icons/map/shop.png";
         public const string Substation = ImageBaseUrl + "icons/map/substation.png";
         public const string Supermarket = ImageBaseUrl + "icons/map/supermarket.png";
         public const string Town = ImageBaseUrl + "icons/map/town.png";
@@ -6885,6 +7475,9 @@ namespace Oxide.Plugins
           AddMarker(container, MapMarker.ForHeadquarters(area, faction));
         }
 
+        foreach (Pin pin in Instance.Pins.GetAll())
+          AddMarker(container, MapMarker.ForPin(pin));
+
         AddMarker(container, MapMarker.ForUser(User));
 
         container.Add(new CuiButton {
@@ -6913,9 +7506,9 @@ namespace Oxide.Plugins
         if (!String.IsNullOrEmpty(marker.Label))
         {
           container.Add(new CuiLabel {
-            Text = { Text = marker.Label, FontSize = 10, Align = TextAnchor.MiddleCenter, FadeIn = 0 },
+            Text = { Text = marker.Label, FontSize = 8, Align = TextAnchor.MiddleCenter, FadeIn = 0 },
             RectTransform = {
-              AnchorMin = $"{marker.X - 0.1} {marker.Z - iconSize - 0.025}",
+              AnchorMin = $"{marker.X - 0.1} {marker.Z - iconSize - 0.0175}",
               AnchorMax = $"{marker.X + 0.1} {marker.Z - iconSize}"
             }
           }, Ui.Element.Map, Ui.Element.MapLabel + Guid.NewGuid().ToString());

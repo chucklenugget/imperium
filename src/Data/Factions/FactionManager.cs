@@ -28,7 +28,7 @@
         faction = new Faction(id, owner);
         Factions.Add(id, faction);
 
-        Api.HandleFactionCreated(faction);
+        Api.OnFactionCreated(faction);
 
         return faction;
       }
@@ -39,7 +39,7 @@
           user.SetFaction(null);
 
         Factions.Remove(faction.Id);
-        Api.HandleFactionDisbanded(faction);
+        Api.OnFactionDisbanded(faction);
       }
 
       public Faction[] GetAll()
@@ -84,13 +84,13 @@
       public void SetTaxRate(Faction faction, float taxRate)
       {
         faction.TaxRate = taxRate;
-        Api.HandleFactionTaxesChanged(faction);
+        Api.OnFactionTaxesChanged(faction);
       }
 
       public void SetTaxChest(Faction faction, StorageContainer taxChest)
       {
         faction.TaxChest = taxChest;
-        Api.HandleFactionTaxesChanged(faction);
+        Api.OnFactionTaxesChanged(faction);
       }
 
       public void Init(IEnumerable<FactionInfo> factionInfos)

@@ -79,6 +79,11 @@
         return RemoveSpecialCharacters(input.Trim());
       }
 
+      public static string NormalizePinName(string input)
+      {
+        return RemoveSpecialCharacters(input.Trim());
+      }
+
       public static string NormalizeFactionId(string input)
       {
         string factionId = input.Trim();
@@ -91,8 +96,8 @@
 
       public static string RemoveSpecialCharacters(string str)
       {
-        if (string.IsNullOrEmpty(str))
-          return string.Empty;
+        if (String.IsNullOrEmpty(str))
+          return String.Empty;
 
         StringBuilder sb = new StringBuilder(str.Length);
         foreach (char c in str)
@@ -136,6 +141,24 @@
         }
 
         return distance[source.Length, target.Length];
+      }
+
+      public static bool TryParseEnum<T>(string str, out T value) where T : struct
+      {
+        if (!typeof(T).IsEnum)
+          throw new ArgumentException("Type parameter must be an enum");
+
+        foreach (var name in Enum.GetNames(typeof(T)))
+        {
+          if (String.Equals(name, str, StringComparison.OrdinalIgnoreCase))
+          {
+            value = (T)Enum.Parse(typeof(T), name);
+            return true;
+          }
+        }
+
+        value = default(T);
+        return false;
       }
     }
   }

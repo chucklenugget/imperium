@@ -84,6 +84,9 @@
           AddMarker(container, MapMarker.ForHeadquarters(area, faction));
         }
 
+        foreach (Pin pin in Instance.Pins.GetAll())
+          AddMarker(container, MapMarker.ForPin(pin));
+
         AddMarker(container, MapMarker.ForUser(User));
 
         container.Add(new CuiButton {
@@ -112,9 +115,9 @@
         if (!String.IsNullOrEmpty(marker.Label))
         {
           container.Add(new CuiLabel {
-            Text = { Text = marker.Label, FontSize = 10, Align = TextAnchor.MiddleCenter, FadeIn = 0 },
+            Text = { Text = marker.Label, FontSize = 8, Align = TextAnchor.MiddleCenter, FadeIn = 0 },
             RectTransform = {
-              AnchorMin = $"{marker.X - 0.1} {marker.Z - iconSize - 0.025}",
+              AnchorMin = $"{marker.X - 0.1} {marker.Z - iconSize - 0.0175}",
               AnchorMax = $"{marker.X + 0.1} {marker.Z - iconSize}"
             }
           }, Ui.Element.Map, Ui.Element.MapLabel + Guid.NewGuid().ToString());

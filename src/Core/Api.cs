@@ -6,74 +6,84 @@
   {
     static class Api
     {
-      public static void HandleAreaChanged(Area area)
+      public static void OnAreaChanged(Area area)
       {
-        Interface.Call("OnAreaChanged", area);
+        Interface.Call(nameof(OnAreaChanged), area);
       }
 
-      public static void HandleUserEnteredArea(User user, Area area)
+      public static void OnUserEnteredArea(User user, Area area)
       {
-        Interface.Call("OnUserEnteredArea", user, area);
+        Interface.Call(nameof(OnUserEnteredArea), user, area);
       }
 
-      public static void HandleUserLeftArea(User user, Area area)
+      public static void OnUserLeftArea(User user, Area area)
       {
-        Interface.Call("OnUserLeftArea", user, area);
+        Interface.Call(nameof(OnUserLeftArea), user, area);
       }
 
-      public static void HandleUserEnteredZone(User user, Zone zone)
+      public static void OnUserEnteredZone(User user, Zone zone)
       {
-        Interface.Call("OnUserEnteredZone", user, zone);
+        Interface.Call(nameof(OnUserEnteredZone), user, zone);
       }
 
-      public static void HandleUserLeftZone(User user, Zone zone)
+      public static void OnUserLeftZone(User user, Zone zone)
       {
-        Interface.Call("OnUserLeftZone", user, zone);
+        Interface.Call(nameof(OnUserLeftZone), user, zone);
       }
 
-      public static void HandleFactionCreated(Faction faction)
+      public static void OnFactionCreated(Faction faction)
       {
-        Interface.Call("OnFactionCreated", faction);
+        Interface.Call(nameof(OnFactionCreated), faction);
       }
 
-      public static void HandleFactionDisbanded(Faction faction)
+      public static void OnFactionDisbanded(Faction faction)
       {
-        Interface.Call("OnFactionDisbanded", faction);
+        Interface.Call(nameof(OnFactionDisbanded), faction);
       }
 
-      public static void HandleFactionTaxesChanged(Faction faction)
+      public static void OnFactionTaxesChanged(Faction faction)
       {
-        Interface.Call("OnFactionTaxesChanged", faction);
+        Interface.Call(nameof(OnFactionTaxesChanged), faction);
       }
 
-      public static void HandlePlayerJoinedFaction(Faction faction, User user)
+      public static void OnPlayerJoinedFaction(Faction faction, User user)
       {
-        Interface.Call("OnPlayerJoinedFaction", faction, user);
+        Interface.Call(nameof(OnPlayerJoinedFaction), faction, user);
       }
 
-      public static void HandlePlayerLeftFaction(Faction faction, User user)
+      public static void OnPlayerLeftFaction(Faction faction, User user)
       {
-        Interface.Call("OnPlayerLeftFaction", faction, user);
+        Interface.Call(nameof(OnPlayerLeftFaction), faction, user);
       }
 
-      public static void HandlePlayerInvitedToFaction(Faction faction, User user)
+      public static void OnPlayerInvitedToFaction(Faction faction, User user)
       {
-        Interface.Call("OnPlayerInvitedToFaction", faction, user);
+        Interface.Call(nameof(OnPlayerInvitedToFaction), faction, user);
       }
 
-      public static void HandlePlayerUninvitedFromFaction(Faction faction, User user)
+      public static void OnPlayerUninvitedFromFaction(Faction faction, User user)
       {
-        Interface.Call("OnPlayerUninvitedFromFaction", faction, user);
+        Interface.Call(nameof(OnPlayerUninvitedFromFaction), faction, user);
       }
 
-      public static void HandlePlayerPromoted(Faction faction, User user)
+      public static void OnPlayerPromoted(Faction faction, User user)
       {
-        Interface.Call("OnPlayerPromoted", faction, user);
+        Interface.Call(nameof(OnPlayerPromoted), faction, user);
       }
 
-      public static void HandlePlayerDemoted(Faction faction, User user)
+      public static void OnPlayerDemoted(Faction faction, User user)
       {
-        Interface.Call("OnPlayerDemoted", faction, user);
+        Interface.Call(nameof(OnPlayerDemoted), faction, user);
+      }
+
+      public static void OnPinCreated(Pin pin)
+      {
+        Interface.Call(nameof(OnPinCreated), pin);
+      }
+
+      public static void OnPinRemoved(Pin pin)
+      {
+        Interface.Call(nameof(OnPinRemoved), pin);
       }
     }
   }

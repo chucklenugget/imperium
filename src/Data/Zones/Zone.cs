@@ -76,7 +76,7 @@
         var user = collider.GetComponentInParent<User>();
 
         if (user != null && !user.CurrentZones.Contains(this))
-          Api.HandleUserEnteredZone(user, this);
+          Api.OnUserEnteredZone(user, this);
       }
 
       void OnTriggerExit(Collider collider)
@@ -87,7 +87,7 @@
         var user = collider.GetComponentInParent<User>();
 
         if (user != null && user.CurrentZones.Contains(this))
-          Api.HandleUserLeftZone(user, this);
+          Api.OnUserLeftZone(user, this);
       }
 
       void CheckIfShouldDestroy()

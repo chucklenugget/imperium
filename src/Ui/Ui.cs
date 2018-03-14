@@ -55,14 +55,17 @@
       public static class MapIcon
       {
         public const string Airfield = ImageBaseUrl + "icons/map/airfield.png";
+        public const string Arena = ImageBaseUrl + "icons/map/arena.png";
         public const string Cave = ImageBaseUrl + "icons/map/cave.png";
         public const string Dome = ImageBaseUrl + "icons/map/dome.png";
         public const string GasStation = ImageBaseUrl + "icons/map/gas-station.png";
         public const string Harbor = ImageBaseUrl + "icons/map/harbor.png";
         public const string Headquarters = ImageBaseUrl + "icons/map/headquarters.png";
+        public const string Hotel = ImageBaseUrl + "icons/map/hotel.png";
         public const string Junkyard = ImageBaseUrl + "icons/map/junkyard.png";
         public const string LaunchSite = ImageBaseUrl + "icons/map/launch-site.png";
         public const string Lighthouse = ImageBaseUrl + "icons/map/lighthouse.png";
+        public const string Marina = ImageBaseUrl + "icons/map/marina.png";
         public const string MilitaryTunnel = ImageBaseUrl + "icons/map/military-tunnel.png";
         public const string MiningOutpost = ImageBaseUrl + "icons/map/mining-outpost.png";
         public const string Player = ImageBaseUrl + "icons/map/player.png";
@@ -70,6 +73,7 @@
         public const string Quarry = ImageBaseUrl + "icons/map/quarry.png";
         public const string SatelliteDish = ImageBaseUrl + "icons/map/satellite-dish.png";
         public const string SewerBranch = ImageBaseUrl + "icons/map/sewer-branch.png";
+        public const string Shop = ImageBaseUrl + "icons/map/shop.png";
         public const string Substation = ImageBaseUrl + "icons/map/substation.png";
         public const string Supermarket = ImageBaseUrl + "icons/map/supermarket.png";
         public const string Town = ImageBaseUrl + "icons/map/town.png";

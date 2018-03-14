@@ -97,7 +97,7 @@
         area.ClaimantId = claimant.Id;
         area.ClaimCupboard = cupboard;
 
-        Api.HandleAreaChanged(area);
+        Api.OnAreaChanged(area);
       }
 
       public void SetHeadquarters(Area area, Faction faction)
@@ -106,11 +106,11 @@
         foreach (Area otherArea in GetAllClaimedByFaction(faction).Where(a => a.Type == AreaType.Headquarters))
         {
           otherArea.Type = AreaType.Claimed;
-          Api.HandleAreaChanged(otherArea);
+          Api.OnAreaChanged(otherArea);
         }
 
         area.Type = AreaType.Headquarters;
-        Api.HandleAreaChanged(area);
+        Api.OnAreaChanged(area);
       }
 
       public void Unclaim(IEnumerable<Area> areas)
@@ -127,7 +127,7 @@
           area.ClaimantId = null;
           area.ClaimCupboard = null;
 
-          Api.HandleAreaChanged(area);
+          Api.OnAreaChanged(area);
         }
       }
 
@@ -140,7 +140,7 @@
           area.ClaimantId = null;
           area.ClaimCupboard = null;
 
-          Api.HandleAreaChanged(area);
+          Api.OnAreaChanged(area);
         }
       }
 

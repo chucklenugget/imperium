@@ -47,7 +47,12 @@
       object externalResult = Interface.CallHook("CanEntityTakeDamage", new object[] { entity, hit });
 
       if (externalResult != null)
-        return (bool)externalResult;
+      {
+        if ((bool)externalResult == false)
+          return false;
+
+        return null;
+      }
 
       if (hit.damageTypes.Has(Rust.DamageType.Decay))
         return Decay.AlterDecayDamage(entity, hit);
@@ -264,6 +269,7 @@
     void OnAreaChanged(Area area)
     {
       Wars.EndAllWarsForEliminatedFactions();
+      Pins.RemoveAllPinsInUnclaimedAreas();
       Hud.GenerateMapOverlayImage();
       Hud.RefreshForAllPlayers();
     }

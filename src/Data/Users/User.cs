@@ -141,8 +141,8 @@
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
-          Api.HandleUserLeftArea(this, currentArea);
-          Api.HandleUserEnteredArea(this, correctArea);
+          Api.OnUserLeftArea(this, currentArea);
+          Api.OnUserEnteredArea(this, correctArea);
         }
       }
 

@@ -31,10 +31,20 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\Badlands\BadlandsHelp.cs" />
+    <Compile Include="Commands\Pins\Pin.cs" />
+    <Compile Include="Commands\Pins\PinList.cs" />
+    <Compile Include="Commands\Pins\PinHelp.cs" />
+    <Compile Include="Commands\Pins\PinDelete.cs" />
+    <Compile Include="Commands\Pins\PinRemove.cs" />
+    <Compile Include="Commands\Pins\PinAdd.cs" />
     <Compile Include="Commands\Pvp.cs" />
     <Compile Include="Core\Decay.cs" />
     <Compile Include="Core\Raiding.cs" />
     <Compile Include="Core\Upkeep.cs" />
+    <Compile Include="Data\Pins\PinManager.cs" />
+    <Compile Include="Data\Pins\PinInfo.cs" />
+    <Compile Include="Data\Pins\Pin.cs" />
+    <Compile Include="Data\Pins\PinType.cs" />
     <Compile Include="Data\Zones\Zone.cs" />
     <Compile Include="Data\Zones\ZoneManager.cs" />
     <Compile Include="Data\Areas\AreaInfo.cs" />
@@ -92,6 +102,7 @@
     <Compile Include="Data\Zones\ZoneType.cs" />
     <Compile Include="Framework\Permission.cs" />
     <Compile Include="Framework\MonumentPrefab.cs" />
+    <Compile Include="Framework\UnityVector3Converter.cs" />
     <Compile Include="Framework\Util.cs" />
     <Compile Include="Imperium.cs" />
     <Compile Include="Core\Taxes.cs" />

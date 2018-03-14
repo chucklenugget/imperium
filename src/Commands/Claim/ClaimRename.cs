@@ -1,5 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
+  using System;
+
   public partial class Imperium
   {
     void OnClaimRenameCommand(User user, string[] args)
@@ -18,9 +20,9 @@
       var areaId = Util.NormalizeAreaId(args[0]);
       var name = Util.NormalizeAreaName(args[1]);
 
-      if (name == null || name.Length < Options.Claims.MinAreaNameLength)
+      if (name == null || name.Length < Options.Claims.MinAreaNameLength || name.Length > Options.Claims.MaxAreaNameLength)
       {
-        user.SendChatMessage(Messages.InvalidAreaName, Options.Claims.MinAreaNameLength);
+        user.SendChatMessage(Messages.InvalidAreaName, Options.Claims.MinAreaNameLength, Options.Claims.MaxAreaNameLength);
         return;
       }
 

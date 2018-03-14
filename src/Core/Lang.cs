@@ -12,6 +12,7 @@
       public const string BadlandsDisabled = "Badlands are currently disabled.";
       public const string UpkeepDisabled = "Upkeep is currently disabled.";
       public const string WarDisabled = "War is currently disabled.";
+      public const string PinsDisabled = "Map pins are currently disabled.";
       public const string PvpModeDisabled = "PVP Mode is currently not available.";
 
       public const string AreaIsBadlands = "<color=#ffd479>{0}</color> is a part of the badlands.";
@@ -19,7 +20,7 @@
       public const string AreaIsHeadquarters = "<color=#ffd479>{0}</color> is the headquarters of <color=#ffd479>[{1}]</color>.";
       public const string AreaIsWilderness = "<color=#ffd479>{0}</color> has not been claimed by a faction.";
       public const string AreaNotBadlands = "<color=#ffd479>{0}</color> is not a part of the badlands.";
-      public const string AreaNotOwnedByYourFaction = "<color=#ffd479>{0} is not owned by your faction.";
+      public const string AreaNotOwnedByYourFaction = "<color=#ffd479>{0}</color> is not owned by your faction.";
       public const string AreaNotWilderness = "<color=#ffd479>{0}</color> is not currently wilderness.";
       public const string AreaNotContiguous = "<color=#ffd479>{0}</color> is not connected to territory owned by <color=#ffd479>[{1}]</color>.";
 
@@ -41,7 +42,7 @@
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";
       public const string CommandIsOnCooldown = "You can't do that again so quickly. Try again in {0} seconds.";
-      public const string NoPermission = "You don't have permission to do that. If you believe this is incorrect, please contact an admin.";
+      public const string NoPermission = "You don't have permission to do that.";
 
       public const string MemberAdded = "You have added <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
       public const string MemberRemoved = "You have removed <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
@@ -79,7 +80,7 @@
       public const string ClaimRemoved = "You have removed your faction's claim on <color=#ffd479>{0}</color>.";
       public const string ClaimTransferred = "You have transferred ownership of <color=#ffd479>{0}</color> to <color=#ffd479>[{1}]</color>.";
 
-      public const string InvalidAreaName = "An area name must be at least <color=#ffd479>{0}</color> characters long.";
+      public const string InvalidAreaName = "Area names must be between <color=#ffd479>{0}</color> and <color=#ffd479>{1}</color> characters long.";
       public const string UnknownArea = "Unknown area <color=#ffd479>{0}</color>.";
       public const string AreaRenamed = "<color=#ffd479>{0}</color> is now known as <color=#ffd479>{1}</color>.";
 
@@ -112,6 +113,14 @@
       public const string ExitedPvpMode = "<color=#00ff00>PVP DISABLED:</color> You are no longer in PVP mode. You can't be harmed by other players except inside of normal PVP areas.";
       public const string PvpModeOnCooldown = "You must wait at least {0} seconds to exit or re-enter PVP mode.";
 
+      public const string InvalidPinType = "Unknown map pin type <color=#ffd479>{0}</color>. Say <color=#ffd479>/pin types</color> to see a list of available types.";
+      public const string InvalidPinName = "Map pin names must be between <color=#ffd479>{0}</color> and <color=#ffd479>{1}</color> characters long.";
+      public const string CannotCreatePinCannotAfford = "Creating a new map pin costs <color=#ffd479>{0}</color> scrap. Add this amount to your inventory and try again.";
+      public const string CannotCreatePinAlreadyExists = "Cannot create a new map pin named <color=#ffd479>{0}</color>, since one already exists with the same name in <color=#ffd479>{1}</color>.";
+      public const string UnknownPin = "Unknown map pin <color=#ffd479>{0}</color>.";
+      public const string CannotRemovePinAreaNotOwnedByYourFaction = "Cannot remove the map pin named <color=#ffd479>{0}</color>, because the area <color=#ffd479>{1} is not owned by your faction.";
+      public const string PinRemoved = "Removed map pin <color=#ffd479>{0}</color>.";
+
       public const string FactionCreatedAnnouncement = "<color=#00ff00>FACTION CREATED:</color> A new faction <color=#ffd479>[{0}]</color> has been created!";
       public const string FactionDisbandedAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded!";
       public const string FactionMemberJoinedAnnouncement = "<color=#00ff00>MEMBER JOINED:</color> <color=#ffd479>{0}</color> has joined <color=#ffd479>[{1}]</color>!";
@@ -131,6 +140,7 @@
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
       public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended, since <color=#ffd479>[{2}]</color> no longer holds any land.";
+      public const string PinAddedAnnouncement = "<color=#00ff00>POINT OF INTEREST:</color> <color=#ffd479>[{0}]</color> announces the creation of <color=#ffd479>{1}</color>, a new {2} located in <color=#ffd479>{3}</color>!";
     }
 
     void InitLang()

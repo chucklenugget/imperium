@@ -42,6 +42,17 @@
         };
       }
 
+      public static MapMarker ForPin(Pin pin)
+      {
+        string iconUrl = GetIconForPin(pin);
+        return new MapMarker {
+          IconUrl = iconUrl,
+          Label = pin.Name,
+          X = TranslatePosition(pin.Position.x),
+          Z = TranslatePosition(pin.Position.z)
+        };
+      }
+
       static float TranslatePosition(float pos)
       {
         var mapSize = TerrainMeta.Size.x;
@@ -69,6 +80,25 @@
         if (monument.name.Contains("trainyard")) return Ui.MapIcon.Trainyard;
         if (monument.name.Contains("water_treatment_plant")) return Ui.MapIcon.WaterTreatmentPlant;
         return Ui.MapIcon.Unknown;
+      }
+    }
+
+    static string GetIconForPin(Pin pin)
+    {
+      switch (pin.Type)
+      {
+        case PinType.Arena:
+          return Ui.MapIcon.Arena;
+        case PinType.Hotel:
+          return Ui.MapIcon.Hotel;
+        case PinType.Marina:
+          return Ui.MapIcon.Marina;
+        case PinType.Shop:
+          return Ui.MapIcon.Shop;
+        case PinType.Town:
+          return Ui.MapIcon.Town;
+        default:
+          return Ui.MapIcon.Unknown;
       }
     }
   }
