@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.8.0")]
+  [Info("Imperium", "chucklenugget", "1.8.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -3341,10 +3341,17 @@ namespace Oxide.Plugins
 
         Instance.Log($"[UPKEEP] {faction.Id}: {hoursSincePaid} hours since upkeep paid, trying to collect {amountOwed} scrap for {areas.Length} area claims");
 
-        if (faction.TaxChest != null)
+        var headquarters = areas.Where(a => a.Type == AreaType.Headquarters).FirstOrDefault();
+        if (headquarters == null || headquarters.ClaimCupboard == null)
+        {
+          Instance.Log($"[UPKEEP] {faction.Id}: Couldn't collect upkeep, faction has no headquarters");
+        }
+        else
         {
           ItemDefinition scrapDef = ItemManager.FindItemDefinition("scrap");
-          List<Item> stacks = faction.TaxChest.inventory.FindItemsByItemID(scrapDef.itemid);
+          ItemContainer container = headquarters.ClaimCupboard.inventory;
+          List<Item> stacks = container.FindItemsByItemID(scrapDef.itemid);
+
           if (Instance.TryCollectFromStacks(scrapDef, stacks, amountOwed))
           {
             faction.NextUpkeepPaymentTime = faction.NextUpkeepPaymentTime.AddHours(Instance.Options.Upkeep.CollectionPeriodHours);
