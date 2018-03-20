@@ -26,6 +26,9 @@
       if (Options.Taxes.Enabled)
         sb.AppendLine("<color=#ffd479>/tax</color> Manage taxation of your land");
 
+      if (Options.Map.PinsEnabled)
+        sb.AppendLine("<color=#ffd479>/pin</color> Add pins (points of interest) to the map");
+
       if (Options.War.Enabled)
         sb.AppendLine("<color=#ffd479>/war</color> See active wars, declare war, or offer peace");
 
