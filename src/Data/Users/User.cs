@@ -15,6 +15,7 @@
       public BasePlayer Player { get; private set; }
       public UserMap Map { get; private set; }
       public UserHud Hud { get; private set; }
+      public UserPreferences Preferences { get; set; }
 
       public Area CurrentArea { get; set; }
       public HashSet<Zone> CurrentZones { get; private set; }
@@ -45,6 +46,7 @@
         OriginalName = player.displayName;
         CurrentZones = new HashSet<Zone>();
         CommandCooldownExpirations = new Dictionary<string, DateTime>();
+        Preferences = UserPreferences.Default;
 
         Map = new UserMap(this);
         Hud = new UserHud(this);

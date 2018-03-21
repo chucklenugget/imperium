@@ -103,6 +103,9 @@
         if (!String.IsNullOrEmpty(Instance.Options.Map.ImageUrl))
           RegisterImage(Instance.Options.Map.ImageUrl);
 
+        if (!String.IsNullOrEmpty(Instance.Options.Map.ServerLogoUrl))
+          RegisterImage(Instance.Options.Map.ServerLogoUrl);
+
         RegisterDefaultImages(typeof(Ui.HudIcon));
         RegisterDefaultImages(typeof(Ui.MapIcon));
       }

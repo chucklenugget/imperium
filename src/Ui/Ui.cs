@@ -17,13 +17,20 @@
         public const string HudPanelBottom = "Imperium.HudPanel.Bottom";
         public const string HudPanelText = "Imperium.HudPanel.Text";
         public const string HudPanelIcon = "Imperium.HudPanel.Icon";
-        public const string Map = "Imperium.Map";
-        public const string MapCloseButton = "Imperium.Map.CloseButton";
-        public const string MapBackgroundImage = "Imperium.Map.BackgroundImage";
-        public const string MapClaimsImage = "Imperium.Map.ClaimsImage";
-        public const string MapOverlay = "Imperium.Map.Overlay";
-        public const string MapIcon = "Imperium.Map.Icon";
-        public const string MapLabel = "Imperium.Map.Label";
+        public const string Overlay = "Overlay";
+        public const string MapDialog = "Imperium.MapDialog";
+        public const string MapHeader = "Imperium.MapDialog.Header";
+        public const string MapHeaderTitle = "Imperium.MapDialog.Header.Title";
+        public const string MapHeaderCloseButton = "Imperium.MapDialog.Header.CloseButton";
+        public const string MapContainer = "Imperium.MapDialog.MapContainer";
+        public const string MapTerrainImage = "Imperium.MapDialog.MapTerrainImage";
+        public const string MapLayers = "Imperium.MapDialog.MapLayers";
+        public const string MapClaimsImage = "Imperium.MapDialog.MapLayers.ClaimsImage";
+        public const string MapMarkerIcon = "Imperium.MapDialog.MapLayers.MarkerIcon";
+        public const string MapMarkerLabel = "Imperium.MapDialog.MapLayers.MarkerLabel";
+        public const string MapSidebar = "Imperium.MapDialog.Sidebar";
+        public const string MapButton = "Imperium.MapDialog.Sidebar.Button";
+        public const string MapServerLogoImage = "Imperium.MapDialog.Sidebar.ServerLogo";
       }
 
       public static class HudIcon

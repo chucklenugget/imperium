@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.8.1")]
+  [Info("Imperium", "chucklenugget", "1.8.2")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -2046,6 +2046,35 @@ namespace Oxide.Plugins
         return;
 
       user.Hud.Toggle();
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+
+  public partial class Imperium
+  {
+    [ConsoleCommand("imperium.map.togglelayer")]
+    void OnMapToggleLayerConsoleCommand(ConsoleSystem.Arg arg)
+    {
+      var player = arg.Connection.player as BasePlayer;
+      if (player == null) return;
+
+      User user = Users.Get(player);
+      if (user == null) return;
+
+      if (!user.Map.IsVisible)
+        return;
+
+      string str = arg.GetString(0);
+      UserMapLayer layer;
+
+      if (String.IsNullOrEmpty(str) || !Util.TryParseEnum(arg.Args[0], out layer))
+        return;
+
+      user.Preferences.ToggleMapLayer(layer);
+      user.Map.Refresh();
     }
   }
 }
@@ -4525,6 +4554,7 @@ namespace Oxide.Plugins
       public BasePlayer Player { get; private set; }
       public UserMap Map { get; private set; }
       public UserHud Hud { get; private set; }
+      public UserPreferences Preferences { get; set; }
 
       public Area CurrentArea { get; set; }
       public HashSet<Zone> CurrentZones { get; private set; }
@@ -4555,6 +4585,7 @@ namespace Oxide.Plugins
         OriginalName = player.displayName;
         CurrentZones = new HashSet<Zone>();
         CommandCooldownExpirations = new Dictionary<string, DateTime>();
+        Preferences = UserPreferences.Default;
 
         Map = new UserMap(this);
         Hud = new UserHud(this);
@@ -4774,6 +4805,54 @@ namespace Oxide.Plugins
 
         Instance.Puts("User objects destroyed.");
       }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  using System;
+
+  public partial class Imperium
+  {
+    class UserPreferences
+    {
+      public UserMapLayer VisibleMapLayers { get; private set; }
+
+      public void ShowMapLayer(UserMapLayer layer)
+      {
+        VisibleMapLayers |= layer;
+      }
+
+      public void HideMapLayer(UserMapLayer layer)
+      {
+        VisibleMapLayers &= ~layer;
+      }
+
+      public void ToggleMapLayer(UserMapLayer layer)
+      {
+        if (IsMapLayerVisible(layer))
+          HideMapLayer(layer);
+        else
+          ShowMapLayer(layer);
+      }
+
+      public bool IsMapLayerVisible(UserMapLayer layer)
+      {
+        return (VisibleMapLayers & layer) == layer;
+      }
+
+      public static UserPreferences Default = new UserPreferences {
+        VisibleMapLayers = UserMapLayer.Claims | UserMapLayer.Headquarters | UserMapLayer.Monuments | UserMapLayer.Pins
+      };
+    }
+
+    [Flags]
+    enum UserMapLayer
+    {
+      Claims = 1,
+      Headquarters = 2,
+      Monuments = 4,
+      Pins = 8
     }
   }
 }
@@ -5604,7 +5683,7 @@ namespace Oxide.Plugins
 
           for (int row = 0; row < grid.NumberOfCells; row++)
           {
-            graphics.DrawLine(gridLinePen, 0, (row * tileSize), (grid.NumberOfCells * tileSize), (row * tileSize));
+            if (row > 0) graphics.DrawLine(gridLinePen, 0, (row * tileSize), (grid.NumberOfCells * tileSize), (row * tileSize));
             graphics.DrawString(grid.GetRowId(row), gridLabelFont, textBrush, gridLabelOffset, (row * tileSize) + gridLabelOffset);
           }
 
@@ -6329,6 +6408,9 @@ namespace Oxide.Plugins
       [JsonProperty("imageSize")]
       public int ImageSize;
 
+      [JsonProperty("serverLogoUrl")]
+      public string ServerLogoUrl;
+
       public static MapOptions Default = new MapOptions {
         PinsEnabled = true,
         MinPinNameLength = 2,
@@ -6336,7 +6418,8 @@ namespace Oxide.Plugins
         PinCost = 100,
         CommandCooldownSeconds = 10,
         ImageUrl = "",
-        ImageSize = 1440
+        ImageSize = 1440,
+        ServerLogoUrl = ""
       };
     }
   }
@@ -6791,6 +6874,9 @@ namespace Oxide.Plugins
         if (!String.IsNullOrEmpty(Instance.Options.Map.ImageUrl))
           RegisterImage(Instance.Options.Map.ImageUrl);
 
+        if (!String.IsNullOrEmpty(Instance.Options.Map.ServerLogoUrl))
+          RegisterImage(Instance.Options.Map.ServerLogoUrl);
+
         RegisterDefaultImages(typeof(Ui.HudIcon));
         RegisterDefaultImages(typeof(Ui.MapIcon));
       }
@@ -7043,13 +7129,20 @@ namespace Oxide.Plugins
         public const string HudPanelBottom = "Imperium.HudPanel.Bottom";
         public const string HudPanelText = "Imperium.HudPanel.Text";
         public const string HudPanelIcon = "Imperium.HudPanel.Icon";
-        public const string Map = "Imperium.Map";
-        public const string MapCloseButton = "Imperium.Map.CloseButton";
-        public const string MapBackgroundImage = "Imperium.Map.BackgroundImage";
-        public const string MapClaimsImage = "Imperium.Map.ClaimsImage";
-        public const string MapOverlay = "Imperium.Map.Overlay";
-        public const string MapIcon = "Imperium.Map.Icon";
-        public const string MapLabel = "Imperium.Map.Label";
+        public const string Overlay = "Overlay";
+        public const string MapDialog = "Imperium.MapDialog";
+        public const string MapHeader = "Imperium.MapDialog.Header";
+        public const string MapHeaderTitle = "Imperium.MapDialog.Header.Title";
+        public const string MapHeaderCloseButton = "Imperium.MapDialog.Header.CloseButton";
+        public const string MapContainer = "Imperium.MapDialog.MapContainer";
+        public const string MapTerrainImage = "Imperium.MapDialog.MapTerrainImage";
+        public const string MapLayers = "Imperium.MapDialog.MapLayers";
+        public const string MapClaimsImage = "Imperium.MapDialog.MapLayers.ClaimsImage";
+        public const string MapMarkerIcon = "Imperium.MapDialog.MapLayers.MarkerIcon";
+        public const string MapMarkerLabel = "Imperium.MapDialog.MapLayers.MarkerLabel";
+        public const string MapSidebar = "Imperium.MapDialog.Sidebar";
+        public const string MapButton = "Imperium.MapDialog.Sidebar.Button";
+        public const string MapServerLogoImage = "Imperium.MapDialog.Sidebar.ServerLogo";
       }
 
       public static class HudIcon
@@ -7425,13 +7518,15 @@ namespace Oxide.Plugins
 
       public void Show()
       {
-        CuiHelper.AddUi(User.Player, Build());
+        CuiHelper.AddUi(User.Player, BuildDialog());
+        CuiHelper.AddUi(User.Player, BuildSidebar());
+        CuiHelper.AddUi(User.Player, BuildMapLayers());
         IsVisible = true;
       }
 
       public void Hide()
       {
-        CuiHelper.DestroyUi(User.Player, Ui.Element.Map);
+        CuiHelper.DestroyUi(User.Player, Ui.Element.MapDialog);
         IsVisible = false;
       }
 
@@ -7447,68 +7542,208 @@ namespace Oxide.Plugins
       {
         if (IsVisible)
         {
-          CuiHelper.DestroyUi(User.Player, Ui.Element.Map);
-          CuiHelper.AddUi(User.Player, Build());
+          CuiHelper.DestroyUi(User.Player, Ui.Element.MapSidebar);
+          CuiHelper.DestroyUi(User.Player, Ui.Element.MapLayers);
+          CuiHelper.AddUi(User.Player, BuildSidebar());
+          CuiHelper.AddUi(User.Player, BuildMapLayers());
         }
       }
 
-      CuiElementContainer Build()
+      // --- Dialog ---
+
+      CuiElementContainer BuildDialog()
       {
         var container = new CuiElementContainer();
 
         container.Add(new CuiPanel {
-          Image = { Color = "0 0 0 1" },
-          RectTransform = { AnchorMin = "0.188 0.037", AnchorMax = "0.813 0.963" },
+          Image = { Color = "0 0 0 0.75" },
+          RectTransform = { AnchorMin = "0.164 0.014", AnchorMax = "0.836 0.986" },
           CursorEnabled = true
-        }, Ui.Element.Hud, Ui.Element.Map);
+        }, Ui.Element.Overlay, Ui.Element.MapDialog);
+
+        container.Add(new CuiPanel {
+          Image = { Color = "0 0 0 0" },
+          RectTransform = { AnchorMin = "0.012 0.014", AnchorMax = "0.774 0.951" }
+        }, Ui.Element.MapDialog, Ui.Element.MapContainer);
+
+        AddDialogHeader(container);
+        AddMapTerrainImage(container);
+
+        return container;
+      }
+
+      void AddDialogHeader(CuiElementContainer container)
+      {
+        container.Add(new CuiPanel {
+          Image = { Color = "0 0 0 1" },
+          RectTransform = { AnchorMin = "0 0.966", AnchorMax = "0.999 0.999" }
+        }, Ui.Element.MapDialog, Ui.Element.MapHeader);
+
+        container.Add(new CuiLabel {
+          Text = { Text = ConVar.Server.hostname, FontSize = 13, Align = TextAnchor.MiddleLeft, FadeIn = 0 },
+          RectTransform = { AnchorMin = "0.012 0.025", AnchorMax = "0.099 0.917" }
+        }, Ui.Element.MapHeader, Ui.Element.MapHeaderTitle);
+
+        container.Add(new CuiButton {
+          Text = { Text = "X", FontSize = 13, Align = TextAnchor.MiddleCenter },
+          Button = { Color = "0 0 0 0", Command = "imperium.map.toggle", FadeIn = 0 },
+          RectTransform = { AnchorMin = "0.972 0.083", AnchorMax = "0.995 0.917" }
+        }, Ui.Element.MapHeader, Ui.Element.MapHeaderCloseButton);
+      }
+
+      void AddMapTerrainImage(CuiElementContainer container)
+      {
+        CuiRawImageComponent image = Instance.Hud.CreateImageComponent(Instance.Options.Map.ImageUrl);
+
+        // If the image hasn't been loaded, just display a black box so we don't cause an RPC AddUI crash.
+        if (image == null)
+          image = new CuiRawImageComponent { Color = "0 0 0 1" };
 
         container.Add(new CuiElement {
-          Name = Ui.Element.MapBackgroundImage,
-          Parent = Ui.Element.Map,
+          Name = Ui.Element.MapTerrainImage,
+          Parent = Ui.Element.MapContainer,
           Components = {
-            Instance.Hud.CreateImageComponent(Instance.Options.Map.ImageUrl),
+            image,
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
+      }
+
+      // --- Sidebar ---
+
+      CuiElementContainer BuildSidebar()
+      {
+        var container = new CuiElementContainer();
+
+        container.Add(new CuiPanel {
+          Image = { Color = "0 0 0 0" },
+          RectTransform = { AnchorMin = "0.786 0.014", AnchorMax = "0.988 0.951" }
+        }, Ui.Element.MapDialog, Ui.Element.MapSidebar);
+
+        AddLayerToggleButtons(container);
+        AddServerLogo(container);
+
+        return container;
+      }
+
+      void AddLayerToggleButtons(CuiElementContainer container)
+      {
+        container.Add(new CuiButton {
+          Text = { Text = "Land Claims", FontSize = 14, Align = TextAnchor.MiddleCenter },
+          Button = { Color = GetButtonColor(UserMapLayer.Claims), Command = "imperium.map.togglelayer claims", FadeIn = 0 },
+          RectTransform = { AnchorMin = "0 0.924", AnchorMax = "1 1" }
+        }, Ui.Element.MapSidebar, Ui.Element.MapButton + Guid.NewGuid().ToString());
+
+        container.Add(new CuiButton {
+          Text = { Text = "Faction Headquarters", FontSize = 14, Align = TextAnchor.MiddleCenter },
+          Button = { Color = GetButtonColor(UserMapLayer.Headquarters), Command = "imperium.map.togglelayer headquarters", FadeIn = 0 },
+          RectTransform = { AnchorMin = "0 0.832", AnchorMax = "1 0.909" }
+        }, Ui.Element.MapSidebar, Ui.Element.MapButton + Guid.NewGuid().ToString());
+
+        container.Add(new CuiButton {
+          Text = { Text = "Monuments", FontSize = 14, Align = TextAnchor.MiddleCenter },
+          Button = { Color = GetButtonColor(UserMapLayer.Monuments), Command = "imperium.map.togglelayer monuments", FadeIn = 0 },
+          RectTransform = { AnchorMin = "0 0.741", AnchorMax = "1 0.817" }
+        }, Ui.Element.MapSidebar, Ui.Element.MapButton + Guid.NewGuid().ToString());
+
+        container.Add(new CuiButton {
+          Text = { Text = "Pins", FontSize = 14, Align = TextAnchor.MiddleCenter },
+          Button = { Color = GetButtonColor(UserMapLayer.Pins), Command = "imperium.map.togglelayer pins", FadeIn = 0 },
+          RectTransform = { AnchorMin = "0 0.649", AnchorMax = "1 0.726" }
+        }, Ui.Element.MapSidebar, Ui.Element.MapButton + Guid.NewGuid().ToString());
+      }
+
+      void AddServerLogo(CuiElementContainer container)
+      {
+        CuiRawImageComponent image = Instance.Hud.CreateImageComponent(Instance.Options.Map.ServerLogoUrl);
+
+        // If the image hasn't been loaded, just display a black box so we don't cause an RPC AddUI crash.
+        if (image == null)
+          image = new CuiRawImageComponent { Color = "0 0 0 1" };
+
+        container.Add(new CuiElement {
+          Name = Ui.Element.MapServerLogoImage,
+          Parent = Ui.Element.MapSidebar,
+          Components = {
+            image,
+            new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 0.133" }
+          }
+        });
+      }
+
+      // --- Map Layers ---
+
+      CuiElementContainer BuildMapLayers()
+      {
+        var container = new CuiElementContainer();
+
+        container.Add(new CuiPanel {
+          Image = { Color = "0 0 0 0" },
+          RectTransform = { AnchorMin = "0 0", AnchorMax = "1 1" }
+        }, Ui.Element.MapContainer, Ui.Element.MapLayers);
+
+        if (User.Preferences.IsMapLayerVisible(UserMapLayer.Claims))
+          AddClaimsLayer(container);
+
+        if (User.Preferences.IsMapLayerVisible(UserMapLayer.Monuments))
+          AddMonumentsLayer(container);
+
+        if (User.Preferences.IsMapLayerVisible(UserMapLayer.Headquarters))
+          AddHeadquartersLayer(container);
+
+        if (User.Preferences.IsMapLayerVisible(UserMapLayer.Pins))
+          AddPinsLayer(container);
+
+        AddMarker(container, MapMarker.ForUser(User));
+
+        return container;
+      }
+
+      void AddClaimsLayer(CuiElementContainer container)
+      {
+        CuiRawImageComponent image = Instance.Hud.CreateImageComponent(Ui.MapOverlayImageUrl);
+
+        // If the claims overlay hasn't been generated yet, just display a black box so we don't cause an RPC AddUI crash.
+        if (image == null)
+          image = new CuiRawImageComponent { Color = "0 0 0 1" };
 
         container.Add(new CuiElement {
           Name = Ui.Element.MapClaimsImage,
-          Parent = Ui.Element.Map,
+          Parent = Ui.Element.MapLayers,
           Components = {
-            Instance.Hud.CreateImageComponent(Ui.MapOverlayImageUrl),
+            image,
             new CuiRectTransformComponent { AnchorMin = "0 0", AnchorMax = "1 1" }
           }
         });
+      }
 
+      void AddMonumentsLayer(CuiElementContainer container)
+      {
         var monuments = UnityEngine.Object.FindObjectsOfType<MonumentInfo>();
         foreach (MonumentInfo monument in monuments.Where(ShowMonumentOnMap))
           AddMarker(container, MapMarker.ForMonument(monument));
+      }
 
+      void AddHeadquartersLayer(CuiElementContainer container)
+      {
         foreach (Area area in Instance.Areas.GetAllByType(AreaType.Headquarters))
         {
           var faction = Instance.Factions.Get(area.FactionId);
           AddMarker(container, MapMarker.ForHeadquarters(area, faction));
         }
+      }
 
+      void AddPinsLayer(CuiElementContainer container)
+      {
         foreach (Pin pin in Instance.Pins.GetAll())
           AddMarker(container, MapMarker.ForPin(pin));
-
-        AddMarker(container, MapMarker.ForUser(User));
-
-        container.Add(new CuiButton {
-          Text = { Text = "X", FontSize = 14, Align = TextAnchor.MiddleCenter },
-          Button = { Color = "0 0 0 1", Command = "imperium.map.toggle", FadeIn = 0 },
-          RectTransform = { AnchorMin = "0.95 0.961", AnchorMax = "0.999 0.999" }
-        }, Ui.Element.Map, Ui.Element.MapCloseButton);
-
-        return container;
       }
 
       void AddMarker(CuiElementContainer container, MapMarker marker, float iconSize = 0.01f)
       {
         container.Add(new CuiElement {
-          Name = Ui.Element.MapIcon + Guid.NewGuid().ToString(),
-          Parent = Ui.Element.Map,
+          Name = Ui.Element.MapMarkerIcon + Guid.NewGuid().ToString(),
+          Parent = Ui.Element.MapLayers,
           Components = {
             Instance.Hud.CreateImageComponent(marker.IconUrl),
             new CuiRectTransformComponent {
@@ -7526,7 +7761,7 @@ namespace Oxide.Plugins
               AnchorMin = $"{marker.X - 0.1} {marker.Z - iconSize - 0.0175}",
               AnchorMax = $"{marker.X + 0.1} {marker.Z - iconSize}"
             }
-          }, Ui.Element.Map, Ui.Element.MapLabel + Guid.NewGuid().ToString());
+          }, Ui.Element.MapLayers, Ui.Element.MapMarkerLabel + Guid.NewGuid().ToString());
         }
       }
 
@@ -7535,6 +7770,14 @@ namespace Oxide.Plugins
         return monument.Type != MonumentType.Cave
           && !monument.name.Contains("power_sub")
           && !monument.name.Contains("water_well");
+      }
+
+      string GetButtonColor(UserMapLayer layer)
+      {
+        if (User.Preferences.IsMapLayerVisible(layer))
+          return "0 0 0 1";
+        else
+          return "0.33 0.33 0.33 1";
       }
     }
   }

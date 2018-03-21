@@ -27,6 +27,9 @@
       [JsonProperty("imageSize")]
       public int ImageSize;
 
+      [JsonProperty("serverLogoUrl")]
+      public string ServerLogoUrl;
+
       public static MapOptions Default = new MapOptions {
         PinsEnabled = true,
         MinPinNameLength = 2,
@@ -34,7 +37,8 @@
         PinCost = 100,
         CommandCooldownSeconds = 10,
         ImageUrl = "",
-        ImageSize = 1440
+        ImageSize = 1440,
+        ServerLogoUrl = ""
       };
     }
   }
