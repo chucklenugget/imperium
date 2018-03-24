@@ -8,6 +8,8 @@
     static class Pvp
     {
       static string[] BlockedPrefabs = new[] {
+        "fireball_small",
+        "fireball_small_arrow",
         "fireball_small_shotgun",
         "fireexplosion"
       };

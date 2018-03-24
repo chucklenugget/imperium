@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.8.2")]
+  [Info("Imperium", "chucklenugget", "1.8.3")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -2576,8 +2576,8 @@ namespace Oxide.Plugins
       if (attacker != null && defender == null)
         return Raiding.HandleDamageAgainstStructure(attacker, entity, hit);
 
-      // This case shouldn't happen, except if somehow two offline players hit each other?
-      return null;
+      // A structure is taking damage from something that isn't a player.
+      return Raiding.HandleIncidentalDamage(entity, hit);
     }
 
     object OnTrapTrigger(BaseTrap trap, GameObject obj)
@@ -2946,6 +2946,8 @@ namespace Oxide.Plugins
     static class Pvp
     {
       static string[] BlockedPrefabs = new[] {
+        "fireball_small",
+        "fireball_small_arrow",
         "fireball_small_shotgun",
         "fireexplosion"
       };
@@ -3111,6 +3113,13 @@ namespace Oxide.Plugins
         BeingAttacked
       }
 
+      static string[] BlockedPrefabs = new[] {
+        "fireball_small",
+        "fireball_small_arrow",
+        "fireball_small_shotgun",
+        "fireexplosion"
+      };
+
       static string[] ProtectedPrefabs = new[]
       {
         "door.hinged",
@@ -3129,6 +3138,7 @@ namespace Oxide.Plugins
         "woodbox_deployed",
         "mailbox.deployed",
         "dropbox.deployed",
+        "vendingmachine.deployed",
         "box.wooden.large"
       };
 
@@ -3143,7 +3153,8 @@ namespace Oxide.Plugins
         "wall.frame",
         "wall.external",
         "gates.external",
-        "cupboard"
+        "cupboard",
+        "vendingmachine.deployed"
       };
 
       public static object HandleDamageAgainstStructure(User attacker, BaseEntity entity, HitInfo hit)
@@ -3223,6 +3234,33 @@ namespace Oxide.Plugins
 
         // Prevent the damage.
         return DamageResult.Prevent;
+      }
+
+      public static object HandleIncidentalDamage(BaseEntity entity, HitInfo hit)
+      {
+        if (!Instance.Options.Raiding.RestrictRaiding)
+          return null;
+
+        Area area = Instance.Areas.GetByEntityPosition(entity);
+
+        if (area == null)
+        {
+          Instance.PrintWarning("An entity was damaged in an unknown area. This shouldn't happen.");
+          return null;
+        }
+
+        if (hit.Initiator == null)
+          return null;
+
+        // If the damage is coming from something other than a blocked prefab, allow it.
+        if (!BlockedPrefabs.Contains(hit.Initiator.ShortPrefabName))
+          return null;
+
+        // If the player is in a PVP area or in PVP mode, allow the damage.
+        if (IsRaidableArea(area))
+          return null;
+
+        return false;
       }
 
       static bool IsProtectedEntity(BaseEntity entity)

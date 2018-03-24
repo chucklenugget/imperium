@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.8.2")]
+  [Info("Imperium", "chucklenugget", "1.8.3")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;

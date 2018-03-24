@@ -15,6 +15,13 @@
         BeingAttacked
       }
 
+      static string[] BlockedPrefabs = new[] {
+        "fireball_small",
+        "fireball_small_arrow",
+        "fireball_small_shotgun",
+        "fireexplosion"
+      };
+
       static string[] ProtectedPrefabs = new[]
       {
         "door.hinged",
@@ -33,6 +40,7 @@
         "woodbox_deployed",
         "mailbox.deployed",
         "dropbox.deployed",
+        "vendingmachine.deployed",
         "box.wooden.large"
       };
 
@@ -47,7 +55,8 @@
         "wall.frame",
         "wall.external",
         "gates.external",
-        "cupboard"
+        "cupboard",
+        "vendingmachine.deployed"
       };
 
       public static object HandleDamageAgainstStructure(User attacker, BaseEntity entity, HitInfo hit)
@@ -127,6 +136,33 @@
 
         // Prevent the damage.
         return DamageResult.Prevent;
+      }
+
+      public static object HandleIncidentalDamage(BaseEntity entity, HitInfo hit)
+      {
+        if (!Instance.Options.Raiding.RestrictRaiding)
+          return null;
+
+        Area area = Instance.Areas.GetByEntityPosition(entity);
+
+        if (area == null)
+        {
+          Instance.PrintWarning("An entity was damaged in an unknown area. This shouldn't happen.");
+          return null;
+        }
+
+        if (hit.Initiator == null)
+          return null;
+
+        // If the damage is coming from something other than a blocked prefab, allow it.
+        if (!BlockedPrefabs.Contains(hit.Initiator.ShortPrefabName))
+          return null;
+
+        // If the player is in a PVP area or in PVP mode, allow the damage.
+        if (IsRaidableArea(area))
+          return null;
+
+        return false;
       }
 
       static bool IsProtectedEntity(BaseEntity entity)

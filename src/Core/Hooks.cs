@@ -75,8 +75,8 @@
       if (attacker != null && defender == null)
         return Raiding.HandleDamageAgainstStructure(attacker, entity, hit);
 
-      // This case shouldn't happen, except if somehow two offline players hit each other?
-      return null;
+      // A structure is taking damage from something that isn't a player.
+      return Raiding.HandleIncidentalDamage(entity, hit);
     }
 
     object OnTrapTrigger(BaseTrap trap, GameObject obj)
