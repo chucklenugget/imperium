@@ -66,9 +66,9 @@
         string prefix = "";
         char letter = 'A';
 
-        for (int row = 0; row < NumberOfCells; row++)
+        for (int col = 0; col < NumberOfCells; col++)
         {
-          RowIds[row] = prefix + letter;
+          ColumnIds[col] = prefix + letter;
           if (letter == 'Z')
           {
             prefix = "A";
@@ -80,8 +80,8 @@
           }
         }
 
-        for (int col = 0; col < NumberOfCells; col++)
-          ColumnIds[col] = col.ToString();
+        for (int row = 0; row < NumberOfCells; row++)
+          RowIds[row] = row.ToString();
 
         int z = (MapSize / 2) - CellSize;
         for (int row = 0; row < NumberOfCells; row++)
@@ -89,7 +89,7 @@
           int x = -(MapSize / 2);
           for (int col = 0; col < NumberOfCells; col++)
           {
-            var areaId = RowIds[row] + ColumnIds[col];
+            var areaId = ColumnIds[col] + RowIds[row];
             AreaIds[row, col] = areaId;
             Positions[row, col] = new Vector3(x + (CellSize / 2), 0, z + (CellSize / 2));
             x += CellSize;

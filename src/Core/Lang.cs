@@ -37,7 +37,7 @@
       public const string FactionAlreadyExists = "There is already a faction named <color=#ffd479>[{0}]</color>.";
       public const string FactionDoesNotExist = "There is no faction named <color=#ffd479>[{0}]</color>.";
       public const string InvalidUser = "Couldn't find a user whose name matches \"{0}\".";
-      public const string InvalidFactionName = "Faction names must be between 2 and 6 alphanumeric characters.";
+      public const string InvalidFactionName = "Faction names must be between {0} and {1} alphanumeric characters.";
       public const string NotAtWar = "You are not currently at war with <color=#ffd479>[{0}]</color>!";
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";

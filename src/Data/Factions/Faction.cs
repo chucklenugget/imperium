@@ -26,7 +26,7 @@
 
       public bool IsUpkeepPaid
       {
-        get { return DateTime.UtcNow < NextUpkeepPaymentTime; }
+        get { return DateTime.UtcNow <= NextUpkeepPaymentTime + TimeSpan.FromMinutes(Instance.Options.Upkeep.CheckIntervalMinutes); }
       }
 
       public int MemberCount

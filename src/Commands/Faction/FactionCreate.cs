@@ -1,13 +1,9 @@
 ﻿namespace Oxide.Plugins
 {
-  using System.Text.RegularExpressions;
-
   public partial class Imperium
   {
     void OnFactionCreateCommand(User user, string[] args)
     {
-      var idRegex = new Regex("^[a-zA-Z0-9]{2,6}$");
-
       if (!user.HasPermission(Permission.ManageFactions))
       {
         user.SendChatMessage(Messages.NoPermission);
@@ -26,11 +22,11 @@
         return;
       }
 
-      string id = args[0].Trim();
+      string id = Util.RemoveSpecialCharacters(args[0].Replace(" ", ""));
 
-      if (!idRegex.IsMatch(id))
+      if (id.Length < Options.Factions.MinFactionNameLength || id.Length > Options.Factions.MaxFactionNameLength)
       {
-        user.SendChatMessage(Messages.InvalidFactionName);
+        user.SendChatMessage(Messages.InvalidFactionName, Options.Factions.MinFactionNameLength, Options.Factions.MaxFactionNameLength);
         return;
       }
 

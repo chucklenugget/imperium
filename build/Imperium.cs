@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.8.3")]
+  [Info("Imperium", "chucklenugget", "1.8.4")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -1199,14 +1199,10 @@ namespace Oxide.Plugins
   }
 }﻿namespace Oxide.Plugins
 {
-  using System.Text.RegularExpressions;
-
   public partial class Imperium
   {
     void OnFactionCreateCommand(User user, string[] args)
     {
-      var idRegex = new Regex("^[a-zA-Z0-9]{2,6}$");
-
       if (!user.HasPermission(Permission.ManageFactions))
       {
         user.SendChatMessage(Messages.NoPermission);
@@ -1225,11 +1221,11 @@ namespace Oxide.Plugins
         return;
       }
 
-      string id = args[0].Trim();
+      string id = Util.RemoveSpecialCharacters(args[0].Replace(" ", ""));
 
-      if (!idRegex.IsMatch(id))
+      if (id.Length < Options.Factions.MinFactionNameLength || id.Length > Options.Factions.MaxFactionNameLength)
       {
-        user.SendChatMessage(Messages.InvalidFactionName);
+        user.SendChatMessage(Messages.InvalidFactionName, Options.Factions.MinFactionNameLength, Options.Factions.MaxFactionNameLength);
         return;
       }
 
@@ -2820,7 +2816,7 @@ namespace Oxide.Plugins
       public const string FactionAlreadyExists = "There is already a faction named <color=#ffd479>[{0}]</color>.";
       public const string FactionDoesNotExist = "There is no faction named <color=#ffd479>[{0}]</color>.";
       public const string InvalidUser = "Couldn't find a user whose name matches \"{0}\".";
-      public const string InvalidFactionName = "Faction names must be between 2 and 6 alphanumeric characters.";
+      public const string InvalidFactionName = "Faction names must be between {0} and {1} alphanumeric characters.";
       public const string NotAtWar = "You are not currently at war with <color=#ffd479>[{0}]</color>!";
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";
@@ -3122,39 +3118,82 @@ namespace Oxide.Plugins
 
       static string[] ProtectedPrefabs = new[]
       {
-        "door.hinged",
-        "door.double.hinged",
-        "window.bars",
-        "wall.window",
-        "floor.ladder.hatch",
-        "floor.frame",
-        "wall.frame",
-        "shutter",
-        "wall.external",
-        "gates.external",
+        "barricade.concrete",
+        "barricade.metal",
+        "barricade.sandbags",
+        "barricade.stone",
+        "barricade.wood",
+        "barricade.woodwire",
+        "bbq",
+        "bed",
+        "box.wooden.large",
+        "ceilinglight",
+        "chair",
         "cupboard",
-        "waterbarrel",
+        "door.double.hinged",
+        "door.hinged",
+        "dropbox",
+        "fireplace",
+        "floor.frame",
+        "floor.ladder.hatch",
         "fridge",
-        "woodbox_deployed",
-        "mailbox.deployed",
-        "dropbox.deployed",
-        "vendingmachine.deployed",
-        "box.wooden.large"
+        "furnace",
+        "gates.external",
+        "jackolantern",
+        "lantern",
+        "locker",
+        "mailbox",
+        "planter.large",
+        "planter.small",
+        "reactivetarget",
+        "refinery_small",
+        "repairbench",
+        "researchtable",
+        "rug",
+        "searchlight",
+        "shelves",
+        "shutter",
+        "sign.hanging",
+        "sign.huge.wood",
+        "sign.large.wood",
+        "sign.medium.wood",
+        "sign.pictureframe",
+        "sign.pole.banner.large",
+        "sign.post",
+        "sign.small.wood",
+        "small_stash",
+        "spikes.floor",
+        "spinner.wheel",
+        "survivalfishtrap",
+        "table",
+        "tunalight",
+        "vendingmachine",
+        "wall.external",
+        "wall.frame",
+        "wall.window",
+        "water_barrel",
+        "water_catcher",
+        "water_desalinator",
+        "waterbarrel",
+        "waterpurifier",
+        "window.bars",
+        "woodbox",
+        "workbench"
       };
 
       static string[] RaidTriggeringPrefabs = new[]
       {
-        "door.hinged",
+        "cupboard",
         "door.double.hinged",
-        "window.bars",
-        "wall.window",
+        "door.hinged",
         "floor.ladder.hatch",
         "floor.frame",
+        "gates.external",
+        "vendingmachine",
         "wall.frame",
         "wall.external",
-        "gates.external",
-        "cupboard",
-        "vendingmachine.deployed"
+        "wall.window",
+        "window.bars"
       };
 
       public static object HandleDamageAgainstStructure(User attacker, BaseEntity entity, HitInfo hit)
@@ -3992,7 +4031,7 @@ namespace Oxide.Plugins
 
       public bool IsUpkeepPaid
       {
-        get { return DateTime.UtcNow < NextUpkeepPaymentTime; }
+        get { return DateTime.UtcNow <= NextUpkeepPaymentTime + TimeSpan.FromMinutes(Instance.Options.Upkeep.CheckIntervalMinutes); }
       }
 
       public int MemberCount
@@ -4879,9 +4918,15 @@ namespace Oxide.Plugins
         return (VisibleMapLayers & layer) == layer;
       }
 
-      public static UserPreferences Default = new UserPreferences {
-        VisibleMapLayers = UserMapLayer.Claims | UserMapLayer.Headquarters | UserMapLayer.Monuments | UserMapLayer.Pins
-      };
+      public static UserPreferences Default
+      {
+        get
+        {
+          return new UserPreferences {
+            VisibleMapLayers = UserMapLayer.Claims | UserMapLayer.Headquarters | UserMapLayer.Monuments | UserMapLayer.Pins
+          };
+        }
+      }
     }
 
     [Flags]
@@ -5623,9 +5668,9 @@ namespace Oxide.Plugins
         string prefix = "";
         char letter = 'A';
 
-        for (int row = 0; row < NumberOfCells; row++)
+        for (int col = 0; col < NumberOfCells; col++)
         {
-          RowIds[row] = prefix + letter;
+          ColumnIds[col] = prefix + letter;
           if (letter == 'Z')
           {
             prefix = "A";
@@ -5637,8 +5682,8 @@ namespace Oxide.Plugins
           }
         }
 
-        for (int col = 0; col < NumberOfCells; col++)
-          ColumnIds[col] = col.ToString();
+        for (int row = 0; row < NumberOfCells; row++)
+          RowIds[row] = row.ToString();
 
         int z = (MapSize / 2) - CellSize;
         for (int row = 0; row < NumberOfCells; row++)
@@ -5646,7 +5691,7 @@ namespace Oxide.Plugins
           int x = -(MapSize / 2);
           for (int col = 0; col < NumberOfCells; col++)
           {
-            var areaId = RowIds[row] + ColumnIds[col];
+            var areaId = ColumnIds[col] + RowIds[row];
             AreaIds[row, col] = areaId;
             Positions[row, col] = new Vector3(x + (CellSize / 2), 0, z + (CellSize / 2));
             x += CellSize;
@@ -6408,10 +6453,18 @@ namespace Oxide.Plugins
   {
     class FactionOptions
     {
+      [JsonProperty("minFactionNameLength")]
+      public int MinFactionNameLength;
+
+      [JsonProperty("maxFactionNameLength")]
+      public int MaxFactionNameLength;
+
       [JsonProperty("maxMembers")]
       public int? MaxMembers;
 
       public static FactionOptions Default = new FactionOptions {
+        MinFactionNameLength = 1,
+        MaxFactionNameLength = 8,
         MaxMembers = null
       };
     }

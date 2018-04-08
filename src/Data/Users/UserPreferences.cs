@@ -31,9 +31,15 @@
         return (VisibleMapLayers & layer) == layer;
       }
 
-      public static UserPreferences Default = new UserPreferences {
-        VisibleMapLayers = UserMapLayer.Claims | UserMapLayer.Headquarters | UserMapLayer.Monuments | UserMapLayer.Pins
-      };
+      public static UserPreferences Default
+      {
+        get
+        {
+          return new UserPreferences {
+            VisibleMapLayers = UserMapLayer.Claims | UserMapLayer.Headquarters | UserMapLayer.Monuments | UserMapLayer.Pins
+          };
+        }
+      }
     }
 
     [Flags]
