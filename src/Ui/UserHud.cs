@@ -116,16 +116,19 @@
         AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.3f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.25f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.53f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.45f);
 
         string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.78f);
+        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.7f);
 
         string heliIcon = Instance.Hud.GameEvents.IsHelicopterActive ? Ui.HudIcon.HelicopterIndicatorOn : Ui.HudIcon.HelicopterIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.88f);
+        AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.8f);
+
+        string chinookIcon = Instance.Hud.GameEvents.IsChinookOrLockedCrateActive ? Ui.HudIcon.ChinookIndicatorOn : Ui.HudIcon.ChinookIndicatorOff;
+        AddWidget(container, Ui.Element.HudPanelBottom, chinookIcon, 0.9f);
 
         return container;
       }

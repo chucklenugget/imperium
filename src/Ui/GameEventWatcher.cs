@@ -9,40 +9,46 @@
     {
       const float CheckIntervalSeconds = 5f;
 
-      HashSet<BaseHelicopter> Helicopters = new HashSet<BaseHelicopter>();
       HashSet<CargoPlane> CargoPlanes = new HashSet<CargoPlane>();
-
-      public bool IsHelicopterActive
-      {
-        get { return Helicopters.Count > 0; }
-      }
+      HashSet<BaseHelicopter> PatrolHelicopters = new HashSet<BaseHelicopter>();
+      HashSet<CH47Helicopter> ChinookHelicopters = new HashSet<CH47Helicopter>();
+      HashSet<HackableLockedCrate> LockedCrates = new HashSet<HackableLockedCrate>();
 
       public bool IsCargoPlaneActive
       {
         get { return CargoPlanes.Count > 0; }
       }
 
+      public bool IsHelicopterActive
+      {
+        get { return PatrolHelicopters.Count > 0; }
+      }
+
+      public bool IsChinookOrLockedCrateActive
+      {
+        get { return ChinookHelicopters.Count > 0 || LockedCrates.Count > 0; }
+      }
+
       void Awake()
       {
+        foreach (CargoPlane plane in FindObjectsOfType<CargoPlane>())
+          BeginEvent(plane);
+
         foreach (BaseHelicopter heli in FindObjectsOfType<BaseHelicopter>())
           BeginEvent(heli);
 
-        foreach (CargoPlane plane in FindObjectsOfType<CargoPlane>())
-          BeginEvent(plane);
+        foreach (CH47Helicopter chinook in FindObjectsOfType<CH47Helicopter>())
+          BeginEvent(chinook);
+
+        foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>())
+          BeginEvent(crate);
 
         InvokeRepeating("CheckEvents", CheckIntervalSeconds, CheckIntervalSeconds);
       }
 
       void OnDestroy()
       {
-        if (IsInvoking("CheckEvents"))
-          CancelInvoke("CheckEvents");
-      }
-
-      public void BeginEvent(BaseHelicopter heli)
-      {
-        Instance.Puts($"Beginning helicopter event, heli at @ {heli.transform.position}");
-        Helicopters.Add(heli);
+        CancelInvoke();
       }
 
       public void BeginEvent(CargoPlane plane)
@@ -51,9 +57,29 @@
         CargoPlanes.Add(plane);
       }
 
+      public void BeginEvent(BaseHelicopter heli)
+      {
+        Instance.Puts($"Beginning patrol helicopter event, heli at @ {heli.transform.position}");
+        PatrolHelicopters.Add(heli);
+      }
+
+      public void BeginEvent(CH47Helicopter chinook)
+      {
+        Instance.Puts($"Beginning chinook event, heli at @ {chinook.transform.position}");
+        ChinookHelicopters.Add(chinook);
+      }
+
+      public void BeginEvent(HackableLockedCrate crate)
+      {
+        Instance.Puts($"Beginning locked crate event, crate at @ {crate.transform.position}");
+        LockedCrates.Add(crate);
+      }
+
       void CheckEvents()
       {
-        var endedEvents = Helicopters.RemoveWhere(IsEntityGone) + CargoPlanes.RemoveWhere(IsEntityGone);
+        var endedEvents = CargoPlanes.RemoveWhere(IsEntityGone) + PatrolHelicopters.RemoveWhere(IsEntityGone) +
+          ChinookHelicopters.RemoveWhere(IsEntityGone) + LockedCrates.RemoveWhere(IsEntityGone);
+
         if (endedEvents > 0)
           Instance.Hud.RefreshForAllPlayers();
       }

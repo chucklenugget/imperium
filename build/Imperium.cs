@@ -29,7 +29,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.8.4")]
+  [Info("Imperium", "chucklenugget", "1.9.0")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -2612,10 +2612,6 @@ namespace Oxide.Plugins
 
     void OnEntitySpawned(BaseNetworkable entity)
     {
-      var heli = entity as BaseHelicopter;
-      if (heli != null)
-        Hud.GameEvents.BeginEvent(heli);
-
       var plane = entity as CargoPlane;
       if (plane != null)
         Hud.GameEvents.BeginEvent(plane);
@@ -2623,6 +2619,18 @@ namespace Oxide.Plugins
       var drop = entity as SupplyDrop;
       if (Options.Zones.Enabled && drop != null)
         Zones.CreateForSupplyDrop(drop);
+
+      var heli = entity as BaseHelicopter;
+      if (heli != null)
+        Hud.GameEvents.BeginEvent(heli);
+
+      var chinook = entity as CH47Helicopter;
+      if (chinook != null)
+        Hud.GameEvents.BeginEvent(chinook);
+
+      var crate = entity as HackableLockedCrate;
+      if (crate != null)
+        Hud.GameEvents.BeginEvent(crate);
     }
 
     void OnEntityKill(BaseNetworkable networkable)
@@ -3376,6 +3384,9 @@ namespace Oxide.Plugins
         if (area == null || !area.IsClaimed)
           return;
 
+        if (user.Faction != null && area.FactionId == user.Faction.Id)
+          return;
+
         Faction faction = Instance.Factions.Get(area.FactionId);
         if (!faction.CanCollectTaxes || faction.TaxChest.inventory.IsFull())
           return;
@@ -4026,7 +4037,7 @@ namespace Oxide.Plugins
 
       public bool CanCollectTaxes
       {
-        get { return TaxRate != 0 && TaxChest != null; }
+        get { return TaxChest != null; }
       }
 
       public bool IsUpkeepPaid
@@ -6804,40 +6815,46 @@ namespace Oxide.Plugins
     {
       const float CheckIntervalSeconds = 5f;
 
-      HashSet<BaseHelicopter> Helicopters = new HashSet<BaseHelicopter>();
       HashSet<CargoPlane> CargoPlanes = new HashSet<CargoPlane>();
-
-      public bool IsHelicopterActive
-      {
-        get { return Helicopters.Count > 0; }
-      }
+      HashSet<BaseHelicopter> PatrolHelicopters = new HashSet<BaseHelicopter>();
+      HashSet<CH47Helicopter> ChinookHelicopters = new HashSet<CH47Helicopter>();
+      HashSet<HackableLockedCrate> LockedCrates = new HashSet<HackableLockedCrate>();
 
       public bool IsCargoPlaneActive
       {
         get { return CargoPlanes.Count > 0; }
       }
 
+      public bool IsHelicopterActive
+      {
+        get { return PatrolHelicopters.Count > 0; }
+      }
+
+      public bool IsChinookOrLockedCrateActive
+      {
+        get { return ChinookHelicopters.Count > 0 || LockedCrates.Count > 0; }
+      }
+
       void Awake()
       {
+        foreach (CargoPlane plane in FindObjectsOfType<CargoPlane>())
+          BeginEvent(plane);
+
         foreach (BaseHelicopter heli in FindObjectsOfType<BaseHelicopter>())
           BeginEvent(heli);
 
-        foreach (CargoPlane plane in FindObjectsOfType<CargoPlane>())
-          BeginEvent(plane);
+        foreach (CH47Helicopter chinook in FindObjectsOfType<CH47Helicopter>())
+          BeginEvent(chinook);
+
+        foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>())
+          BeginEvent(crate);
 
         InvokeRepeating("CheckEvents", CheckIntervalSeconds, CheckIntervalSeconds);
       }
 
       void OnDestroy()
       {
-        if (IsInvoking("CheckEvents"))
-          CancelInvoke("CheckEvents");
-      }
-
-      public void BeginEvent(BaseHelicopter heli)
-      {
-        Instance.Puts($"Beginning helicopter event, heli at @ {heli.transform.position}");
-        Helicopters.Add(heli);
+        CancelInvoke();
       }
 
       public void BeginEvent(CargoPlane plane)
@@ -6846,9 +6863,29 @@ namespace Oxide.Plugins
         CargoPlanes.Add(plane);
       }
 
+      public void BeginEvent(BaseHelicopter heli)
+      {
+        Instance.Puts($"Beginning patrol helicopter event, heli at @ {heli.transform.position}");
+        PatrolHelicopters.Add(heli);
+      }
+
+      public void BeginEvent(CH47Helicopter chinook)
+      {
+        Instance.Puts($"Beginning chinook event, heli at @ {chinook.transform.position}");
+        ChinookHelicopters.Add(chinook);
+      }
+
+      public void BeginEvent(HackableLockedCrate crate)
+      {
+        Instance.Puts($"Beginning locked crate event, crate at @ {crate.transform.position}");
+        LockedCrates.Add(crate);
+      }
+
       void CheckEvents()
       {
-        var endedEvents = Helicopters.RemoveWhere(IsEntityGone) + CargoPlanes.RemoveWhere(IsEntityGone);
+        var endedEvents = CargoPlanes.RemoveWhere(IsEntityGone) + PatrolHelicopters.RemoveWhere(IsEntityGone) +
+          ChinookHelicopters.RemoveWhere(IsEntityGone) + LockedCrates.RemoveWhere(IsEntityGone);
+
         if (endedEvents > 0)
           Instance.Hud.RefreshForAllPlayers();
       }
@@ -7241,6 +7278,8 @@ namespace Oxide.Plugins
         public const string Badlands = ImageBaseUrl + "icons/hud/badlands.png";
         public const string CargoPlaneIndicatorOn = ImageBaseUrl + "icons/hud/cargoplane-on.png";
         public const string CargoPlaneIndicatorOff = ImageBaseUrl + "icons/hud/cargoplane-off.png";
+        public const string ChinookIndicatorOn = ImageBaseUrl + "icons/hud/chinook-on.png";
+        public const string ChinookIndicatorOff = ImageBaseUrl + "icons/hud/chinook-off.png";
         public const string Claimed = ImageBaseUrl + "icons/hud/claimed.png";
         public const string Clock = ImageBaseUrl + "icons/hud/clock.png";
         public const string Debris = ImageBaseUrl + "icons/hud/debris.png";
@@ -7413,16 +7452,19 @@ namespace Oxide.Plugins
         AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.3f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.25f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.53f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.45f);
 
         string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.78f);
+        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.7f);
 
         string heliIcon = Instance.Hud.GameEvents.IsHelicopterActive ? Ui.HudIcon.HelicopterIndicatorOn : Ui.HudIcon.HelicopterIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.88f);
+        AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.8f);
+
+        string chinookIcon = Instance.Hud.GameEvents.IsChinookOrLockedCrateActive ? Ui.HudIcon.ChinookIndicatorOn : Ui.HudIcon.ChinookIndicatorOff;
+        AddWidget(container, Ui.Element.HudPanelBottom, chinookIcon, 0.9f);
 
         return container;
       }

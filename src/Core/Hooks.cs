@@ -115,10 +115,6 @@
 
     void OnEntitySpawned(BaseNetworkable entity)
     {
-      var heli = entity as BaseHelicopter;
-      if (heli != null)
-        Hud.GameEvents.BeginEvent(heli);
-
       var plane = entity as CargoPlane;
       if (plane != null)
         Hud.GameEvents.BeginEvent(plane);
@@ -126,6 +122,18 @@
       var drop = entity as SupplyDrop;
       if (Options.Zones.Enabled && drop != null)
         Zones.CreateForSupplyDrop(drop);
+
+      var heli = entity as BaseHelicopter;
+      if (heli != null)
+        Hud.GameEvents.BeginEvent(heli);
+
+      var chinook = entity as CH47Helicopter;
+      if (chinook != null)
+        Hud.GameEvents.BeginEvent(chinook);
+
+      var crate = entity as HackableLockedCrate;
+      if (crate != null)
+        Hud.GameEvents.BeginEvent(crate);
     }
 
     void OnEntityKill(BaseNetworkable networkable)

@@ -21,7 +21,7 @@
 
       public bool CanCollectTaxes
       {
-        get { return TaxRate != 0 && TaxChest != null; }
+        get { return TaxChest != null; }
       }
 
       public bool IsUpkeepPaid

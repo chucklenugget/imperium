@@ -38,6 +38,8 @@
         public const string Badlands = ImageBaseUrl + "icons/hud/badlands.png";
         public const string CargoPlaneIndicatorOn = ImageBaseUrl + "icons/hud/cargoplane-on.png";
         public const string CargoPlaneIndicatorOff = ImageBaseUrl + "icons/hud/cargoplane-off.png";
+        public const string ChinookIndicatorOn = ImageBaseUrl + "icons/hud/chinook-on.png";
+        public const string ChinookIndicatorOff = ImageBaseUrl + "icons/hud/chinook-off.png";
         public const string Claimed = ImageBaseUrl + "icons/hud/claimed.png";
         public const string Clock = ImageBaseUrl + "icons/hud/clock.png";
         public const string Debris = ImageBaseUrl + "icons/hud/debris.png";

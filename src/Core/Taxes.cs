@@ -21,6 +21,9 @@
         if (area == null || !area.IsClaimed)
           return;
 
+        if (user.Faction != null && area.FactionId == user.Faction.Id)
+          return;
+
         Faction faction = Instance.Factions.Get(area.FactionId);
         if (!faction.CanCollectTaxes || faction.TaxChest.inventory.IsFull())
           return;
