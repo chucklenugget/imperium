@@ -95,7 +95,7 @@
           AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, GetTopLineTextColor(), taxRate);
         }
 
-        if (Instance.Options.Upkeep.Enabled && User.Faction != null && !User.Faction.IsUpkeepPaid)
+        if (Instance.Options.Upkeep.Enabled && User.Faction != null && User.Faction.IsUpkeepPastDue)
           AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Ruins, GetTopLineTextColor(), "Claim upkeep past due!", 0.3f);
         else if (User.IsInPvpMode)
           AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.PvpMode, GetTopLineTextColor(), "PVP Enabled", 0.3f);

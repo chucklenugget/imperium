@@ -1,5 +1,6 @@
 ﻿namespace Oxide.Plugins
 {
+  using System;
   using System.Collections.Generic;
 
   public partial class Imperium
@@ -55,9 +56,14 @@
           User.SendChatMessage(Messages.ClaimAdded, area.Id);
 
           if (type == AreaType.Headquarters)
+          {
             Instance.PrintToChat(Messages.AreaClaimedAsHeadquartersAnnouncement, Faction.Id, area.Id);
+            Faction.NextUpkeepPaymentTime = DateTime.UtcNow.AddHours(Instance.Options.Upkeep.CollectionPeriodHours);
+          }
           else
+          {
             Instance.PrintToChat(Messages.AreaClaimedAnnouncement, Faction.Id, area.Id);
+          }
 
           Instance.Log($"{Util.Format(User)} claimed {area.Id} on behalf of {Faction.Id}");
           Instance.Areas.Claim(area, type, Faction, User, cupboard);

@@ -30,6 +30,9 @@
 
       [JsonProperty("nextUpkeepPaymentTime")]
       public DateTime NextUpkeepPaymentTime;
+
+      [JsonProperty("isUpkeepPastDue")]
+      public bool IsUpkeepPastDue;
     }
   }
 }

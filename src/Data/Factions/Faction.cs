@@ -18,15 +18,11 @@
       public float TaxRate { get; set; }
       public StorageContainer TaxChest { get; set; }
       public DateTime NextUpkeepPaymentTime { get; set; }
+      public bool IsUpkeepPastDue { get; set; }
 
       public bool CanCollectTaxes
       {
         get { return TaxChest != null; }
-      }
-
-      public bool IsUpkeepPaid
-      {
-        get { return DateTime.UtcNow <= NextUpkeepPaymentTime + TimeSpan.FromMinutes(Instance.Options.Upkeep.CheckIntervalMinutes); }
       }
 
       public int MemberCount
@@ -68,6 +64,7 @@
 
         TaxRate = info.TaxRate;
         NextUpkeepPaymentTime = info.NextUpkeepPaymentTime;
+        IsUpkeepPastDue = info.IsUpkeepPastDue;
 
         Instance.Log($"[LOAD] Faction {Id}: {MemberIds.Count} members, tax chest = {Util.Format(TaxChest)}");
       }

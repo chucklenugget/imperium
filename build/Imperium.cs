@@ -3,14 +3,10 @@
 /*
  * Copyright (C) 2017-2018 chucklenugget
  * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- * associated documentation files (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
- * is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
+ * Valid licensees of this software are granted a revocable, non-exclusive, non-transferable,
+ * limited right to install and use the software on a single game server owned and controlled
+ * by them. You may not distribute this software in any form without explicit written permission
+ * from the licensor, and you may not create derivative works based on this software.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
  * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -29,7 +25,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.9.0")]
+  [Info("Imperium", "chucklenugget", "1.9.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -2364,82 +2360,82 @@ namespace Oxide.Plugins
     {
       public static void OnAreaChanged(Area area)
       {
-        Interface.Call(nameof(OnAreaChanged), area);
+        Interface.CallHook(nameof(OnAreaChanged), area);
       }
 
       public static void OnUserEnteredArea(User user, Area area)
       {
-        Interface.Call(nameof(OnUserEnteredArea), user, area);
+        Interface.CallHook(nameof(OnUserEnteredArea), user, area);
       }
 
       public static void OnUserLeftArea(User user, Area area)
       {
-        Interface.Call(nameof(OnUserLeftArea), user, area);
+        Interface.CallHook(nameof(OnUserLeftArea), user, area);
       }
 
       public static void OnUserEnteredZone(User user, Zone zone)
       {
-        Interface.Call(nameof(OnUserEnteredZone), user, zone);
+        Interface.CallHook(nameof(OnUserEnteredZone), user, zone);
       }
 
       public static void OnUserLeftZone(User user, Zone zone)
       {
-        Interface.Call(nameof(OnUserLeftZone), user, zone);
+        Interface.CallHook(nameof(OnUserLeftZone), user, zone);
       }
 
       public static void OnFactionCreated(Faction faction)
       {
-        Interface.Call(nameof(OnFactionCreated), faction);
+        Interface.CallHook(nameof(OnFactionCreated), faction);
       }
 
       public static void OnFactionDisbanded(Faction faction)
       {
-        Interface.Call(nameof(OnFactionDisbanded), faction);
+        Interface.CallHook(nameof(OnFactionDisbanded), faction);
       }
 
       public static void OnFactionTaxesChanged(Faction faction)
       {
-        Interface.Call(nameof(OnFactionTaxesChanged), faction);
+        Interface.CallHook(nameof(OnFactionTaxesChanged), faction);
       }
 
       public static void OnPlayerJoinedFaction(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerJoinedFaction), faction, user);
+        Interface.CallHook(nameof(OnPlayerJoinedFaction), faction, user);
       }
 
       public static void OnPlayerLeftFaction(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerLeftFaction), faction, user);
+        Interface.CallHook(nameof(OnPlayerLeftFaction), faction, user);
       }
 
       public static void OnPlayerInvitedToFaction(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerInvitedToFaction), faction, user);
+        Interface.CallHook(nameof(OnPlayerInvitedToFaction), faction, user);
       }
 
       public static void OnPlayerUninvitedFromFaction(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerUninvitedFromFaction), faction, user);
+        Interface.CallHook(nameof(OnPlayerUninvitedFromFaction), faction, user);
       }
 
       public static void OnPlayerPromoted(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerPromoted), faction, user);
+        Interface.CallHook(nameof(OnPlayerPromoted), faction, user);
       }
 
       public static void OnPlayerDemoted(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerDemoted), faction, user);
+        Interface.CallHook(nameof(OnPlayerDemoted), faction, user);
       }
 
       public static void OnPinCreated(Pin pin)
       {
-        Interface.Call(nameof(OnPinCreated), pin);
+        Interface.CallHook(nameof(OnPinCreated), pin);
       }
 
       public static void OnPinRemoved(Pin pin)
       {
-        Interface.Call(nameof(OnPinRemoved), pin);
+        Interface.CallHook(nameof(OnPinRemoved), pin);
       }
     }
   }
@@ -3384,9 +3380,6 @@ namespace Oxide.Plugins
         if (area == null || !area.IsClaimed)
           return;
 
-        if (user.Faction != null && area.FactionId == user.Faction.Id)
-          return;
-
         Faction faction = Instance.Factions.Get(area.FactionId);
         if (!faction.CanCollectTaxes || faction.TaxChest.inventory.IsFull())
           return;
@@ -3445,19 +3438,20 @@ namespace Oxide.Plugins
 
       public static void Collect(Faction faction)
       {
+        DateTime now = DateTime.UtcNow;
         Area[] areas = Instance.Areas.GetAllTaxableClaimsByFaction(faction);
 
         if (areas.Length == 0)
           return;
 
-        if (faction.IsUpkeepPaid)
+        if (now < faction.NextUpkeepPaymentTime)
         {
           Instance.Log($"[UPKEEP] {faction.Id}: Upkeep not due until {faction.NextUpkeepPaymentTime}");
           return;
         }
 
         int amountOwed = faction.GetUpkeepPerPeriod();
-        var hoursSincePaid = (int)DateTime.UtcNow.Subtract(faction.NextUpkeepPaymentTime).TotalHours;
+        var hoursSincePaid = (int)now.Subtract(faction.NextUpkeepPaymentTime).TotalHours;
 
         Instance.Log($"[UPKEEP] {faction.Id}: {hoursSincePaid} hours since upkeep paid, trying to collect {amountOwed} scrap for {areas.Length} area claims");
 
@@ -3475,10 +3469,13 @@ namespace Oxide.Plugins
           if (Instance.TryCollectFromStacks(scrapDef, stacks, amountOwed))
           {
             faction.NextUpkeepPaymentTime = faction.NextUpkeepPaymentTime.AddHours(Instance.Options.Upkeep.CollectionPeriodHours);
+            faction.IsUpkeepPastDue = false;
             Instance.Log($"[UPKEEP] {faction.Id}: {amountOwed} scrap upkeep collected, next payment due {faction.NextUpkeepPaymentTime}");
             return;
           }
         }
+
+        faction.IsUpkeepPastDue = true;
 
         if (hoursSincePaid <= Instance.Options.Upkeep.GracePeriodHours)
         {
@@ -4034,15 +4031,11 @@ namespace Oxide.Plugins
       public float TaxRate { get; set; }
       public StorageContainer TaxChest { get; set; }
       public DateTime NextUpkeepPaymentTime { get; set; }
+      public bool IsUpkeepPastDue { get; set; }
 
       public bool CanCollectTaxes
       {
         get { return TaxChest != null; }
-      }
-
-      public bool IsUpkeepPaid
-      {
-        get { return DateTime.UtcNow <= NextUpkeepPaymentTime + TimeSpan.FromMinutes(Instance.Options.Upkeep.CheckIntervalMinutes); }
       }
 
       public int MemberCount
@@ -4084,6 +4077,7 @@ namespace Oxide.Plugins
 
         TaxRate = info.TaxRate;
         NextUpkeepPaymentTime = info.NextUpkeepPaymentTime;
+        IsUpkeepPastDue = info.IsUpkeepPastDue;
 
         Instance.Log($"[LOAD] Faction {Id}: {MemberIds.Count} members, tax chest = {Util.Format(TaxChest)}");
       }
@@ -4329,6 +4323,9 @@ namespace Oxide.Plugins
 
       [JsonProperty("nextUpkeepPaymentTime")]
       public DateTime NextUpkeepPaymentTime;
+
+      [JsonProperty("isUpkeepPastDue")]
+      public bool IsUpkeepPastDue;
     }
   }
 }
@@ -6056,6 +6053,7 @@ namespace Oxide.Plugins
 }
 ﻿namespace Oxide.Plugins
 {
+  using System;
   using System.Collections.Generic;
 
   public partial class Imperium
@@ -6111,9 +6109,14 @@ namespace Oxide.Plugins
           User.SendChatMessage(Messages.ClaimAdded, area.Id);
 
           if (type == AreaType.Headquarters)
+          {
             Instance.PrintToChat(Messages.AreaClaimedAsHeadquartersAnnouncement, Faction.Id, area.Id);
+            Faction.NextUpkeepPaymentTime = DateTime.UtcNow.AddHours(Instance.Options.Upkeep.CollectionPeriodHours);
+          }
           else
+          {
             Instance.PrintToChat(Messages.AreaClaimedAnnouncement, Faction.Id, area.Id);
+          }
 
           Instance.Log($"{Util.Format(User)} claimed {area.Id} on behalf of {Faction.Id}");
           Instance.Areas.Claim(area, type, Faction, User, cupboard);
@@ -7431,7 +7434,7 @@ namespace Oxide.Plugins
           AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, GetTopLineTextColor(), taxRate);
         }
 
-        if (Instance.Options.Upkeep.Enabled && User.Faction != null && !User.Faction.IsUpkeepPaid)
+        if (Instance.Options.Upkeep.Enabled && User.Faction != null && User.Faction.IsUpkeepPastDue)
           AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Ruins, GetTopLineTextColor(), "Claim upkeep past due!", 0.3f);
         else if (User.IsInPvpMode)
           AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.PvpMode, GetTopLineTextColor(), "PVP Enabled", 0.3f);

@@ -16,19 +16,20 @@
 
       public static void Collect(Faction faction)
       {
+        DateTime now = DateTime.UtcNow;
         Area[] areas = Instance.Areas.GetAllTaxableClaimsByFaction(faction);
 
         if (areas.Length == 0)
           return;
 
-        if (faction.IsUpkeepPaid)
+        if (now < faction.NextUpkeepPaymentTime)
         {
           Instance.Log($"[UPKEEP] {faction.Id}: Upkeep not due until {faction.NextUpkeepPaymentTime}");
           return;
         }
 
         int amountOwed = faction.GetUpkeepPerPeriod();
-        var hoursSincePaid = (int)DateTime.UtcNow.Subtract(faction.NextUpkeepPaymentTime).TotalHours;
+        var hoursSincePaid = (int)now.Subtract(faction.NextUpkeepPaymentTime).TotalHours;
 
         Instance.Log($"[UPKEEP] {faction.Id}: {hoursSincePaid} hours since upkeep paid, trying to collect {amountOwed} scrap for {areas.Length} area claims");
 
@@ -46,10 +47,13 @@
           if (Instance.TryCollectFromStacks(scrapDef, stacks, amountOwed))
           {
             faction.NextUpkeepPaymentTime = faction.NextUpkeepPaymentTime.AddHours(Instance.Options.Upkeep.CollectionPeriodHours);
+            faction.IsUpkeepPastDue = false;
             Instance.Log($"[UPKEEP] {faction.Id}: {amountOwed} scrap upkeep collected, next payment due {faction.NextUpkeepPaymentTime}");
             return;
           }
         }
+
+        faction.IsUpkeepPastDue = true;
 
         if (hoursSincePaid <= Instance.Options.Upkeep.GracePeriodHours)
         {

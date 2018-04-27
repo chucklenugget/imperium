@@ -3,14 +3,10 @@
 /*
  * Copyright (C) 2017-2018 chucklenugget
  * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- * associated documentation files (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
- * is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
+ * Valid licensees of this software are granted a revocable, non-exclusive, non-transferable,
+ * limited right to install and use the software on a single game server owned and controlled
+ * by them. You may not distribute this software in any form without explicit written permission
+ * from the licensor, and you may not create derivative works based on this software.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
  * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -29,7 +25,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.9.0")]
+  [Info("Imperium", "chucklenugget", "1.9.1")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;

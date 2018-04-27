@@ -8,82 +8,82 @@
     {
       public static void OnAreaChanged(Area area)
       {
-        Interface.Call(nameof(OnAreaChanged), area);
+        Interface.CallHook(nameof(OnAreaChanged), area);
       }
 
       public static void OnUserEnteredArea(User user, Area area)
       {
-        Interface.Call(nameof(OnUserEnteredArea), user, area);
+        Interface.CallHook(nameof(OnUserEnteredArea), user, area);
       }
 
       public static void OnUserLeftArea(User user, Area area)
       {
-        Interface.Call(nameof(OnUserLeftArea), user, area);
+        Interface.CallHook(nameof(OnUserLeftArea), user, area);
       }
 
       public static void OnUserEnteredZone(User user, Zone zone)
       {
-        Interface.Call(nameof(OnUserEnteredZone), user, zone);
+        Interface.CallHook(nameof(OnUserEnteredZone), user, zone);
       }
 
       public static void OnUserLeftZone(User user, Zone zone)
       {
-        Interface.Call(nameof(OnUserLeftZone), user, zone);
+        Interface.CallHook(nameof(OnUserLeftZone), user, zone);
       }
 
       public static void OnFactionCreated(Faction faction)
       {
-        Interface.Call(nameof(OnFactionCreated), faction);
+        Interface.CallHook(nameof(OnFactionCreated), faction);
       }
 
       public static void OnFactionDisbanded(Faction faction)
       {
-        Interface.Call(nameof(OnFactionDisbanded), faction);
+        Interface.CallHook(nameof(OnFactionDisbanded), faction);
       }
 
       public static void OnFactionTaxesChanged(Faction faction)
       {
-        Interface.Call(nameof(OnFactionTaxesChanged), faction);
+        Interface.CallHook(nameof(OnFactionTaxesChanged), faction);
       }
 
       public static void OnPlayerJoinedFaction(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerJoinedFaction), faction, user);
+        Interface.CallHook(nameof(OnPlayerJoinedFaction), faction, user);
       }
 
       public static void OnPlayerLeftFaction(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerLeftFaction), faction, user);
+        Interface.CallHook(nameof(OnPlayerLeftFaction), faction, user);
       }
 
       public static void OnPlayerInvitedToFaction(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerInvitedToFaction), faction, user);
+        Interface.CallHook(nameof(OnPlayerInvitedToFaction), faction, user);
       }
 
       public static void OnPlayerUninvitedFromFaction(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerUninvitedFromFaction), faction, user);
+        Interface.CallHook(nameof(OnPlayerUninvitedFromFaction), faction, user);
       }
 
       public static void OnPlayerPromoted(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerPromoted), faction, user);
+        Interface.CallHook(nameof(OnPlayerPromoted), faction, user);
       }
 
       public static void OnPlayerDemoted(Faction faction, User user)
       {
-        Interface.Call(nameof(OnPlayerDemoted), faction, user);
+        Interface.CallHook(nameof(OnPlayerDemoted), faction, user);
       }
 
       public static void OnPinCreated(Pin pin)
       {
-        Interface.Call(nameof(OnPinCreated), pin);
+        Interface.CallHook(nameof(OnPinCreated), pin);
       }
 
       public static void OnPinRemoved(Pin pin)
       {
-        Interface.Call(nameof(OnPinRemoved), pin);
+        Interface.CallHook(nameof(OnPinRemoved), pin);
       }
     }
   }
