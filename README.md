@@ -17,11 +17,14 @@ Huge thanks to the authors of ZoneManager, LustyMap and DynamicPVP, which inspir
 ## Development
 
 Pull requests are greatly appreciated. To contribute to the development of Imperium, you'll want to first set up
-a local Rust server. Save yourself some trouble and just put at `C:\rustserver`! Then, follow these steps:
+a local Rust server at `C:\rustserver`. Then, follow these steps:
 
-1. Install the most-current version of Oxide on your local server.
-2. Clone the Imperium repository.
-3. Copy the contents of `C:\rustserver\RustDedicated_Data\Managed` into the `lib` folder of the Imperium repository.
+1. Ensure that your local server has been patched to the most-recent Rust version.
+2. Install the current version of Oxide on your local server.
+
+Imperium previously required copying DLLs from the server installation into the `lib` directory, but it now just
+references the files directly. This requires that you install the local server at `c:\rustserver`, but also removes
+an additional copying step each time Rust or Oxide is patched.
 
 Since Imperium is a rather complex plugin, it would be difficult to keep everything in a single source file. Instead, there is a post-build step that concatenates the files together and writes the "built" file to `build/Imperium.cs`. The post-build step will also copy this file to your local server if it's installed at `C:\rustserver`, meaning you can
 re-build and Oxide will detect the change and re-load Imperium.
