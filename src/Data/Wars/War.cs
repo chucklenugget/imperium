@@ -9,37 +9,54 @@
       public string AttackerId { get; set; }
       public string DefenderId { get; set; }
       public string DeclarerId { get; set; }
-      public string CassusBelli { get; set; }
 
-      public DateTime? AttackerPeaceOfferingTime { get; set; }
-      public DateTime? DefenderPeaceOfferingTime { get; set; }
-
-      public DateTime StartTime { get; private set; }
-      public DateTime? EndTime { get; set; }
+      public WarState State { get; set; }
       public WarEndReason? EndReason { get; set; }
 
-      public bool IsActive
+      public DateTime DeclarationTime { get; private set; }
+      public DateTime? StartTime { get; set; }
+      public DateTime? AttackerPeaceOfferingTime { get; set; }
+      public DateTime? DefenderPeaceOfferingTime { get; set; }
+      public DateTime? EndTime { get; set; }
+
+      public bool HasStarted
       {
-        get { return EndTime == null; }
+        get { return StartTime != null; }
       }
 
-      public bool IsAttackerOfferingPeace
+      public TimeSpan DiplomacyTimeRemaining
       {
-        get { return AttackerPeaceOfferingTime != null; }
+        get
+        {
+          if (Instance.Options.War.DiplomacyHours == 0)
+            return TimeSpan.Zero;
+
+          TimeSpan diplomacyPeriod = TimeSpan.FromHours(Instance.Options.War.DiplomacyHours);
+          TimeSpan elapsed = DateTime.UtcNow.Subtract(DeclarationTime);
+
+          if (elapsed > diplomacyPeriod)
+            return TimeSpan.Zero;
+          else
+            return diplomacyPeriod - elapsed;
+        }
       }
 
-      public bool IsDefenderOfferingPeace
-      {
-        get { return DefenderPeaceOfferingTime != null; }
-      }
-
-      public War(Faction attacker, Faction defender, User declarer, string cassusBelli)
+      public War(Faction attacker, Faction defender, User declarer, bool startImmediately)
       {
         AttackerId = attacker.Id;
         DefenderId = defender.Id;
         DeclarerId = declarer.Id;
-        CassusBelli = cassusBelli;
-        StartTime = DateTime.Now;
+        DeclarationTime = DateTime.Now;
+
+        if (startImmediately)
+        {
+          State = WarState.Started;
+          StartTime = DeclarationTime;
+        }
+        else
+        {
+          State = WarState.Declared;
+        }
       }
 
       public War(WarInfo info)
@@ -47,19 +64,37 @@
         AttackerId = info.AttackerId;
         DefenderId = info.DefenderId;
         DeclarerId = info.DeclarerId;
-        CassusBelli = info.CassusBelli;
+        State = info.State;
+        EndReason = info.EndReason;
+        DeclarationTime = info.DeclarationTime;
         StartTime = info.StartTime;
+        AttackerPeaceOfferingTime = info.AttackerPeaceOfferingTime;
+        DefenderPeaceOfferingTime = info.DefenderPeaceOfferingTime;
         EndTime = info.EndTime;
+      }
+
+      public void Start()
+      {
+        State = WarState.Started;
+        StartTime = DateTime.UtcNow;
       }
 
       public void OfferPeace(Faction faction)
       {
         if (AttackerId == faction.Id)
+        {
+          State = WarState.AttackerOfferingPeace;
           AttackerPeaceOfferingTime = DateTime.Now;
+        }
         else if (DefenderId == faction.Id)
+        {
+          State = WarState.DefenderOfferingPeace;
           DefenderPeaceOfferingTime = DateTime.Now;
+        }
         else
+        {
           throw new InvalidOperationException(String.Format("{0} tried to offer peace but the faction wasn't involved in the war!", faction.Id));
+        }
       }
 
       public bool IsOfferingPeace(Faction faction)
@@ -69,7 +104,8 @@
 
       public bool IsOfferingPeace(string factionId)
       {
-        return (factionId == AttackerId && IsAttackerOfferingPeace) || (factionId == DefenderId && IsDefenderOfferingPeace);
+        return (factionId == AttackerId && State == WarState.AttackerOfferingPeace)
+          || (factionId == DefenderId && State == WarState.DefenderOfferingPeace);
       }
 
       public WarInfo Serialize()
@@ -78,12 +114,13 @@
           AttackerId = AttackerId,
           DefenderId = DefenderId,
           DeclarerId = DeclarerId,
-          CassusBelli = CassusBelli,
+          State = State,
+          EndReason = EndReason,
+          DeclarationTime = DeclarationTime,
+          StartTime = StartTime,
           AttackerPeaceOfferingTime = AttackerPeaceOfferingTime,
           DefenderPeaceOfferingTime = DefenderPeaceOfferingTime,
-          StartTime = StartTime,
-          EndTime = EndTime,
-          EndReason = EndReason
+          EndTime = EndTime
         };
       }
     }

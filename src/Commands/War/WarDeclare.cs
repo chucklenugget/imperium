@@ -29,7 +29,7 @@
         return;
       }
 
-      War existingWar = Wars.GetActiveWarBetween(attacker, defender);
+      War existingWar = Wars.GetWarBetween(attacker, defender);
 
       if (existingWar != null)
       {
@@ -37,17 +37,18 @@
         return;
       }
 
-      string cassusBelli = args[1].Trim();
-
-      if (cassusBelli.Length < Options.War.MinCassusBelliLength)
+      if (Options.War.DiplomacyHours > 0)
       {
-        user.SendChatMessage(Messages.CannotDeclareWarInvalidCassusBelli, defender.Id);
-        return;
+        War war = Wars.DeclareWar(attacker, defender, user, false);
+        PrintToChat(Messages.WarDeclaredWithDiplomacyTimerAnnouncement, war.AttackerId, war.DefenderId, Options.War.DiplomacyHours);
+        Log($"{Util.Format(user)} declared war on faction {war.DefenderId} on behalf of {war.AttackerId} ({Options.War.DiplomacyHours}h wait)");
       }
-
-      War war = Wars.DeclareWar(attacker, defender, user, cassusBelli);
-      PrintToChat(Messages.WarDeclaredAnnouncement, war.AttackerId, war.DefenderId, war.CassusBelli);
-      Log($"{Util.Format(user)} declared war on faction {war.DefenderId} on behalf of {war.AttackerId} for reason: {war.CassusBelli}");
+      else
+      {
+        War war = Wars.DeclareWar(attacker, defender, user, true);
+        PrintToChat(Messages.WarDeclaredAnnouncement, war.AttackerId, war.DefenderId);
+        Log($"{Util.Format(user)} declared war on faction {war.DefenderId} on behalf of {war.AttackerId} (no diplomacy timer)");
+      }
     }
   }
 }

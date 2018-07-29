@@ -40,6 +40,7 @@
     <Compile Include="Commands\Pins\PinAdd.cs" />
     <Compile Include="Commands\Pvp.cs" />
     <Compile Include="Commands\Ui\LayerToggle.cs" />
+    <Compile Include="Commands\War\WarAccept.cs" />
     <Compile Include="Core\Decay.cs" />
     <Compile Include="Core\Raiding.cs" />
     <Compile Include="Core\Upkeep.cs" />
@@ -48,6 +49,7 @@
     <Compile Include="Data\Pins\Pin.cs" />
     <Compile Include="Data\Pins\PinType.cs" />
     <Compile Include="Data\Users\UserPreferences.cs" />
+    <Compile Include="Data\Wars\WarState.cs" />
     <Compile Include="Data\Zones\Zone.cs" />
     <Compile Include="Data\Zones\ZoneManager.cs" />
     <Compile Include="Data\Areas\AreaInfo.cs" />

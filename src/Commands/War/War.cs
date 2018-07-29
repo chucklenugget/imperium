@@ -35,6 +35,9 @@
         case "declare":
           OnWarDeclareCommand(user, restArgs);
           break;
+        case "accept":
+          OnWarAcceptCommand(user, restArgs);
+          break;
         case "end":
           OnWarEndCommand(user, restArgs);
           break;

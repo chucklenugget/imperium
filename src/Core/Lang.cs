@@ -100,8 +100,8 @@
       public const string BadlandsList = "Badlands areas are: <color=#ffd479>{0}</color>. Gather bonus is <color=#ffd479>{1}%</color>.";
 
       public const string CannotDeclareWarAgainstYourself = "You cannot declare war against yourself!";
-      public const string CannotDeclareWarAlreadyAtWar = "You area already at war with <color=#ffd479>[{0}]</color>!";
-      public const string CannotDeclareWarInvalidCassusBelli = "You cannot declare war against <color=#ffd479>[{0}]</color>, because your reason doesn't meet the minimum length.";
+      public const string CannotDeclareWarAlreadyAtWar = "You are already at war with <color=#ffd479>[{0}]</color>!";
+      public const string CannotAcceptWarNotAtWar = "<color=#ffd479>[{0}]</color> has not declared war against your faction!";
       public const string CannotOfferPeaceAlreadyOfferedPeace = "You have already offered peace to <color=#ffd479>[{0}]</color>.";
       public const string PeaceOffered = "You have offered peace to <color=#ffd479>[{0}]</color>. They must accept it before the war will end.";
 
@@ -137,7 +137,10 @@
       public const string AreaClaimLostFactionDisbandedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> <color=#ffd479>[{0}]</color> has been disbanded, losing its claim on <color=#ffd479>{1}</color>!";
       public const string AreaClaimLostUpkeepNotPaidAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color>: <color=#ffd479>[{0}]</color> has lost their claim on <color=#ffd479>{1}</color> after it fell into ruin!";
       public const string HeadquartersChangedAnnouncement = "<color=#00ff00>HQ CHANGED:</color> The headquarters of <color=#ffd479>[{0}]</color> is now <color=#ffd479>{1}</color>.";
-      public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
+      public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>!";
+      public const string WarDeclaredWithDiplomacyTimerAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>. Hostilities shall begin in {2} hours.";
+      public const string WarAcceptedAnnouncement = "<color=#ff0000>WAR STARTED:</color> <color=#ffd479>[{0}]</color> has accepted the challenge from <color=#ffd479>[{1}]</color>. War has begun!";
+      public const string WarStartedAnnouncement = "<color=#ff0000>WAR STARTED:</color> The time for diplomacy has passed. War has begun between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color>!";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
       public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended, since <color=#ffd479>[{2}]</color> no longer holds any land.";
       public const string PinAddedAnnouncement = "<color=#00ff00>POINT OF INTEREST:</color> <color=#ffd479>[{0}]</color> announces the creation of <color=#ffd479>{1}</color>, a new {2} located in <color=#ffd479>{3}</color>!";

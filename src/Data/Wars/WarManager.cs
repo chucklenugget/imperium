@@ -10,29 +10,29 @@
     {
       List<War> Wars = new List<War>();
 
-      public War[] GetAllActiveWars()
+      public War[] GetAllWars()
       {
-        return Wars.Where(war => war.IsActive).OrderBy(war => war.StartTime).ToArray();
+        return Wars.Where(war => war.State != WarState.Ended).OrderBy(war => war.DeclarationTime).ToArray();
       }
 
-      public War[] GetAllActiveWarsByFaction(Faction faction)
+      public War[] GetWarsByFaction(Faction faction)
       {
-        return GetAllActiveWarsByFaction(faction.Id);
+        return GetWarsByFaction(faction.Id);
       }
 
-      public War[] GetAllActiveWarsByFaction(string factionId)
+      public War[] GetWarsByFaction(string factionId)
       {
-        return GetAllActiveWars().Where(war => war.AttackerId == factionId || war.DefenderId == factionId).ToArray();
+        return GetAllWars().Where(war => war.AttackerId == factionId || war.DefenderId == factionId).ToArray();
       }
 
-      public War GetActiveWarBetween(Faction firstFaction, Faction secondFaction)
+      public War GetWarBetween(Faction firstFaction, Faction secondFaction)
       {
-        return GetActiveWarBetween(firstFaction.Id, secondFaction.Id);
+        return GetWarBetween(firstFaction.Id, secondFaction.Id);
       }
 
-      public War GetActiveWarBetween(string firstFactionId, string secondFactionId)
+      public War GetWarBetween(string firstFactionId, string secondFactionId)
       {
-        return GetAllActiveWars().SingleOrDefault(war =>
+        return GetAllWars().SingleOrDefault(war =>
           (war.AttackerId == firstFactionId && war.DefenderId == secondFactionId) ||
           (war.DefenderId == firstFactionId && war.AttackerId == secondFactionId)
         );
@@ -45,13 +45,21 @@
 
       public bool AreFactionsAtWar(string firstFactionId, string secondFactionId)
       {
-        return GetActiveWarBetween(firstFactionId, secondFactionId) != null;
+        War war = GetWarBetween(firstFactionId, secondFactionId);
+        return war != null && war.HasStarted;
       }
 
-      public War DeclareWar(Faction attacker, Faction defender, User user, string cassusBelli)
+      public War DeclareWar(Faction attacker, Faction defender, User user, bool startImmediately)
       {
-        var war = new War(attacker, defender, user, cassusBelli);
+        var war = new War(attacker, defender, user, startImmediately);
         Wars.Add(war);
+        Instance.OnDiplomacyChanged();
+        return war;
+      }
+
+      public War AcceptWar(War war)
+      {
+        war.Start();
         Instance.OnDiplomacyChanged();
         return war;
       }
@@ -61,6 +69,17 @@
         war.EndTime = DateTime.UtcNow;
         war.EndReason = reason;
         Instance.OnDiplomacyChanged();
+      }
+
+      public void CheckDiplomacyTimersForAllWars()
+      {
+        foreach (War war in Wars.Where(w => w.State == WarState.Declared && w.DiplomacyTimeRemaining == TimeSpan.Zero))
+        {
+          war.Start();
+          Instance.PrintToChat(Messages.WarStartedAnnouncement, war.AttackerId, war.DefenderId);
+          Instance.Log($"[WAR] Diplomacy timer ended for war between {war.AttackerId} and {war.DefenderId}, starting war");
+          Instance.OnDiplomacyChanged();
+        }
       }
 
       public void EndAllWarsForEliminatedFactions()
@@ -95,7 +114,7 @@
         {
           var war = new War(info);
           Wars.Add(war);
-          Instance.Log($"[LOAD] War {war.AttackerId} vs {war.DefenderId}, isActive = {war.IsActive}");
+          Instance.Log($"[LOAD] War {war.AttackerId} vs {war.DefenderId}, state = {war.State}");
         }
 
         Instance.Puts("Wars loaded.");

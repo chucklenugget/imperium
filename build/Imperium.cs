@@ -47,6 +47,7 @@ namespace Oxide.Plugins
     GameObject GameObject;
     ImperiumOptions Options;
     Timer UpkeepCollectionTimer;
+    Timer WarTimer;
 
     AreaManager Areas;
     FactionManager Factions;
@@ -123,6 +124,9 @@ namespace Oxide.Plugins
 
       if (Options.Upkeep.Enabled)
         UpkeepCollectionTimer = timer.Every(Options.Upkeep.CheckIntervalMinutes * 60, Upkeep.CollectForAllFactions);
+
+      if (Options.War.Enabled && Options.War.DiplomacyHours > 0)
+        WarTimer = timer.Every(60, Wars.CheckDiplomacyTimersForAllWars);
 
       PrintToChat($"{Title} v{Version} initialized.");
       Ready = true;
@@ -2151,6 +2155,9 @@ namespace Oxide.Plugins
         case "declare":
           OnWarDeclareCommand(user, restArgs);
           break;
+        case "accept":
+          OnWarAcceptCommand(user, restArgs);
+          break;
         case "end":
           OnWarEndCommand(user, restArgs);
           break;
@@ -2158,6 +2165,51 @@ namespace Oxide.Plugins
           OnWarHelpCommand(user);
           break;
       }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnWarAcceptCommand(User user, string[] args)
+    {
+      Faction defender = Factions.GetByMember(user);
+
+      if (!EnsureUserAndFactionCanEngageInDiplomacy(user, defender))
+        return;
+
+      if (args.Length < 1)
+      {
+        user.SendChatMessage(Messages.Usage, "/war accept FACTION");
+        return;
+      }
+
+      Faction attacker = Factions.Get(Util.NormalizeFactionId(args[0]));
+
+      if (attacker == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (defender.Id == attacker.Id)
+      {
+        user.SendChatMessage(Messages.CannotDeclareWarAgainstYourself);
+        return;
+      }
+
+      War war = Wars.GetWarBetween(defender, attacker);
+
+      if (war == null)
+      {
+        user.SendChatMessage(Messages.CannotAcceptWarNotAtWar, attacker.Id);
+        return;
+      }
+
+      Wars.AcceptWar(war);
+      PrintToChat(Messages.WarAcceptedAnnouncement, war.DefenderId, war.AttackerId);
+      Log($"{Util.Format(user)} accepted war from faction {war.AttackerId} on behalf of {war.DefenderId}");
     }
   }
 }
@@ -2192,7 +2244,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      War existingWar = Wars.GetActiveWarBetween(attacker, defender);
+      War existingWar = Wars.GetWarBetween(attacker, defender);
 
       if (existingWar != null)
       {
@@ -2200,17 +2252,18 @@ namespace Oxide.Plugins
         return;
       }
 
-      string cassusBelli = args[1].Trim();
-
-      if (cassusBelli.Length < Options.War.MinCassusBelliLength)
+      if (Options.War.DiplomacyHours > 0)
       {
-        user.SendChatMessage(Messages.CannotDeclareWarInvalidCassusBelli, defender.Id);
-        return;
+        War war = Wars.DeclareWar(attacker, defender, user, false);
+        PrintToChat(Messages.WarDeclaredWithDiplomacyTimerAnnouncement, war.AttackerId, war.DefenderId, Options.War.DiplomacyHours);
+        Log($"{Util.Format(user)} declared war on faction {war.DefenderId} on behalf of {war.AttackerId} ({Options.War.DiplomacyHours}h wait)");
       }
-
-      War war = Wars.DeclareWar(attacker, defender, user, cassusBelli);
-      PrintToChat(Messages.WarDeclaredAnnouncement, war.AttackerId, war.DefenderId, war.CassusBelli);
-      Log($"{Util.Format(user)} declared war on faction {war.DefenderId} on behalf of {war.AttackerId} for reason: {war.CassusBelli}");
+      else
+      {
+        War war = Wars.DeclareWar(attacker, defender, user, true);
+        PrintToChat(Messages.WarDeclaredAnnouncement, war.AttackerId, war.DefenderId);
+        Log($"{Util.Format(user)} declared war on faction {war.DefenderId} on behalf of {war.AttackerId} (no diplomacy timer)");
+      }
     }
   }
 }
@@ -2233,7 +2286,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      War war = Wars.GetActiveWarBetween(faction, enemy);
+      War war = Wars.GetWarBetween(faction, enemy);
 
       if (war == null)
       {
@@ -2247,9 +2300,7 @@ namespace Oxide.Plugins
         return;
       }
 
-      war.OfferPeace(faction);
-
-      if (war.IsAttackerOfferingPeace && war.IsDefenderOfferingPeace)
+      if (war.State == WarState.AttackerOfferingPeace || war.State == WarState.DefenderOfferingPeace)
       {
         PrintToChat(Messages.WarEndedTreatyAcceptedAnnouncement, faction.Id, enemy.Id);
         Log($"{Util.Format(user)} accepted the peace offering of {enemy.Id} on behalf of {faction.Id}");
@@ -2258,6 +2309,7 @@ namespace Oxide.Plugins
       }
       else
       {
+        war.OfferPeace(faction);
         user.SendChatMessage(Messages.PeaceOffered, enemy.Id);
         Log($"{Util.Format(user)} offered peace to faction {enemy.Id} on behalf of {faction.Id}");
       }
@@ -2295,7 +2347,7 @@ namespace Oxide.Plugins
     void OnWarListCommand(User user)
     {
       var sb = new StringBuilder();
-      War[] wars = Wars.GetAllActiveWars();
+      War[] wars = Wars.GetAllWars();
 
       if (wars.Length == 0)
       {
@@ -2307,8 +2359,19 @@ namespace Oxide.Plugins
         for (var idx = 0; idx < wars.Length; idx++)
         {
           War war = wars[idx];
-          sb.AppendFormat("{0}. <color=#ffd479>{1}</color> vs <color=#ffd479>{2}</color>: {2}", (idx + 1), war.AttackerId, war.DefenderId, war.CassusBelli);
+          sb.Append($"{idx + 1}. <color=#ffd479>{war.AttackerId}</color> vs <color=#ffd479>{war.DefenderId}</color>");
+
+          if (war.State == WarState.Declared)
+            sb.AppendFormat(" [begins in {0:hh}h{0:mm}m]", war.DiplomacyTimeRemaining);
+          else if (war.State == WarState.Started)
+            sb.AppendFormat(" [at war for {0:hh}h{0:mm}m]", DateTime.UtcNow.Subtract(war.StartTime.Value));
+
           sb.AppendLine();
+
+          if (war.State == WarState.AttackerOfferingPeace)
+            sb.AppendLine($"    (peace offered by {war.AttackerId})");
+          else if (war.State == WarState.DefenderOfferingPeace)
+            sb.AppendLine($"    (peace offered by {war.DefenderId})");
         }
       }
 
@@ -2334,7 +2397,7 @@ namespace Oxide.Plugins
       }
 
       var sb = new StringBuilder();
-      War[] wars = Wars.GetAllActiveWarsByFaction(faction);
+      War[] wars = Wars.GetWarsByFaction(faction);
 
       if (wars.Length == 0)
       {
@@ -2346,10 +2409,19 @@ namespace Oxide.Plugins
         for (var idx = 0; idx < wars.Length; idx++)
         {
           War war = wars[idx];
-          sb.AppendFormat("{0}. <color=#ffd479>{1}</color> vs <color=#ffd479>{2}</color>", (idx + 1), war.AttackerId, war.DefenderId);
-          if (war.IsAttackerOfferingPeace) sb.AppendFormat(": <color=#ffd479>{0}</color> is offering peace!", war.AttackerId);
-          if (war.IsDefenderOfferingPeace) sb.AppendFormat(": <color=#ffd479>{0}</color> is offering peace!", war.DefenderId);
+          sb.Append($"{idx + 1}. <color=#ffd479>{war.AttackerId}</color> vs <color=#ffd479>{war.DefenderId}</color>");
+
+          if (war.State == WarState.Declared)
+            sb.AppendFormat(" [begins in {0:hh}h{0:mm}m]", war.DiplomacyTimeRemaining);
+          else if (war.State == WarState.Started)
+            sb.AppendFormat(" [at war for {0:hh}h{0:mm}m]", DateTime.UtcNow.Subtract(war.StartTime.Value));
+
           sb.AppendLine();
+
+          if (war.State == WarState.AttackerOfferingPeace)
+            sb.AppendLine($"    (peace offered by {war.AttackerId})");
+          else if (war.State == WarState.DefenderOfferingPeace)
+            sb.AppendLine($"    (peace offered by {war.DefenderId})");
         }
       }
 
@@ -2890,8 +2962,8 @@ namespace Oxide.Plugins
       public const string BadlandsList = "Badlands areas are: <color=#ffd479>{0}</color>. Gather bonus is <color=#ffd479>{1}%</color>.";
 
       public const string CannotDeclareWarAgainstYourself = "You cannot declare war against yourself!";
-      public const string CannotDeclareWarAlreadyAtWar = "You area already at war with <color=#ffd479>[{0}]</color>!";
-      public const string CannotDeclareWarInvalidCassusBelli = "You cannot declare war against <color=#ffd479>[{0}]</color>, because your reason doesn't meet the minimum length.";
+      public const string CannotDeclareWarAlreadyAtWar = "You are already at war with <color=#ffd479>[{0}]</color>!";
+      public const string CannotAcceptWarNotAtWar = "<color=#ffd479>[{0}]</color> has not declared war against your faction!";
       public const string CannotOfferPeaceAlreadyOfferedPeace = "You have already offered peace to <color=#ffd479>[{0}]</color>.";
       public const string PeaceOffered = "You have offered peace to <color=#ffd479>[{0}]</color>. They must accept it before the war will end.";
 
@@ -2927,7 +2999,10 @@ namespace Oxide.Plugins
       public const string AreaClaimLostFactionDisbandedAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color> <color=#ffd479>[{0}]</color> has been disbanded, losing its claim on <color=#ffd479>{1}</color>!";
       public const string AreaClaimLostUpkeepNotPaidAnnouncement = "<color=#ff0000>AREA CLAIM LOST:</color>: <color=#ffd479>[{0}]</color> has lost their claim on <color=#ffd479>{1}</color> after it fell into ruin!";
       public const string HeadquartersChangedAnnouncement = "<color=#00ff00>HQ CHANGED:</color> The headquarters of <color=#ffd479>[{0}]</color> is now <color=#ffd479>{1}</color>.";
-      public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
+      public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>!";
+      public const string WarDeclaredWithDiplomacyTimerAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>. Hostilities shall begin in {2} hours.";
+      public const string WarAcceptedAnnouncement = "<color=#ff0000>WAR STARTED:</color> <color=#ffd479>[{0}]</color> has accepted the challenge from <color=#ffd479>[{1}]</color>. War has begun!";
+      public const string WarStartedAnnouncement = "<color=#ff0000>WAR STARTED:</color> The time for diplomacy has passed. War has begun between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color>!";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
       public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended, since <color=#ffd479>[{2}]</color> no longer holds any land.";
       public const string PinAddedAnnouncement = "<color=#00ff00>POINT OF INTEREST:</color> <color=#ffd479>[{0}]</color> announces the creation of <color=#ffd479>{1}</color>, a new {2} located in <color=#ffd479>{3}</color>!";
@@ -3683,7 +3758,7 @@ namespace Oxide.Plugins
         if (FactionId == null)
           return new War[0];
 
-        return Instance.Wars.GetAllActiveWarsByFaction(FactionId);
+        return Instance.Wars.GetWarsByFaction(FactionId);
       }
 
       public AreaInfo Serialize()
@@ -4965,37 +5040,54 @@ namespace Oxide.Plugins
       public string AttackerId { get; set; }
       public string DefenderId { get; set; }
       public string DeclarerId { get; set; }
-      public string CassusBelli { get; set; }
 
-      public DateTime? AttackerPeaceOfferingTime { get; set; }
-      public DateTime? DefenderPeaceOfferingTime { get; set; }
-
-      public DateTime StartTime { get; private set; }
-      public DateTime? EndTime { get; set; }
+      public WarState State { get; set; }
       public WarEndReason? EndReason { get; set; }
 
-      public bool IsActive
+      public DateTime DeclarationTime { get; private set; }
+      public DateTime? StartTime { get; set; }
+      public DateTime? AttackerPeaceOfferingTime { get; set; }
+      public DateTime? DefenderPeaceOfferingTime { get; set; }
+      public DateTime? EndTime { get; set; }
+
+      public bool HasStarted
       {
-        get { return EndTime == null; }
+        get { return StartTime != null; }
       }
 
-      public bool IsAttackerOfferingPeace
+      public TimeSpan DiplomacyTimeRemaining
       {
-        get { return AttackerPeaceOfferingTime != null; }
+        get
+        {
+          if (Instance.Options.War.DiplomacyHours == 0)
+            return TimeSpan.Zero;
+
+          TimeSpan diplomacyPeriod = TimeSpan.FromHours(Instance.Options.War.DiplomacyHours);
+          TimeSpan elapsed = DateTime.UtcNow.Subtract(DeclarationTime);
+
+          if (elapsed > diplomacyPeriod)
+            return TimeSpan.Zero;
+          else
+            return diplomacyPeriod - elapsed;
+        }
       }
 
-      public bool IsDefenderOfferingPeace
-      {
-        get { return DefenderPeaceOfferingTime != null; }
-      }
-
-      public War(Faction attacker, Faction defender, User declarer, string cassusBelli)
+      public War(Faction attacker, Faction defender, User declarer, bool startImmediately)
       {
         AttackerId = attacker.Id;
         DefenderId = defender.Id;
         DeclarerId = declarer.Id;
-        CassusBelli = cassusBelli;
-        StartTime = DateTime.Now;
+        DeclarationTime = DateTime.Now;
+
+        if (startImmediately)
+        {
+          State = WarState.Started;
+          StartTime = DeclarationTime;
+        }
+        else
+        {
+          State = WarState.Declared;
+        }
       }
 
       public War(WarInfo info)
@@ -5003,19 +5095,37 @@ namespace Oxide.Plugins
         AttackerId = info.AttackerId;
         DefenderId = info.DefenderId;
         DeclarerId = info.DeclarerId;
-        CassusBelli = info.CassusBelli;
+        State = info.State;
+        EndReason = info.EndReason;
+        DeclarationTime = info.DeclarationTime;
         StartTime = info.StartTime;
+        AttackerPeaceOfferingTime = info.AttackerPeaceOfferingTime;
+        DefenderPeaceOfferingTime = info.DefenderPeaceOfferingTime;
         EndTime = info.EndTime;
+      }
+
+      public void Start()
+      {
+        State = WarState.Started;
+        StartTime = DateTime.UtcNow;
       }
 
       public void OfferPeace(Faction faction)
       {
         if (AttackerId == faction.Id)
+        {
+          State = WarState.AttackerOfferingPeace;
           AttackerPeaceOfferingTime = DateTime.Now;
+        }
         else if (DefenderId == faction.Id)
+        {
+          State = WarState.DefenderOfferingPeace;
           DefenderPeaceOfferingTime = DateTime.Now;
+        }
         else
+        {
           throw new InvalidOperationException(String.Format("{0} tried to offer peace but the faction wasn't involved in the war!", faction.Id));
+        }
       }
 
       public bool IsOfferingPeace(Faction faction)
@@ -5025,7 +5135,8 @@ namespace Oxide.Plugins
 
       public bool IsOfferingPeace(string factionId)
       {
-        return (factionId == AttackerId && IsAttackerOfferingPeace) || (factionId == DefenderId && IsDefenderOfferingPeace);
+        return (factionId == AttackerId && State == WarState.AttackerOfferingPeace)
+          || (factionId == DefenderId && State == WarState.DefenderOfferingPeace);
       }
 
       public WarInfo Serialize()
@@ -5034,12 +5145,13 @@ namespace Oxide.Plugins
           AttackerId = AttackerId,
           DefenderId = DefenderId,
           DeclarerId = DeclarerId,
-          CassusBelli = CassusBelli,
+          State = State,
+          EndReason = EndReason,
+          DeclarationTime = DeclarationTime,
+          StartTime = StartTime,
           AttackerPeaceOfferingTime = AttackerPeaceOfferingTime,
           DefenderPeaceOfferingTime = DefenderPeaceOfferingTime,
-          StartTime = StartTime,
-          EndTime = EndTime,
-          EndReason = EndReason
+          EndTime = EndTime
         };
       }
     }
@@ -5076,8 +5188,17 @@ namespace Oxide.Plugins
       [JsonProperty("declarerId")]
       public string DeclarerId;
 
-      [JsonProperty("cassusBelli")]
-      public string CassusBelli;
+      [JsonProperty("state"), JsonConverter(typeof(StringEnumConverter))]
+      public WarState State;
+
+      [JsonProperty("endReason"), JsonConverter(typeof(StringEnumConverter))]
+      public WarEndReason? EndReason;
+
+      [JsonProperty("startTime"), JsonConverter(typeof(IsoDateTimeConverter))]
+      public DateTime DeclarationTime;
+
+      [JsonProperty("startTime"), JsonConverter(typeof(IsoDateTimeConverter))]
+      public DateTime? StartTime;
 
       [JsonProperty("attackerPeaceOfferingTime"), JsonConverter(typeof(IsoDateTimeConverter))]
       public DateTime? AttackerPeaceOfferingTime;
@@ -5085,14 +5206,8 @@ namespace Oxide.Plugins
       [JsonProperty("defenderPeaceOfferingTime"), JsonConverter(typeof(IsoDateTimeConverter))]
       public DateTime? DefenderPeaceOfferingTime;
 
-      [JsonProperty("startTime"), JsonConverter(typeof(IsoDateTimeConverter))]
-      public DateTime StartTime;
-
       [JsonProperty("endTime"), JsonConverter(typeof(IsoDateTimeConverter))]
       public DateTime? EndTime;
-
-      [JsonProperty("endReason"), JsonConverter(typeof(StringEnumConverter))]
-      public WarEndReason? EndReason;
     }
   }
 }
@@ -5108,29 +5223,29 @@ namespace Oxide.Plugins
     {
       List<War> Wars = new List<War>();
 
-      public War[] GetAllActiveWars()
+      public War[] GetAllWars()
       {
-        return Wars.Where(war => war.IsActive).OrderBy(war => war.StartTime).ToArray();
+        return Wars.Where(war => war.State != WarState.Ended).OrderBy(war => war.DeclarationTime).ToArray();
       }
 
-      public War[] GetAllActiveWarsByFaction(Faction faction)
+      public War[] GetWarsByFaction(Faction faction)
       {
-        return GetAllActiveWarsByFaction(faction.Id);
+        return GetWarsByFaction(faction.Id);
       }
 
-      public War[] GetAllActiveWarsByFaction(string factionId)
+      public War[] GetWarsByFaction(string factionId)
       {
-        return GetAllActiveWars().Where(war => war.AttackerId == factionId || war.DefenderId == factionId).ToArray();
+        return GetAllWars().Where(war => war.AttackerId == factionId || war.DefenderId == factionId).ToArray();
       }
 
-      public War GetActiveWarBetween(Faction firstFaction, Faction secondFaction)
+      public War GetWarBetween(Faction firstFaction, Faction secondFaction)
       {
-        return GetActiveWarBetween(firstFaction.Id, secondFaction.Id);
+        return GetWarBetween(firstFaction.Id, secondFaction.Id);
       }
 
-      public War GetActiveWarBetween(string firstFactionId, string secondFactionId)
+      public War GetWarBetween(string firstFactionId, string secondFactionId)
       {
-        return GetAllActiveWars().SingleOrDefault(war =>
+        return GetAllWars().SingleOrDefault(war =>
           (war.AttackerId == firstFactionId && war.DefenderId == secondFactionId) ||
           (war.DefenderId == firstFactionId && war.AttackerId == secondFactionId)
         );
@@ -5143,13 +5258,21 @@ namespace Oxide.Plugins
 
       public bool AreFactionsAtWar(string firstFactionId, string secondFactionId)
       {
-        return GetActiveWarBetween(firstFactionId, secondFactionId) != null;
+        War war = GetWarBetween(firstFactionId, secondFactionId);
+        return war != null && war.HasStarted;
       }
 
-      public War DeclareWar(Faction attacker, Faction defender, User user, string cassusBelli)
+      public War DeclareWar(Faction attacker, Faction defender, User user, bool startImmediately)
       {
-        var war = new War(attacker, defender, user, cassusBelli);
+        var war = new War(attacker, defender, user, startImmediately);
         Wars.Add(war);
+        Instance.OnDiplomacyChanged();
+        return war;
+      }
+
+      public War AcceptWar(War war)
+      {
+        war.Start();
         Instance.OnDiplomacyChanged();
         return war;
       }
@@ -5159,6 +5282,17 @@ namespace Oxide.Plugins
         war.EndTime = DateTime.UtcNow;
         war.EndReason = reason;
         Instance.OnDiplomacyChanged();
+      }
+
+      public void CheckDiplomacyTimersForAllWars()
+      {
+        foreach (War war in Wars.Where(w => w.State == WarState.Declared && w.DiplomacyTimeRemaining == TimeSpan.Zero))
+        {
+          war.Start();
+          Instance.PrintToChat(Messages.WarStartedAnnouncement, war.AttackerId, war.DefenderId);
+          Instance.Log($"[WAR] Diplomacy timer ended for war between {war.AttackerId} and {war.DefenderId}, starting war");
+          Instance.OnDiplomacyChanged();
+        }
       }
 
       public void EndAllWarsForEliminatedFactions()
@@ -5193,7 +5327,7 @@ namespace Oxide.Plugins
         {
           var war = new War(info);
           Wars.Add(war);
-          Instance.Log($"[LOAD] War {war.AttackerId} vs {war.DefenderId}, isActive = {war.IsActive}");
+          Instance.Log($"[LOAD] War {war.AttackerId} vs {war.DefenderId}, state = {war.State}");
         }
 
         Instance.Puts("Wars loaded.");
@@ -5211,6 +5345,20 @@ namespace Oxide.Plugins
     }
   }
 }﻿namespace Oxide.Plugins
+{
+  public partial class Imperium : RustPlugin
+  {
+    enum WarState
+    {
+      Declared,
+      Started,
+      AttackerOfferingPeace,
+      DefenderOfferingPeace,
+      Ended
+    }
+  }
+}
+﻿namespace Oxide.Plugins
 {
   using Rust;
   using System;
@@ -6759,12 +6907,16 @@ namespace Oxide.Plugins
       [JsonProperty("minCassusBelliLength")]
       public int MinCassusBelliLength;
 
+      [JsonProperty("delayHours")]
+      public int DiplomacyHours;
+
       [JsonProperty("defensiveBonuses")]
       public List<float> DefensiveBonuses = new List<float>();
 
       public static WarOptions Default = new WarOptions {
         Enabled = true,
         MinCassusBelliLength = 50,
+        DiplomacyHours = 24,
         DefensiveBonuses = new List<float> { 0, 0.5f, 1f }
       };
     }

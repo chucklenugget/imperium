@@ -181,7 +181,7 @@
         if (FactionId == null)
           return new War[0];
 
-        return Instance.Wars.GetAllActiveWarsByFaction(FactionId);
+        return Instance.Wars.GetWarsByFaction(FactionId);
       }
 
       public AreaInfo Serialize()

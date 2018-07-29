@@ -47,6 +47,7 @@ namespace Oxide.Plugins
     GameObject GameObject;
     ImperiumOptions Options;
     Timer UpkeepCollectionTimer;
+    Timer WarTimer;
 
     AreaManager Areas;
     FactionManager Factions;
@@ -123,6 +124,9 @@ namespace Oxide.Plugins
 
       if (Options.Upkeep.Enabled)
         UpkeepCollectionTimer = timer.Every(Options.Upkeep.CheckIntervalMinutes * 60, Upkeep.CollectForAllFactions);
+
+      if (Options.War.Enabled && Options.War.DiplomacyHours > 0)
+        WarTimer = timer.Every(60, Wars.CheckDiplomacyTimersForAllWars);
 
       PrintToChat($"{Title} v{Version} initialized.");
       Ready = true;
