@@ -16,7 +16,7 @@
       }
 
       var sb = new StringBuilder();
-      War[] wars = Wars.GetAllActiveWarsByFaction(faction);
+      War[] wars = Wars.GetWarsByFaction(faction);
 
       if (wars.Length == 0)
       {
@@ -28,10 +28,19 @@
         for (var idx = 0; idx < wars.Length; idx++)
         {
           War war = wars[idx];
-          sb.AppendFormat("{0}. <color=#ffd479>{1}</color> vs <color=#ffd479>{2}</color>", (idx + 1), war.AttackerId, war.DefenderId);
-          if (war.IsAttackerOfferingPeace) sb.AppendFormat(": <color=#ffd479>{0}</color> is offering peace!", war.AttackerId);
-          if (war.IsDefenderOfferingPeace) sb.AppendFormat(": <color=#ffd479>{0}</color> is offering peace!", war.DefenderId);
+          sb.Append($"{idx + 1}. <color=#ffd479>{war.AttackerId}</color> vs <color=#ffd479>{war.DefenderId}</color>");
+
+          if (war.State == WarState.Declared)
+            sb.AppendFormat(" [begins in {0:hh}h{0:mm}m]", war.DiplomacyTimeRemaining);
+          else if (war.State == WarState.Started)
+            sb.AppendFormat(" [at war for {0:hh}h{0:mm}m]", DateTime.UtcNow.Subtract(war.StartTime.Value));
+
           sb.AppendLine();
+
+          if (war.State == WarState.AttackerOfferingPeace)
+            sb.AppendLine($"    (peace offered by {war.AttackerId})");
+          else if (war.State == WarState.DefenderOfferingPeace)
+            sb.AppendLine($"    (peace offered by {war.DefenderId})");
         }
       }
 

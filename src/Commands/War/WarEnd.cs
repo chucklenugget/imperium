@@ -17,7 +17,7 @@
         return;
       }
 
-      War war = Wars.GetActiveWarBetween(faction, enemy);
+      War war = Wars.GetWarBetween(faction, enemy);
 
       if (war == null)
       {
@@ -31,9 +31,7 @@
         return;
       }
 
-      war.OfferPeace(faction);
-
-      if (war.IsAttackerOfferingPeace && war.IsDefenderOfferingPeace)
+      if (war.State == WarState.AttackerOfferingPeace || war.State == WarState.DefenderOfferingPeace)
       {
         PrintToChat(Messages.WarEndedTreatyAcceptedAnnouncement, faction.Id, enemy.Id);
         Log($"{Util.Format(user)} accepted the peace offering of {enemy.Id} on behalf of {faction.Id}");
@@ -42,6 +40,7 @@
       }
       else
       {
+        war.OfferPeace(faction);
         user.SendChatMessage(Messages.PeaceOffered, enemy.Id);
         Log($"{Util.Format(user)} offered peace to faction {enemy.Id} on behalf of {faction.Id}");
       }
