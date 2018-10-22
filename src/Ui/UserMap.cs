@@ -270,7 +270,9 @@
       {
         return monument.Type != MonumentType.Cave
           && !monument.name.Contains("power_sub")
-          && !monument.name.Contains("water_well");
+          && !monument.name.Contains("water_well")
+          && !monument.name.Contains("swamp")
+          && !monument.name.Contains("ice_lake");
       }
 
       string GetButtonColor(UserMapLayer layer)

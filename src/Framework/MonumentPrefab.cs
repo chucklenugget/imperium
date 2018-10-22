@@ -7,6 +7,8 @@
       const string PrefabPrefix = "assets/bundled/prefabs/autospawn/monument/";
 
       public const string Airfield = PrefabPrefix + "large/airfield_1.prefab";
+      public const string BanditTown = PrefabPrefix + "medium/bandit_town.prefab";
+      public const string Compound = PrefabPrefix + "medium/compound.prefab";
       public const string Dome = PrefabPrefix + "small/sphere_tank.prefab";
       public const string Harbor1 = PrefabPrefix + "harbor/harbor_1.prefab";
       public const string Harbor2 = PrefabPrefix + "harbor/harbor_2.prefab";

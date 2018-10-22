@@ -63,6 +63,8 @@
       {
         if (monument.Type == MonumentType.Cave) return Ui.MapIcon.Cave;
         if (monument.name.Contains("airfield")) return Ui.MapIcon.Airfield;
+        if (monument.name.Contains("bandit_town")) return Ui.MapIcon.BanditTown;
+        if (monument.name.Contains("compound")) return Ui.MapIcon.Compound;
         if (monument.name.Contains("sphere_tank")) return Ui.MapIcon.Dome;
         if (monument.name.Contains("harbor")) return Ui.MapIcon.Harbor;
         if (monument.name.Contains("gas_station")) return Ui.MapIcon.GasStation;

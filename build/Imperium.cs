@@ -32,7 +32,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.9.2")]
+  [Info("Imperium", "chucklenugget", "1.9.3")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -5814,6 +5814,8 @@ namespace Oxide.Plugins
       const string PrefabPrefix = "assets/bundled/prefabs/autospawn/monument/";
 
       public const string Airfield = PrefabPrefix + "large/airfield_1.prefab";
+      public const string BanditTown = PrefabPrefix + "medium/bandit_town.prefab";
+      public const string Compound = PrefabPrefix + "medium/compound.prefab";
       public const string Dome = PrefabPrefix + "small/sphere_tank.prefab";
       public const string Harbor1 = PrefabPrefix + "harbor/harbor_1.prefab";
       public const string Harbor2 = PrefabPrefix + "harbor/harbor_2.prefab";
@@ -7208,6 +7210,8 @@ namespace Oxide.Plugins
       {
         if (monument.Type == MonumentType.Cave) return Ui.MapIcon.Cave;
         if (monument.name.Contains("airfield")) return Ui.MapIcon.Airfield;
+        if (monument.name.Contains("bandit_town")) return Ui.MapIcon.BanditTown;
+        if (monument.name.Contains("compound")) return Ui.MapIcon.Compound;
         if (monument.name.Contains("sphere_tank")) return Ui.MapIcon.Dome;
         if (monument.name.Contains("harbor")) return Ui.MapIcon.Harbor;
         if (monument.name.Contains("gas_station")) return Ui.MapIcon.GasStation;
@@ -7315,7 +7319,9 @@ namespace Oxide.Plugins
       {
         public const string Airfield = ImageBaseUrl + "icons/map/airfield.png";
         public const string Arena = ImageBaseUrl + "icons/map/arena.png";
+        public const string BanditTown = ImageBaseUrl + "icons/map/bandit-town.png";
         public const string Cave = ImageBaseUrl + "icons/map/cave.png";
+        public const string Compound = ImageBaseUrl + "icons/map/compound.png";
         public const string Dome = ImageBaseUrl + "icons/map/dome.png";
         public const string GasStation = ImageBaseUrl + "icons/map/gas-station.png";
         public const string Harbor = ImageBaseUrl + "icons/map/harbor.png";
@@ -7912,7 +7918,9 @@ namespace Oxide.Plugins
       {
         return monument.Type != MonumentType.Cave
           && !monument.name.Contains("power_sub")
-          && !monument.name.Contains("water_well");
+          && !monument.name.Contains("water_well")
+          && !monument.name.Contains("swamp")
+          && !monument.name.Contains("ice_lake");
       }
 
       string GetButtonColor(UserMapLayer layer)

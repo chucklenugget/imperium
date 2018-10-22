@@ -65,7 +65,9 @@
       {
         public const string Airfield = ImageBaseUrl + "icons/map/airfield.png";
         public const string Arena = ImageBaseUrl + "icons/map/arena.png";
+        public const string BanditTown = ImageBaseUrl + "icons/map/bandit-town.png";
         public const string Cave = ImageBaseUrl + "icons/map/cave.png";
+        public const string Compound = ImageBaseUrl + "icons/map/compound.png";
         public const string Dome = ImageBaseUrl + "icons/map/dome.png";
         public const string GasStation = ImageBaseUrl + "icons/map/gas-station.png";
         public const string Harbor = ImageBaseUrl + "icons/map/harbor.png";
