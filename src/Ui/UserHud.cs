@@ -69,7 +69,7 @@
 
         container.Add(new CuiPanel {
           Image = { Color = "0 0 0 0", Sprite = Ui.TransparentTexture },
-          RectTransform = { AnchorMin = "0.008 0.015", AnchorMax = "0.217 0.113" }
+          RectTransform = { AnchorMin = "0.612 0.028", AnchorMax = "0.823 0.125" } // 270x70 at x = 10 y = 639
         }, Ui.Element.Hud, Ui.Element.HudPanel);
 
         Area area = User.CurrentArea;
@@ -116,13 +116,16 @@
         AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.25f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.225f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.45f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.4f);
 
         string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.7f);
+        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.6f);
+
+        string shipIcon = Instance.Hud.GameEvents.IsCargoShipActive ? Ui.HudIcon.CargoShipIndicatorOn : Ui.HudIcon.CargoShipIndicatorOff;
+        AddWidget(container, Ui.Element.HudPanelBottom, shipIcon, 0.7f);
 
         string heliIcon = Instance.Hud.GameEvents.IsHelicopterActive ? Ui.HudIcon.HelicopterIndicatorOn : Ui.HudIcon.HelicopterIndicatorOff;
         AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.8f);

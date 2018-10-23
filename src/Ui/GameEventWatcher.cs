@@ -13,6 +13,7 @@
       HashSet<BaseHelicopter> PatrolHelicopters = new HashSet<BaseHelicopter>();
       HashSet<CH47Helicopter> ChinookHelicopters = new HashSet<CH47Helicopter>();
       HashSet<HackableLockedCrate> LockedCrates = new HashSet<HackableLockedCrate>();
+      HashSet<CargoShip> CargoShips = new HashSet<CargoShip>();
 
       public bool IsCargoPlaneActive
       {
@@ -29,6 +30,11 @@
         get { return ChinookHelicopters.Count > 0 || LockedCrates.Count > 0; }
       }
 
+      public bool IsCargoShipActive
+      {
+        get { return CargoShips.Count > 0; }
+      }
+
       void Awake()
       {
         foreach (CargoPlane plane in FindObjectsOfType<CargoPlane>())
@@ -42,6 +48,9 @@
 
         foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>())
           BeginEvent(crate);
+
+        foreach (CargoShip ship in FindObjectsOfType<CargoShip>())
+          BeginEvent(ship);
 
         InvokeRepeating("CheckEvents", CheckIntervalSeconds, CheckIntervalSeconds);
       }
@@ -75,10 +84,19 @@
         LockedCrates.Add(crate);
       }
 
+      public void BeginEvent(CargoShip ship)
+      {
+        Instance.Puts($"Beginning cargo ship event, ship at @ {ship.transform.position}");
+        CargoShips.Add(ship);
+      }
+
       void CheckEvents()
       {
-        var endedEvents = CargoPlanes.RemoveWhere(IsEntityGone) + PatrolHelicopters.RemoveWhere(IsEntityGone) +
-          ChinookHelicopters.RemoveWhere(IsEntityGone) + LockedCrates.RemoveWhere(IsEntityGone);
+        var endedEvents = CargoPlanes.RemoveWhere(IsEntityGone)
+          + PatrolHelicopters.RemoveWhere(IsEntityGone)
+          + ChinookHelicopters.RemoveWhere(IsEntityGone)
+          + LockedCrates.RemoveWhere(IsEntityGone)
+          + CargoShips.RemoveWhere(IsEntityGone);
 
         if (endedEvents > 0)
           Instance.Hud.RefreshForAllPlayers();

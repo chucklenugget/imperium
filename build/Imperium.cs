@@ -6831,6 +6831,7 @@ namespace Oxide.Plugins
       HashSet<BaseHelicopter> PatrolHelicopters = new HashSet<BaseHelicopter>();
       HashSet<CH47Helicopter> ChinookHelicopters = new HashSet<CH47Helicopter>();
       HashSet<HackableLockedCrate> LockedCrates = new HashSet<HackableLockedCrate>();
+      HashSet<CargoShip> CargoShips = new HashSet<CargoShip>();
 
       public bool IsCargoPlaneActive
       {
@@ -6847,6 +6848,11 @@ namespace Oxide.Plugins
         get { return ChinookHelicopters.Count > 0 || LockedCrates.Count > 0; }
       }
 
+      public bool IsCargoShipActive
+      {
+        get { return CargoShips.Count > 0; }
+      }
+
       void Awake()
       {
         foreach (CargoPlane plane in FindObjectsOfType<CargoPlane>())
@@ -6860,6 +6866,9 @@ namespace Oxide.Plugins
 
         foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>())
           BeginEvent(crate);
+
+        foreach (CargoShip ship in FindObjectsOfType<CargoShip>())
+          BeginEvent(ship);
 
         InvokeRepeating("CheckEvents", CheckIntervalSeconds, CheckIntervalSeconds);
       }
@@ -6893,10 +6902,19 @@ namespace Oxide.Plugins
         LockedCrates.Add(crate);
       }
 
+      public void BeginEvent(CargoShip ship)
+      {
+        Instance.Puts($"Beginning cargo ship event, ship at @ {ship.transform.position}");
+        CargoShips.Add(ship);
+      }
+
       void CheckEvents()
       {
-        var endedEvents = CargoPlanes.RemoveWhere(IsEntityGone) + PatrolHelicopters.RemoveWhere(IsEntityGone) +
-          ChinookHelicopters.RemoveWhere(IsEntityGone) + LockedCrates.RemoveWhere(IsEntityGone);
+        var endedEvents = CargoPlanes.RemoveWhere(IsEntityGone)
+          + PatrolHelicopters.RemoveWhere(IsEntityGone)
+          + ChinookHelicopters.RemoveWhere(IsEntityGone)
+          + LockedCrates.RemoveWhere(IsEntityGone)
+          + CargoShips.RemoveWhere(IsEntityGone);
 
         if (endedEvents > 0)
           Instance.Hud.RefreshForAllPlayers();
@@ -7292,6 +7310,8 @@ namespace Oxide.Plugins
         public const string Badlands = ImageBaseUrl + "icons/hud/badlands.png";
         public const string CargoPlaneIndicatorOn = ImageBaseUrl + "icons/hud/cargoplane-on.png";
         public const string CargoPlaneIndicatorOff = ImageBaseUrl + "icons/hud/cargoplane-off.png";
+        public const string CargoShipIndicatorOn = ImageBaseUrl + "icons/hud/cargo-ship-on.png";
+        public const string CargoShipIndicatorOff = ImageBaseUrl + "icons/hud/cargo-ship-off.png";
         public const string ChinookIndicatorOn = ImageBaseUrl + "icons/hud/chinook-on.png";
         public const string ChinookIndicatorOff = ImageBaseUrl + "icons/hud/chinook-off.png";
         public const string Claimed = ImageBaseUrl + "icons/hud/claimed.png";
@@ -7421,7 +7441,7 @@ namespace Oxide.Plugins
 
         container.Add(new CuiPanel {
           Image = { Color = "0 0 0 0", Sprite = Ui.TransparentTexture },
-          RectTransform = { AnchorMin = "0.008 0.015", AnchorMax = "0.217 0.113" }
+          RectTransform = { AnchorMin = "0.612 0.028", AnchorMax = "0.823 0.125" } // 270x70 at x = 10 y = 639
         }, Ui.Element.Hud, Ui.Element.HudPanel);
 
         Area area = User.CurrentArea;
@@ -7468,13 +7488,16 @@ namespace Oxide.Plugins
         AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.25f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.2f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.45f);
+        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.4f);
 
         string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.7f);
+        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.6f);
+
+        string shipIcon = Instance.Hud.GameEvents.IsCargoShipActive ? Ui.HudIcon.CargoShipIndicatorOn : Ui.HudIcon.CargoShipIndicatorOff;
+        AddWidget(container, Ui.Element.HudPanelBottom, shipIcon, 0.7f);
 
         string heliIcon = Instance.Hud.GameEvents.IsHelicopterActive ? Ui.HudIcon.HelicopterIndicatorOn : Ui.HudIcon.HelicopterIndicatorOff;
         AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.8f);
