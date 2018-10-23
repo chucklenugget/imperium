@@ -40,6 +40,7 @@
     <Compile Include="Commands\Pins\PinAdd.cs" />
     <Compile Include="Commands\Pvp.cs" />
     <Compile Include="Commands\Ui\LayerToggle.cs" />
+    <Compile Include="Commands\Ui\Hud.cs" />
     <Compile Include="Core\Decay.cs" />
     <Compile Include="Core\Raiding.cs" />
     <Compile Include="Core\Upkeep.cs" />

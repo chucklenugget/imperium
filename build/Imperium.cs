@@ -32,7 +32,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.9.3")]
+  [Info("Imperium", "chucklenugget", "1.9.4")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -2025,6 +2025,23 @@ namespace Oxide.Plugins
       Log($"{Util.Format(user)} set the tax rate for faction {faction.Id} to {taxRate * 100}%");
 
       Factions.SetTaxRate(faction, taxRate);
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    [ChatCommand("hud")]
+    void OnHudCommand(BasePlayer player, string command, string[] args)
+    {
+      User user = Users.Get(player);
+      if (user == null) return;
+
+      if (!EnforceCommandCooldown(user, "hud", Options.Map.CommandCooldownSeconds))
+        return;
+
+      user.Hud.Toggle();
     }
   }
 }
@@ -7283,10 +7300,9 @@ namespace Oxide.Plugins
       public static class Element
       {
         public const string Hud = "Hud";
-        public const string HudPanel = "Imperium.HudPanel";
-        public const string HudPanelTop = "Imperium.HudPanel.Top";
-        public const string HudPanelMiddle = "Imperium.HudPanel.Middle";
-        public const string HudPanelBottom = "Imperium.HudPanel.Bottom";
+        public const string HudPanelLeft = "Imperium.HudPanel.Top";
+        public const string HudPanelRight = "Imperium.HudPanel.Middle";
+        public const string HudPanelWarning = "Imperium.HudPanel.Warning";
         public const string HudPanelText = "Imperium.HudPanel.Text";
         public const string HudPanelIcon = "Imperium.HudPanel.Icon";
         public const string Overlay = "Overlay";
@@ -7385,10 +7401,10 @@ namespace Oxide.Plugins
 
       static class PanelColor
       {
-        public const string BackgroundNormal = "1 0.95 0.875 0.025";
-        public const string BackgroundDanger = "0.77 0.25 0.17 0.5";
+        public const string BackgroundNormal = "1 0.95 0.875 0.06";
+        public const string BackgroundDanger = "0.77 0.25 0.17 0.75";
         public const string BackgroundSafe = "0.31 0.37 0.20 0.75";
-        public const string TextNormal = "0.85 0.85 0.85 0.75";
+        public const string TextNormal = "0.85 0.85 0.85 1";
         public const string TextDanger = "0.85 0.65 0.65 1";
         public const string TextSafe = "0.67 0.89 0.32 1";
       }
@@ -7409,7 +7425,9 @@ namespace Oxide.Plugins
 
       public void Hide()
       {
-        CuiHelper.DestroyUi(User.Player, Ui.Element.HudPanel);
+        CuiHelper.DestroyUi(User.Player, Ui.Element.HudPanelLeft);
+        CuiHelper.DestroyUi(User.Player, Ui.Element.HudPanelRight);
+        CuiHelper.DestroyUi(User.Player, Ui.Element.HudPanelWarning);
       }
 
       public void Toggle()
@@ -7439,76 +7457,76 @@ namespace Oxide.Plugins
       {
         var container = new CuiElementContainer();
 
-        container.Add(new CuiPanel {
-          Image = { Color = "0 0 0 0", Sprite = Ui.TransparentTexture },
-          RectTransform = { AnchorMin = "0.612 0.028", AnchorMax = "0.823 0.125" } // 270x70 at x = 10 y = 639
-        }, Ui.Element.Hud, Ui.Element.HudPanel);
-
         Area area = User.CurrentArea;
 
         container.Add(new CuiPanel {
-          Image = { Color = GetTopLineBackgroundColor() },
-          RectTransform = { AnchorMin = "0 0.7", AnchorMax = "1 1" }
-        }, Ui.Element.HudPanel, Ui.Element.HudPanelTop);
+          Image = { Color = GetLeftPanelBackgroundColor() },
+          RectTransform = { AnchorMin = "0.006 0.956", AnchorMax = "0.217 0.989" }
+        }, Ui.Element.Hud, Ui.Element.HudPanelLeft);
+
+        container.Add(new CuiPanel {
+          Image = { Color = PanelColor.BackgroundNormal },
+          RectTransform = { AnchorMin = "0.783 0.956", AnchorMax = "0.994 0.989" }
+        }, Ui.Element.Hud, Ui.Element.HudPanelRight);
+
+        AddWidget(container, Ui.Element.HudPanelLeft, GetLocationIcon(), GetLeftPanelTextColor(), GetLocationDescription());
 
         if (area.Type == AreaType.Badlands)
         {
           string harvestBonus = String.Format("+{0}%", Instance.Options.Taxes.BadlandsGatherBonus * 100);
-          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Harvest, GetTopLineTextColor(), harvestBonus);
+          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Harvest, GetLeftPanelTextColor(), harvestBonus, 0.8f);
         }
         else if (area.IsWarZone)
         {
           string defensiveBonus = String.Format("+{0}%", area.GetDefensiveBonus() * 100);
-          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Defense, GetTopLineTextColor(), defensiveBonus);
+          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Defense, GetLeftPanelTextColor(), defensiveBonus, 0.8f);
         }
         else
         {
           string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Taxes, GetTopLineTextColor(), taxRate);
+          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Taxes, GetLeftPanelTextColor(), taxRate, 0.8f);
         }
 
-        if (Instance.Options.Upkeep.Enabled && User.Faction != null && User.Faction.IsUpkeepPastDue)
-          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.Ruins, GetTopLineTextColor(), "Claim upkeep past due!", 0.3f);
-        else if (User.IsInPvpMode)
-          AddWidget(container, Ui.Element.HudPanelTop, Ui.HudIcon.PvpMode, GetTopLineTextColor(), "PVP Enabled", 0.3f);
-
-        container.Add(new CuiPanel {
-          Image = { Color = GetLocationBackgroundColor() },
-          RectTransform = { AnchorMin = "0 0.35", AnchorMax = "1 0.65" }
-        }, Ui.Element.HudPanel, Ui.Element.HudPanelMiddle);
-
-        AddWidget(container, Ui.Element.HudPanelMiddle, GetLocationIcon(), GetLocationTextColor(), GetLocationDescription());
-
-        container.Add(new CuiPanel {
-          Image = { Color = PanelColor.BackgroundNormal },
-          RectTransform = { AnchorMin = "0 0", AnchorMax = "1 0.3" }
-        }, Ui.Element.HudPanel, Ui.Element.HudPanelBottom);
-
-        string currentTime = TOD_Sky.Instance.Cycle.DateTime.ToString("HH:mm");
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime);
-
-        string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.2f);
-
-        string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelBottom, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.4f);
-
         string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, planeIcon, 0.6f);
+        AddWidget(container, Ui.Element.HudPanelRight, planeIcon);
 
         string shipIcon = Instance.Hud.GameEvents.IsCargoShipActive ? Ui.HudIcon.CargoShipIndicatorOn : Ui.HudIcon.CargoShipIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, shipIcon, 0.7f);
+        AddWidget(container, Ui.Element.HudPanelRight, shipIcon, 0.1f);
 
         string heliIcon = Instance.Hud.GameEvents.IsHelicopterActive ? Ui.HudIcon.HelicopterIndicatorOn : Ui.HudIcon.HelicopterIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, heliIcon, 0.8f);
+        AddWidget(container, Ui.Element.HudPanelRight, heliIcon, 0.2f);
 
         string chinookIcon = Instance.Hud.GameEvents.IsChinookOrLockedCrateActive ? Ui.HudIcon.ChinookIndicatorOn : Ui.HudIcon.ChinookIndicatorOff;
-        AddWidget(container, Ui.Element.HudPanelBottom, chinookIcon, 0.9f);
+        AddWidget(container, Ui.Element.HudPanelRight, chinookIcon, 0.3f);
+
+        string activePlayers = BasePlayer.activePlayerList.Count.ToString();
+        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.45f);
+
+        string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
+        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.625f);
+
+        string currentTime = TOD_Sky.Instance.Cycle.DateTime.ToString("HH:mm");
+        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime, 0.79f);
+
+        bool claimUpkeepPastDue = Instance.Options.Upkeep.Enabled && User.Faction != null && User.Faction.IsUpkeepPastDue;
+        if (User.IsInPvpMode || claimUpkeepPastDue)
+        {
+          container.Add(new CuiPanel {
+            Image = { Color = PanelColor.BackgroundDanger },
+            //RectTransform = { AnchorMin = "0.006 0.911", AnchorMax = "0.217 0.944" }
+            RectTransform = { AnchorMin = "0.783 0.911", AnchorMax = "0.994 0.944" }
+          }, Ui.Element.Hud, Ui.Element.HudPanelWarning);
+
+          if (true || claimUpkeepPastDue)
+            AddWidget(container, Ui.Element.HudPanelWarning, Ui.HudIcon.Ruins, PanelColor.TextDanger, "Claim upkeep past due!");
+          else
+            AddWidget(container, Ui.Element.HudPanelWarning, Ui.HudIcon.PvpMode, PanelColor.TextDanger, "PVP mode enabled");
+        }
 
         return container;
       }
 
-      string GetTopLineBackgroundColor()
+      string GetRightPanelBackgroundColor()
       {
         if (User.IsInPvpMode)
           return PanelColor.BackgroundDanger;
@@ -7516,7 +7534,7 @@ namespace Oxide.Plugins
           return PanelColor.BackgroundNormal;
       }
 
-      string GetTopLineTextColor()
+      string GetRightPanelTextColor()
       {
         if (User.IsInPvpMode)
           return PanelColor.TextDanger;
@@ -7588,7 +7606,7 @@ namespace Oxide.Plugins
         }
       }
 
-      string GetLocationBackgroundColor()
+      string GetLeftPanelBackgroundColor()
       {
         if (User.CurrentZones.Count > 0)
           return PanelColor.BackgroundDanger;
@@ -7601,7 +7619,7 @@ namespace Oxide.Plugins
           return PanelColor.BackgroundNormal;
       }
 
-      string GetLocationTextColor()
+      string GetLeftPanelTextColor()
       {
         if (User.CurrentZones.Count > 0)
           return PanelColor.TextDanger;

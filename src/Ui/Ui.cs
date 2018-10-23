@@ -11,10 +11,9 @@
       public static class Element
       {
         public const string Hud = "Hud";
-        public const string HudPanel = "Imperium.HudPanel";
-        public const string HudPanelTop = "Imperium.HudPanel.Top";
-        public const string HudPanelMiddle = "Imperium.HudPanel.Middle";
-        public const string HudPanelBottom = "Imperium.HudPanel.Bottom";
+        public const string HudPanelLeft = "Imperium.HudPanel.Top";
+        public const string HudPanelRight = "Imperium.HudPanel.Middle";
+        public const string HudPanelWarning = "Imperium.HudPanel.Warning";
         public const string HudPanelText = "Imperium.HudPanel.Text";
         public const string HudPanelIcon = "Imperium.HudPanel.Icon";
         public const string Overlay = "Overlay";
