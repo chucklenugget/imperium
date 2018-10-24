@@ -41,6 +41,7 @@
     <Compile Include="Commands\Pvp.cs" />
     <Compile Include="Commands\Ui\LayerToggle.cs" />
     <Compile Include="Commands\Ui\Hud.cs" />
+    <Compile Include="Core\Api.cs" />
     <Compile Include="Core\Decay.cs" />
     <Compile Include="Core\Raiding.cs" />
     <Compile Include="Core\Upkeep.cs" />
@@ -98,7 +99,7 @@
     <Compile Include="Commands\War\WarHelp.cs" />
     <Compile Include="Commands\War\WarList.cs" />
     <Compile Include="Commands\War\WarStatus.cs" />
-    <Compile Include="Core\Api.cs" />
+    <Compile Include="Core\Events.cs" />
     <Compile Include="Data\Factions\FactionInfo.cs" />
     <Compile Include="Data\Factions\FactionEntityMonitor.cs" />
     <Compile Include="Data\Wars\WarEndReason.cs" />

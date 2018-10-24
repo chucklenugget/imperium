@@ -2376,11 +2376,80 @@ namespace Oxide.Plugins
 }
 ﻿namespace Oxide.Plugins
 {
+  using Oxide.Core.Plugins;
+
+  public partial class Imperium
+  {
+    [HookMethod(nameof(GetFactionName))]
+    public object GetFactionName(BasePlayer player)
+    {
+      User user = Users.Get(player);
+
+      if (user == null || user.Faction == null)
+        return null;
+      else
+        return user.Faction.Id;
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    static class Decay
+    {
+      public static object AlterDecayDamage(BaseEntity entity, HitInfo hit)
+      {
+        if (!Instance.Options.Decay.Enabled)
+          return null;
+
+        Area area = GetAreaForDecayCalculation(entity);
+
+        if (area == null)
+        {
+          Instance.PrintWarning($"An entity decayed in an unknown area. This shouldn't happen.");
+          return null;
+        }
+
+        float reduction = 0;
+
+        if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
+          reduction = Instance.Options.Decay.ClaimedLandDecayReduction;
+
+        if (reduction >= 1)
+          return false;
+
+        if (reduction > 0)
+          hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
+
+        return null;
+      }
+
+      static Area GetAreaForDecayCalculation(BaseEntity entity)
+      {
+        Area area = null;
+
+        // If the entity is controlled by a claim cupboard, use the area the cupboard controls.
+        BuildingPrivlidge cupboard = entity.GetBuildingPrivilege();
+        if (cupboard)
+          area = Instance.Areas.GetByClaimCupboard(cupboard);
+
+        // Otherwise, determine the area by its position in the world.
+        if (area == null)
+          area = Instance.Areas.GetByEntityPosition(entity);
+
+        return area;
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
   using Oxide.Core;
 
   public partial class Imperium : RustPlugin
   {
-    static class Api
+    static class Events
     {
       public static void OnAreaChanged(Area area)
       {
@@ -2460,57 +2529,6 @@ namespace Oxide.Plugins
       public static void OnPinRemoved(Pin pin)
       {
         Interface.CallHook(nameof(OnPinRemoved), pin);
-      }
-    }
-  }
-}
-﻿namespace Oxide.Plugins
-{
-  public partial class Imperium
-  {
-    static class Decay
-    {
-      public static object AlterDecayDamage(BaseEntity entity, HitInfo hit)
-      {
-        if (!Instance.Options.Decay.Enabled)
-          return null;
-
-        Area area = GetAreaForDecayCalculation(entity);
-
-        if (area == null)
-        {
-          Instance.PrintWarning($"An entity decayed in an unknown area. This shouldn't happen.");
-          return null;
-        }
-
-        float reduction = 0;
-
-        if (area.Type == AreaType.Claimed || area.Type == AreaType.Headquarters)
-          reduction = Instance.Options.Decay.ClaimedLandDecayReduction;
-
-        if (reduction >= 1)
-          return false;
-
-        if (reduction > 0)
-          hit.damageTypes.Scale(Rust.DamageType.Decay, reduction);
-
-        return null;
-      }
-
-      static Area GetAreaForDecayCalculation(BaseEntity entity)
-      {
-        Area area = null;
-
-        // If the entity is controlled by a claim cupboard, use the area the cupboard controls.
-        BuildingPrivlidge cupboard = entity.GetBuildingPrivilege();
-        if (cupboard)
-          area = Instance.Areas.GetByClaimCupboard(cupboard);
-
-        // Otherwise, determine the area by its position in the world.
-        if (area == null)
-          area = Instance.Areas.GetByEntityPosition(entity);
-
-        return area;
       }
     }
   }
@@ -3647,7 +3665,7 @@ namespace Oxide.Plugins
         var user = collider.GetComponentInParent<User>();
 
         if (user != null && user.CurrentArea != this)
-          Api.OnUserEnteredArea(user, this);
+          Events.OnUserEnteredArea(user, this);
       }
 
       void OnTriggerExit(Collider collider)
@@ -3658,7 +3676,7 @@ namespace Oxide.Plugins
         var user = collider.GetComponentInParent<User>();
 
         if (user != null)
-          Api.OnUserLeftArea(user, this);
+          Events.OnUserLeftArea(user, this);
       }
 
       public float GetDistanceFromEntity(BaseEntity entity)
@@ -3845,7 +3863,7 @@ namespace Oxide.Plugins
         area.ClaimantId = claimant.Id;
         area.ClaimCupboard = cupboard;
 
-        Api.OnAreaChanged(area);
+        Events.OnAreaChanged(area);
       }
 
       public void SetHeadquarters(Area area, Faction faction)
@@ -3854,11 +3872,11 @@ namespace Oxide.Plugins
         foreach (Area otherArea in GetAllClaimedByFaction(faction).Where(a => a.Type == AreaType.Headquarters))
         {
           otherArea.Type = AreaType.Claimed;
-          Api.OnAreaChanged(otherArea);
+          Events.OnAreaChanged(otherArea);
         }
 
         area.Type = AreaType.Headquarters;
-        Api.OnAreaChanged(area);
+        Events.OnAreaChanged(area);
       }
 
       public void Unclaim(IEnumerable<Area> areas)
@@ -3875,7 +3893,7 @@ namespace Oxide.Plugins
           area.ClaimantId = null;
           area.ClaimCupboard = null;
 
-          Api.OnAreaChanged(area);
+          Events.OnAreaChanged(area);
         }
       }
 
@@ -3888,7 +3906,7 @@ namespace Oxide.Plugins
           area.ClaimantId = null;
           area.ClaimCupboard = null;
 
-          Api.OnAreaChanged(area);
+          Events.OnAreaChanged(area);
         }
       }
 
@@ -4113,7 +4131,7 @@ namespace Oxide.Plugins
 
         InviteIds.Remove(user.Id);
 
-        Api.OnPlayerJoinedFaction(this, user);
+        Events.OnPlayerJoinedFaction(this, user);
         return true;
       }
 
@@ -4138,7 +4156,7 @@ namespace Oxide.Plugins
         MemberIds.Remove(user.Id);
         ManagerIds.Remove(user.Id);
 
-        Api.OnPlayerLeftFaction(this, user);
+        Events.OnPlayerLeftFaction(this, user);
         return true;
       }
 
@@ -4147,7 +4165,7 @@ namespace Oxide.Plugins
         if (!InviteIds.Add(user.Id))
           return false;
 
-        Api.OnPlayerInvitedToFaction(this, user);
+        Events.OnPlayerInvitedToFaction(this, user);
         return true;
       }
 
@@ -4156,7 +4174,7 @@ namespace Oxide.Plugins
         if (!InviteIds.Remove(user.Id))
           return false;
 
-        Api.OnPlayerUninvitedFromFaction(this, user);
+        Events.OnPlayerUninvitedFromFaction(this, user);
         return true;
       }
 
@@ -4168,7 +4186,7 @@ namespace Oxide.Plugins
         if (!ManagerIds.Add(user.Id))
           return false;
 
-        Api.OnPlayerPromoted(this, user);
+        Events.OnPlayerPromoted(this, user);
         return true;
       }
 
@@ -4180,7 +4198,7 @@ namespace Oxide.Plugins
         if (!ManagerIds.Remove(user.Id))
           return false;
 
-        Api.OnPlayerDemoted(this, user);
+        Events.OnPlayerDemoted(this, user);
         return true;
       }
 
@@ -4383,7 +4401,7 @@ namespace Oxide.Plugins
         faction = new Faction(id, owner);
         Factions.Add(id, faction);
 
-        Api.OnFactionCreated(faction);
+        Events.OnFactionCreated(faction);
 
         return faction;
       }
@@ -4394,7 +4412,7 @@ namespace Oxide.Plugins
           user.SetFaction(null);
 
         Factions.Remove(faction.Id);
-        Api.OnFactionDisbanded(faction);
+        Events.OnFactionDisbanded(faction);
       }
 
       public Faction[] GetAll()
@@ -4439,13 +4457,13 @@ namespace Oxide.Plugins
       public void SetTaxRate(Faction faction, float taxRate)
       {
         faction.TaxRate = taxRate;
-        Api.OnFactionTaxesChanged(faction);
+        Events.OnFactionTaxesChanged(faction);
       }
 
       public void SetTaxChest(Faction faction, StorageContainer taxChest)
       {
         faction.TaxChest = taxChest;
-        Api.OnFactionTaxesChanged(faction);
+        Events.OnFactionTaxesChanged(faction);
       }
 
       public void Init(IEnumerable<FactionInfo> factionInfos)
@@ -4590,13 +4608,13 @@ namespace Oxide.Plugins
       public void Add(Pin pin)
       {
         Pins.Add(pin.Name, pin);
-        Api.OnPinCreated(pin);
+        Events.OnPinCreated(pin);
       }
 
       public void Remove(Pin pin)
       {
         Pins.Remove(pin.Name);
-        Api.OnPinRemoved(pin);
+        Events.OnPinRemoved(pin);
       }
 
       public void RemoveAllPinsInUnclaimedAreas()
@@ -4791,8 +4809,8 @@ namespace Oxide.Plugins
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
         if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
         {
-          Api.OnUserLeftArea(this, currentArea);
-          Api.OnUserEnteredArea(this, correctArea);
+          Events.OnUserLeftArea(this, currentArea);
+          Events.OnUserEnteredArea(this, correctArea);
         }
       }
 
@@ -5305,7 +5323,7 @@ namespace Oxide.Plugins
         var user = collider.GetComponentInParent<User>();
 
         if (user != null && !user.CurrentZones.Contains(this))
-          Api.OnUserEnteredZone(user, this);
+          Events.OnUserEnteredZone(user, this);
       }
 
       void OnTriggerExit(Collider collider)
@@ -5316,7 +5334,7 @@ namespace Oxide.Plugins
         var user = collider.GetComponentInParent<User>();
 
         if (user != null && user.CurrentZones.Contains(this))
-          Api.OnUserLeftZone(user, this);
+          Events.OnUserLeftZone(user, this);
       }
 
       void CheckIfShouldDestroy()
@@ -7397,11 +7415,12 @@ namespace Oxide.Plugins
   {
     class UserHud
     {
-      const float IconSize = 0.075f;
+      const float IconSize = 0.0775f;
 
       static class PanelColor
       {
-        public const string BackgroundNormal = "1 0.95 0.875 0.06";
+        //public const string BackgroundNormal = "1 0.95 0.875 0.075";
+        public const string BackgroundNormal = "0 0 0 0.5";
         public const string BackgroundDanger = "0.77 0.25 0.17 0.75";
         public const string BackgroundSafe = "0.31 0.37 0.20 0.75";
         public const string TextNormal = "0.85 0.85 0.85 1";
@@ -7461,12 +7480,12 @@ namespace Oxide.Plugins
 
         container.Add(new CuiPanel {
           Image = { Color = GetLeftPanelBackgroundColor() },
-          RectTransform = { AnchorMin = "0.006 0.956", AnchorMax = "0.217 0.989" }
+          RectTransform = { AnchorMin = "0.006 0.956", AnchorMax = "0.241 0.989" }
         }, Ui.Element.Hud, Ui.Element.HudPanelLeft);
 
         container.Add(new CuiPanel {
           Image = { Color = PanelColor.BackgroundNormal },
-          RectTransform = { AnchorMin = "0.783 0.956", AnchorMax = "0.994 0.989" }
+          RectTransform = { AnchorMin = "0.759 0.956", AnchorMax = "0.994 0.989" }
         }, Ui.Element.Hud, Ui.Element.HudPanelRight);
 
         AddWidget(container, Ui.Element.HudPanelLeft, GetLocationIcon(), GetLeftPanelTextColor(), GetLocationDescription());
@@ -7474,17 +7493,17 @@ namespace Oxide.Plugins
         if (area.Type == AreaType.Badlands)
         {
           string harvestBonus = String.Format("+{0}%", Instance.Options.Taxes.BadlandsGatherBonus * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Harvest, GetLeftPanelTextColor(), harvestBonus, 0.8f);
+          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Harvest, GetLeftPanelTextColor(), harvestBonus, 0.77f);
         }
         else if (area.IsWarZone)
         {
           string defensiveBonus = String.Format("+{0}%", area.GetDefensiveBonus() * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Defense, GetLeftPanelTextColor(), defensiveBonus, 0.8f);
+          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Defense, GetLeftPanelTextColor(), defensiveBonus, 0.77f);
         }
-        else
+        else if (area.IsTaxableClaim)
         {
           string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Taxes, GetLeftPanelTextColor(), taxRate, 0.8f);
+          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Taxes, GetLeftPanelTextColor(), taxRate, 0.78f);
         }
 
         string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
@@ -7500,21 +7519,20 @@ namespace Oxide.Plugins
         AddWidget(container, Ui.Element.HudPanelRight, chinookIcon, 0.3f);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.45f);
+        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.43f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.625f);
+        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.58f);
 
         string currentTime = TOD_Sky.Instance.Cycle.DateTime.ToString("HH:mm");
-        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime, 0.79f);
+        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime, 0.75f);
 
         bool claimUpkeepPastDue = Instance.Options.Upkeep.Enabled && User.Faction != null && User.Faction.IsUpkeepPastDue;
         if (User.IsInPvpMode || claimUpkeepPastDue)
         {
           container.Add(new CuiPanel {
             Image = { Color = PanelColor.BackgroundDanger },
-            //RectTransform = { AnchorMin = "0.006 0.911", AnchorMax = "0.217 0.944" }
-            RectTransform = { AnchorMin = "0.783 0.911", AnchorMax = "0.994 0.944" }
+            RectTransform = { AnchorMin = "0.759 0.911", AnchorMax = "0.994 0.944" }
           }, Ui.Element.Hud, Ui.Element.HudPanelWarning);
 
           if (true || claimUpkeepPastDue)
@@ -7655,7 +7673,7 @@ namespace Oxide.Plugins
             Text = text,
             Color = textColor,
             FontSize = 13,
-            Align = TextAnchor.MiddleLeft
+            Align = TextAnchor.MiddleLeft,
           },
           RectTransform = {
             AnchorMin = $"{left + IconSize} 0",

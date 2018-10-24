@@ -9,11 +9,12 @@
   {
     class UserHud
     {
-      const float IconSize = 0.075f;
+      const float IconSize = 0.0775f;
 
       static class PanelColor
       {
-        public const string BackgroundNormal = "1 0.95 0.875 0.06";
+        //public const string BackgroundNormal = "1 0.95 0.875 0.075";
+        public const string BackgroundNormal = "0 0 0 0.5";
         public const string BackgroundDanger = "0.77 0.25 0.17 0.75";
         public const string BackgroundSafe = "0.31 0.37 0.20 0.75";
         public const string TextNormal = "0.85 0.85 0.85 1";
@@ -73,12 +74,12 @@
 
         container.Add(new CuiPanel {
           Image = { Color = GetLeftPanelBackgroundColor() },
-          RectTransform = { AnchorMin = "0.006 0.956", AnchorMax = "0.217 0.989" }
+          RectTransform = { AnchorMin = "0.006 0.956", AnchorMax = "0.241 0.989" }
         }, Ui.Element.Hud, Ui.Element.HudPanelLeft);
 
         container.Add(new CuiPanel {
           Image = { Color = PanelColor.BackgroundNormal },
-          RectTransform = { AnchorMin = "0.783 0.956", AnchorMax = "0.994 0.989" }
+          RectTransform = { AnchorMin = "0.759 0.956", AnchorMax = "0.994 0.989" }
         }, Ui.Element.Hud, Ui.Element.HudPanelRight);
 
         AddWidget(container, Ui.Element.HudPanelLeft, GetLocationIcon(), GetLeftPanelTextColor(), GetLocationDescription());
@@ -86,17 +87,17 @@
         if (area.Type == AreaType.Badlands)
         {
           string harvestBonus = String.Format("+{0}%", Instance.Options.Taxes.BadlandsGatherBonus * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Harvest, GetLeftPanelTextColor(), harvestBonus, 0.8f);
+          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Harvest, GetLeftPanelTextColor(), harvestBonus, 0.77f);
         }
         else if (area.IsWarZone)
         {
           string defensiveBonus = String.Format("+{0}%", area.GetDefensiveBonus() * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Defense, GetLeftPanelTextColor(), defensiveBonus, 0.8f);
+          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Defense, GetLeftPanelTextColor(), defensiveBonus, 0.77f);
         }
-        else
+        else if (area.IsTaxableClaim)
         {
           string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Taxes, GetLeftPanelTextColor(), taxRate, 0.8f);
+          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Taxes, GetLeftPanelTextColor(), taxRate, 0.78f);
         }
 
         string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
@@ -112,21 +113,20 @@
         AddWidget(container, Ui.Element.HudPanelRight, chinookIcon, 0.3f);
 
         string activePlayers = BasePlayer.activePlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.45f);
+        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Players, PanelColor.TextNormal, activePlayers, 0.43f);
 
         string sleepingPlayers = BasePlayer.sleepingPlayerList.Count.ToString();
-        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.625f);
+        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Sleepers, PanelColor.TextNormal, sleepingPlayers, 0.58f);
 
         string currentTime = TOD_Sky.Instance.Cycle.DateTime.ToString("HH:mm");
-        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime, 0.79f);
+        AddWidget(container, Ui.Element.HudPanelRight, Ui.HudIcon.Clock, PanelColor.TextNormal, currentTime, 0.75f);
 
         bool claimUpkeepPastDue = Instance.Options.Upkeep.Enabled && User.Faction != null && User.Faction.IsUpkeepPastDue;
         if (User.IsInPvpMode || claimUpkeepPastDue)
         {
           container.Add(new CuiPanel {
             Image = { Color = PanelColor.BackgroundDanger },
-            //RectTransform = { AnchorMin = "0.006 0.911", AnchorMax = "0.217 0.944" }
-            RectTransform = { AnchorMin = "0.783 0.911", AnchorMax = "0.994 0.944" }
+            RectTransform = { AnchorMin = "0.759 0.911", AnchorMax = "0.994 0.944" }
           }, Ui.Element.Hud, Ui.Element.HudPanelWarning);
 
           if (true || claimUpkeepPastDue)
@@ -267,7 +267,7 @@
             Text = text,
             Color = textColor,
             FontSize = 13,
-            Align = TextAnchor.MiddleLeft
+            Align = TextAnchor.MiddleLeft,
           },
           RectTransform = {
             AnchorMin = $"{left + IconSize} 0",

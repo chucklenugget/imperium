@@ -33,13 +33,13 @@
       public void Add(Pin pin)
       {
         Pins.Add(pin.Name, pin);
-        Api.OnPinCreated(pin);
+        Events.OnPinCreated(pin);
       }
 
       public void Remove(Pin pin)
       {
         Pins.Remove(pin.Name);
-        Api.OnPinRemoved(pin);
+        Events.OnPinRemoved(pin);
       }
 
       public void RemoveAllPinsInUnclaimedAreas()

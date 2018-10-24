@@ -76,7 +76,7 @@
 
         InviteIds.Remove(user.Id);
 
-        Api.OnPlayerJoinedFaction(this, user);
+        Events.OnPlayerJoinedFaction(this, user);
         return true;
       }
 
@@ -101,7 +101,7 @@
         MemberIds.Remove(user.Id);
         ManagerIds.Remove(user.Id);
 
-        Api.OnPlayerLeftFaction(this, user);
+        Events.OnPlayerLeftFaction(this, user);
         return true;
       }
 
@@ -110,7 +110,7 @@
         if (!InviteIds.Add(user.Id))
           return false;
 
-        Api.OnPlayerInvitedToFaction(this, user);
+        Events.OnPlayerInvitedToFaction(this, user);
         return true;
       }
 
@@ -119,7 +119,7 @@
         if (!InviteIds.Remove(user.Id))
           return false;
 
-        Api.OnPlayerUninvitedFromFaction(this, user);
+        Events.OnPlayerUninvitedFromFaction(this, user);
         return true;
       }
 
@@ -131,7 +131,7 @@
         if (!ManagerIds.Add(user.Id))
           return false;
 
-        Api.OnPlayerPromoted(this, user);
+        Events.OnPlayerPromoted(this, user);
         return true;
       }
 
@@ -143,7 +143,7 @@
         if (!ManagerIds.Remove(user.Id))
           return false;
 
-        Api.OnPlayerDemoted(this, user);
+        Events.OnPlayerDemoted(this, user);
         return true;
       }
 
