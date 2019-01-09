@@ -7,6 +7,11 @@
   {
     static class Raiding
     {
+      // Setting this to true will disable the rules which normally allow owners of land to damage their own structures
+      // This means that for the purposes of structural damage, the player will be considered a hostile force, which
+      // in turn allows easy testing of raiding rules. Should usually be false unless you're testing something.
+      const bool EnableTestMode = false;
+
       enum DamageResult
       {
         Prevent,
@@ -24,12 +29,7 @@
 
       static string[] ProtectedPrefabs = new[]
       {
-        "barricade.concrete",
-        "barricade.metal",
-        "barricade.sandbags",
-        "barricade.stone",
-        "barricade.wood",
-        "barricade.woodwire",
+        "barricade",
         "bbq",
         "bed",
         "box.wooden.large",
@@ -40,8 +40,8 @@
         "door.hinged",
         "dropbox",
         "fireplace",
-        "floor.frame",
         "floor.ladder.hatch",
+        "floor.grill",
         "fridge",
         "furnace",
         "gates.external",
@@ -52,7 +52,7 @@
         "planter.large",
         "planter.small",
         "reactivetarget",
-        "refinery_small",
+        "refinery",
         "repairbench",
         "researchtable",
         "rug",
@@ -67,7 +67,7 @@
         "sign.pole.banner.large",
         "sign.post",
         "sign.small.wood",
-        "small_stash",
+        "stash.small",
         "spikes.floor",
         "spinner.wheel",
         "survivalfishtrap",
@@ -77,14 +77,34 @@
         "wall.external",
         "wall.frame",
         "wall.window",
-        "water_barrel",
-        "water_catcher",
-        "water_desalinator",
+        "watchtower.wood",
+        "water.barrel",
+        "water.catcher",
+        "water.purifier",
         "waterbarrel",
         "waterpurifier",
         "window.bars",
         "woodbox",
-        "workbench"
+        "workbench",
+        "switch",
+        "orswitch",
+        "andswitch",
+        "xorswitch",
+        "timer",
+        "splitter",
+        "blocker",
+        "cabletunnel",
+        "doorcontroller",
+        "generator",
+        "laserdetector",
+        "pressurepad",
+        "simplelight",
+        "solarpanel",
+        "electrical.branch",
+        "electrical.combiner",
+        "electrical.memorycell",
+        "smallrechargablebattery",
+        "large.rechargable.battery"
       };
 
       static string[] RaidTriggeringPrefabs = new[]
@@ -93,7 +113,7 @@
         "door.double.hinged",
         "door.hinged",
         "floor.ladder.hatch",
-        "floor.frame",
+        "floor.grill",
         "gates.external",
         "vendingmachine",
         "wall.frame",
@@ -113,6 +133,9 @@
         }
 
         DamageResult result = DetermineDamageResult(attacker, area, entity);
+
+        if (EnableTestMode)
+          Instance.Log("Damage from a player to structure with prefab {0}: {1}", entity.ShortPrefabName, result.ToString());
 
         if (result == DamageResult.NotProtected || result == DamageResult.Friendly)
           return null;
@@ -146,7 +169,7 @@
       static DamageResult DetermineDamageResult(User attacker, Area area, BaseEntity entity)
       {
         // Players can always damage their own entities.
-        if (attacker.Player.userID == entity.OwnerID)
+        if (!EnableTestMode && attacker.Player.userID == entity.OwnerID)
           return DamageResult.Friendly;
 
         if (!IsProtectedEntity(entity))
@@ -155,7 +178,7 @@
         if (attacker.Faction != null)
         {
           // Factions can damage any structure built on their own land.
-          if (area.FactionId != null && attacker.Faction.Id == area.FactionId)
+          if (!EnableTestMode && area.FactionId != null && attacker.Faction.Id == area.FactionId)
             return DamageResult.Friendly;
 
           // Factions who are at war can damage any structure on enemy land, subject to the defensive bonus.
@@ -195,15 +218,33 @@
         }
 
         if (hit.Initiator == null)
+        {
+          if (EnableTestMode)
+            Instance.Log("Incidental damage to {0} with no initiator", entity.ShortPrefabName);
+
           return null;
+        }
 
         // If the damage is coming from something other than a blocked prefab, allow it.
         if (!BlockedPrefabs.Contains(hit.Initiator.ShortPrefabName))
+        {
+          if (EnableTestMode)
+            Instance.Log("Incidental damage to {0} caused by {1}, allowing since it isn't a blocked prefab", entity.ShortPrefabName, hit.Initiator.ShortPrefabName);
+
           return null;
+        }
 
         // If the player is in a PVP area or in PVP mode, allow the damage.
         if (IsRaidableArea(area))
+        {
+          if (EnableTestMode)
+            Instance.Log("Incidental damage to {0} caused by {1}, allowing since target is in raidable area", entity.ShortPrefabName, hit.Initiator.ShortPrefabName);
+
           return null;
+        }
+
+        if (EnableTestMode)
+          Instance.Log("Incidental damage to {0} caused by {1}, stopping since it is a blocked prefab", entity.ShortPrefabName, hit.Initiator.ShortPrefabName);
 
         return false;
       }
