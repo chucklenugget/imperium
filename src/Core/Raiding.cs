@@ -29,7 +29,12 @@
 
       static string[] ProtectedPrefabs = new[]
       {
-        "barricade",
+        "barricade.concrete",
+        "barricade.metal",
+        "barricade.sandbags",
+        "barricade.stone",
+        "barricade.wood",
+        "barricade.woodwire",
         "bbq",
         "bed",
         "box.wooden.large",

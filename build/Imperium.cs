@@ -32,7 +32,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.9.5")]
+  [Info("Imperium", "chucklenugget", "1.9.6")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -1273,6 +1273,12 @@ namespace Oxide.Plugins
         return;
       }
 
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
       if (faction.HasOwner(member))
       {
         user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.UserName, faction.Id);
@@ -1464,6 +1470,12 @@ namespace Oxide.Plugins
         return;
       }
 
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
       if (faction.HasLeader(member))
       {
         user.SendChatMessage(Messages.CannotKickLeaderOfFaction, member.UserName, faction.Id);
@@ -1541,6 +1553,12 @@ namespace Oxide.Plugins
       if (member == null)
       {
         user.SendChatMessage(Messages.InvalidUser, args[0]);
+        return;
+      }
+
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
         return;
       }
 
@@ -3169,7 +3187,12 @@ namespace Oxide.Plugins
 
       static string[] ProtectedPrefabs = new[]
       {
-        "barricade",
+        "barricade.concrete",
+        "barricade.metal",
+        "barricade.sandbags",
+        "barricade.stone",
+        "barricade.wood",
+        "barricade.woodwire",
         "bbq",
         "bed",
         "box.wooden.large",

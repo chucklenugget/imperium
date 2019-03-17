@@ -26,6 +26,12 @@
         return;
       }
 
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
       if (faction.HasLeader(member))
       {
         user.SendChatMessage(Messages.CannotKickLeaderOfFaction, member.UserName, faction.Id);
