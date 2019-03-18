@@ -32,8 +32,7 @@
 
       public void Show()
       {
-        if (User.CurrentArea != null)
-          CuiHelper.AddUi(User.Player, Build());
+        CuiHelper.AddUi(User.Player, Build());
       }
 
       public void Hide()
@@ -84,20 +83,23 @@
 
         AddWidget(container, Ui.Element.HudPanelLeft, GetLocationIcon(), GetLeftPanelTextColor(), GetLocationDescription());
 
-        if (area.Type == AreaType.Badlands)
+        if (area != null)
         {
-          string harvestBonus = String.Format("+{0}%", Instance.Options.Taxes.BadlandsGatherBonus * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Harvest, GetLeftPanelTextColor(), harvestBonus, 0.77f);
-        }
-        else if (area.IsWarZone)
-        {
-          string defensiveBonus = String.Format("+{0}%", area.GetDefensiveBonus() * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Defense, GetLeftPanelTextColor(), defensiveBonus, 0.77f);
-        }
-        else if (area.IsTaxableClaim)
-        {
-          string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Taxes, GetLeftPanelTextColor(), taxRate, 0.78f);
+          if (area.Type == AreaType.Badlands)
+          {
+            string harvestBonus = String.Format("+{0}%", Instance.Options.Taxes.BadlandsGatherBonus * 100);
+            AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Harvest, GetLeftPanelTextColor(), harvestBonus, 0.77f);
+          }
+          else if (area.IsWarZone)
+          {
+            string defensiveBonus = String.Format("+{0}%", area.GetDefensiveBonus() * 100);
+            AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Defense, GetLeftPanelTextColor(), defensiveBonus, 0.77f);
+          }
+          else if (area.IsTaxableClaim)
+          {
+            string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
+            AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Taxes, GetLeftPanelTextColor(), taxRate, 0.78f);
+          }
         }
 
         string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
@@ -175,6 +177,14 @@
 
         Area area = User.CurrentArea;
 
+        if (area == null)
+        {
+          if (Instance.Options.Pvp.AllowedInDeepWater)
+            return Ui.HudIcon.Monument;
+          else
+            return Ui.HudIcon.Wilderness;
+        }
+
         if (area.IsWarZone)
           return Ui.HudIcon.WarZone;
 
@@ -197,7 +207,15 @@
         Zone zone = User.CurrentZones.FirstOrDefault();
 
         if (zone != null)
-          return $"{area.Id}: {zone.Name}";
+        {
+          if (area == null)
+            return zone.Name;
+          else
+            return $"{area.Id}: {zone.Name}";
+        }
+
+        if (area == null)
+          return "The Great Unknown";
 
         switch (area.Type)
         {
@@ -225,10 +243,27 @@
 
         Area area = User.CurrentArea;
 
-        if (area.IsWarZone || area.Type == AreaType.Badlands)
+        if (area == null)
+        {
+          if (Instance.Options.Pvp.AllowedInDeepWater)
+            return PanelColor.BackgroundDanger;
+          else
+            return PanelColor.BackgroundNormal;
+        }
+
+        if (area.IsWarZone)
           return PanelColor.BackgroundDanger;
-        else
-          return PanelColor.BackgroundNormal;
+
+        switch (area.Type)
+        {
+          case AreaType.Badlands:
+            return Instance.Options.Pvp.AllowedInBadlands ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
+          case AreaType.Claimed:
+          case AreaType.Headquarters:
+            return Instance.Options.Pvp.AllowedInClaimedLand ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
+          default:
+            return Instance.Options.Pvp.AllowedInWilderness ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
+        }
       }
 
       string GetLeftPanelTextColor()
@@ -237,6 +272,14 @@
           return PanelColor.TextDanger;
 
         Area area = User.CurrentArea;
+
+        if (area == null)
+        {
+          if (Instance.Options.Pvp.AllowedInDeepWater)
+            return PanelColor.TextDanger;
+          else
+            return PanelColor.TextNormal;
+        }
 
         if (area.IsWarZone || area.Type == AreaType.Badlands)
           return PanelColor.TextDanger;

@@ -20,10 +20,7 @@
         Area area = User.CurrentArea;
 
         if (area == null)
-        {
-          Instance.PrintWarning("Player attempted to add claim but wasn't in an area. This shouldn't happen.");
           return false;
-        }
 
         if (!Instance.EnsureUserCanChangeFactionClaims(User, Faction))
           return false;

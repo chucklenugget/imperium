@@ -211,7 +211,7 @@
       user.CurrentArea = area;
       user.Hud.Refresh();
 
-      if (previousArea == null)
+      if (area == null || previousArea == null)
         return;
 
       if (area.Type == AreaType.Badlands && previousArea.Type != AreaType.Badlands)

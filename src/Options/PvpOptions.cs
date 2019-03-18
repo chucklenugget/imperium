@@ -27,6 +27,9 @@
       [JsonProperty("allowedInRaidZones")]
       public bool AllowedInRaidZones;
 
+      [JsonProperty("allowedInDeepWater")]
+      public bool AllowedInDeepWater;
+
       [JsonProperty("enablePvpCommand")]
       public bool EnablePvpCommand;
 
@@ -41,6 +44,7 @@
         AllowedInMonumentZones = true,
         AllowedInRaidZones = true,
         AllowedInWilderness = true,
+        AllowedInDeepWater = true,
         EnablePvpCommand = false,
         CommandCooldownSeconds = 60
       };

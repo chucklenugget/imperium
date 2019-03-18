@@ -46,13 +46,7 @@
 
         User user = Instance.Users.Get(player);
 
-        if (user.CurrentArea == null)
-        {
-          Instance.PrintWarning("Player gathered outside of a defined area. This shouldn't happen.");
-          return;
-        }
-
-        if (user.CurrentArea.Type == AreaType.Badlands)
+        if (user.CurrentArea != null && user.CurrentArea.Type == AreaType.Badlands)
         {
           var bonus = (int)(item.amount * Instance.Options.Taxes.BadlandsGatherBonus);
           item.amount += bonus;

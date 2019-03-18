@@ -23,12 +23,6 @@
         if (hit.damageTypes.Has(Rust.DamageType.Suicide))
           return null;
 
-        if (attacker.CurrentArea == null || defender.CurrentArea == null)
-        {
-          Instance.PrintWarning("A player dealt or received damage while in an unknown area. This shouldn't happen.");
-          return null;
-        }
-
         // If the players are both in factions who are currently at war, they can damage each other anywhere.
         if (attacker.Faction != null && defender.Faction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, defender.Faction))
           return null;
@@ -71,12 +65,6 @@
 
         Area trapArea = Instance.Areas.GetByEntityPosition(trap);
 
-        if (trapArea == null || defender.CurrentArea == null)
-        {
-          Instance.PrintWarning("A trap was triggered in an unknown area. This shouldn't happen.");
-          return null;
-        }
-
         // If the defender is in a faction, they can trigger traps placed in areas claimed by factions with which they are at war.
         if (defender.Faction != null && trapArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, trapArea.FactionId))
           return null;
@@ -102,10 +90,7 @@
         Area turretArea = Instance.Areas.GetByEntityPosition(turret);
 
         if (turretArea == null || defender.CurrentArea == null)
-        {
-          Instance.PrintWarning("A turret tried to acquire a target in an unknown area. This shouldn't happen.");
           return null;
-        }
 
         // If the defender is in a faction, they can be targeted by turrets in areas claimed by factions with which they are at war.
         if (defender.Faction != null && turretArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, turretArea.FactionId))
@@ -142,6 +127,9 @@
 
       static bool IsPvpArea(Area area)
       {
+        if (area == null)
+          return Instance.Options.Pvp.AllowedInDeepWater;
+
         switch (area.Type)
         {
           case AreaType.Badlands:

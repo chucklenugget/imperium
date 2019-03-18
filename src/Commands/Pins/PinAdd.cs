@@ -21,6 +21,13 @@
       }
 
       Area area = user.CurrentArea;
+
+      if (area == null)
+      {
+        user.SendChatMessage(Messages.YouAreInTheGreatUnknown);
+        return;
+      }
+
       if (area.FactionId == null || area.FactionId != user.Faction.Id)
       {
         user.SendChatMessage(Messages.AreaNotOwnedByYourFaction, area.Id);

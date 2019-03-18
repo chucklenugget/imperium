@@ -19,7 +19,7 @@
 
         if (area == null)
         {
-          Instance.PrintWarning("Player attempted to assign claim but wasn't in an area. This shouldn't happen.");
+          User.SendChatMessage(Messages.YouAreInTheGreatUnknown);
           return false;
         }
 

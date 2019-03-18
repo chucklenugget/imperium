@@ -51,8 +51,8 @@
         Map = new UserMap(this);
         Hud = new UserHud(this);
 
-        InvokeRepeating("UpdateHud", 5f, 5f);
-        InvokeRepeating("CheckArea", 2f, 2f);
+        InvokeRepeating(nameof(UpdateHud), 5f, 5f);
+        InvokeRepeating(nameof(CheckArea), 2f, 2f);
       }
 
       void OnDestroy()
@@ -60,8 +60,8 @@
         Map.Hide();
         Hud.Hide();
 
-        if (IsInvoking("UpdateHud")) CancelInvoke("UpdateHud");
-        if (IsInvoking("CheckArea")) CancelInvoke("CheckArea");
+        if (IsInvoking(nameof(UpdateHud))) CancelInvoke(nameof(UpdateHud));
+        if (IsInvoking(nameof(CheckArea))) CancelInvoke(nameof(CheckArea));
 
         if (Player != null)
           Player.displayName = OriginalName;
@@ -141,11 +141,11 @@
       {
         Area currentArea = CurrentArea;
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
-        if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
-        {
+
+        if (currentArea != null && (correctArea == null || currentArea.Id != correctArea.Id))
           Events.OnUserLeftArea(this, currentArea);
-          Events.OnUserEnteredArea(this, correctArea);
-        }
+
+        Events.OnUserEnteredArea(this, correctArea);
       }
 
       void CheckZones()

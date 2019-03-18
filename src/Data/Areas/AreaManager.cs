@@ -84,8 +84,11 @@
       {
         Vector3 position = entity.transform.position;
 
-        int row = Mathf.Clamp((int)(MapGrid.MapSize / 2 - position.z) / MapGrid.CellSize, 0, MapGrid.NumberOfCells);
-        int col = Mathf.Clamp((int)(position.x + MapGrid.MapSize / 2) / MapGrid.CellSize, 0, MapGrid.NumberOfCells);
+        int row = (int)(MapGrid.MapSize / 2 - position.z) / MapGrid.CellSize;
+        int col = (int)(position.x + MapGrid.MapSize / 2) / MapGrid.CellSize;
+
+        if (row < 0 || col < 0 || row >= MapGrid.NumberOfCells || col >= MapGrid.NumberOfCells)
+          return null;
 
         return Layout[row, col];
       }

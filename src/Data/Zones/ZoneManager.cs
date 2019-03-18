@@ -119,7 +119,7 @@
 
         foreach (var entry in Instance.Options.Zones.MonumentZones)
         {
-          if (monument.name.Contains(entry.Key))
+          if (monument.name.ToLowerInvariant().Contains(entry.Key))
             return entry.Value;
         }
 

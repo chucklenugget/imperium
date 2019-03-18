@@ -23,6 +23,7 @@
       public const string AreaNotOwnedByYourFaction = "<color=#ffd479>{0}</color> is not owned by your faction.";
       public const string AreaNotWilderness = "<color=#ffd479>{0}</color> is not currently wilderness.";
       public const string AreaNotContiguous = "<color=#ffd479>{0}</color> is not connected to territory owned by <color=#ffd479>[{1}]</color>.";
+      public const string YouAreInTheGreatUnknown = "You are currently in the great unknown!";
 
       public const string InteractionCanceled = "Command canceled.";
       public const string NoInteractionInProgress = "You aren't currently executing any commands.";

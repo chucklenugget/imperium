@@ -32,7 +32,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.9.6")]
+  [Info("Imperium", "chucklenugget", "1.10.0")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -1720,6 +1720,13 @@ namespace Oxide.Plugins
       }
 
       Area area = user.CurrentArea;
+
+      if (area == null)
+      {
+        user.SendChatMessage(Messages.YouAreInTheGreatUnknown);
+        return;
+      }
+
       if (area.FactionId == null || area.FactionId != user.Faction.Id)
       {
         user.SendChatMessage(Messages.AreaNotOwnedByYourFaction, area.Id);
@@ -2764,7 +2771,7 @@ namespace Oxide.Plugins
       user.CurrentArea = area;
       user.Hud.Refresh();
 
-      if (previousArea == null)
+      if (area == null || previousArea == null)
         return;
 
       if (area.Type == AreaType.Badlands && previousArea.Type != AreaType.Badlands)
@@ -2866,6 +2873,7 @@ namespace Oxide.Plugins
       public const string AreaNotOwnedByYourFaction = "<color=#ffd479>{0}</color> is not owned by your faction.";
       public const string AreaNotWilderness = "<color=#ffd479>{0}</color> is not currently wilderness.";
       public const string AreaNotContiguous = "<color=#ffd479>{0}</color> is not connected to territory owned by <color=#ffd479>[{1}]</color>.";
+      public const string YouAreInTheGreatUnknown = "You are currently in the great unknown!";
 
       public const string InteractionCanceled = "Command canceled.";
       public const string NoInteractionInProgress = "You aren't currently executing any commands.";
@@ -3021,12 +3029,6 @@ namespace Oxide.Plugins
         if (hit.damageTypes.Has(Rust.DamageType.Suicide))
           return null;
 
-        if (attacker.CurrentArea == null || defender.CurrentArea == null)
-        {
-          Instance.PrintWarning("A player dealt or received damage while in an unknown area. This shouldn't happen.");
-          return null;
-        }
-
         // If the players are both in factions who are currently at war, they can damage each other anywhere.
         if (attacker.Faction != null && defender.Faction != null && Instance.Wars.AreFactionsAtWar(attacker.Faction, defender.Faction))
           return null;
@@ -3069,12 +3071,6 @@ namespace Oxide.Plugins
 
         Area trapArea = Instance.Areas.GetByEntityPosition(trap);
 
-        if (trapArea == null || defender.CurrentArea == null)
-        {
-          Instance.PrintWarning("A trap was triggered in an unknown area. This shouldn't happen.");
-          return null;
-        }
-
         // If the defender is in a faction, they can trigger traps placed in areas claimed by factions with which they are at war.
         if (defender.Faction != null && trapArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, trapArea.FactionId))
           return null;
@@ -3100,10 +3096,7 @@ namespace Oxide.Plugins
         Area turretArea = Instance.Areas.GetByEntityPosition(turret);
 
         if (turretArea == null || defender.CurrentArea == null)
-        {
-          Instance.PrintWarning("A turret tried to acquire a target in an unknown area. This shouldn't happen.");
           return null;
-        }
 
         // If the defender is in a faction, they can be targeted by turrets in areas claimed by factions with which they are at war.
         if (defender.Faction != null && turretArea.FactionId != null && Instance.Wars.AreFactionsAtWar(defender.Faction.Id, turretArea.FactionId))
@@ -3140,6 +3133,9 @@ namespace Oxide.Plugins
 
       static bool IsPvpArea(Area area)
       {
+        if (area == null)
+          return Instance.Options.Pvp.AllowedInDeepWater;
+
         switch (area.Type)
         {
           case AreaType.Badlands:
@@ -3511,13 +3507,7 @@ namespace Oxide.Plugins
 
         User user = Instance.Users.Get(player);
 
-        if (user.CurrentArea == null)
-        {
-          Instance.PrintWarning("Player gathered outside of a defined area. This shouldn't happen.");
-          return;
-        }
-
-        if (user.CurrentArea.Type == AreaType.Badlands)
+        if (user.CurrentArea != null && user.CurrentArea.Type == AreaType.Badlands)
         {
           var bonus = (int)(item.amount * Instance.Options.Taxes.BadlandsGatherBonus);
           item.amount += bonus;
@@ -3914,8 +3904,11 @@ namespace Oxide.Plugins
       {
         Vector3 position = entity.transform.position;
 
-        int row = Mathf.Clamp((int)(MapGrid.MapSize / 2 - position.z) / MapGrid.CellSize, 0, MapGrid.NumberOfCells);
-        int col = Mathf.Clamp((int)(position.x + MapGrid.MapSize / 2) / MapGrid.CellSize, 0, MapGrid.NumberOfCells);
+        int row = (int)(MapGrid.MapSize / 2 - position.z) / MapGrid.CellSize;
+        int col = (int)(position.x + MapGrid.MapSize / 2) / MapGrid.CellSize;
+
+        if (row < 0 || col < 0 || row >= MapGrid.NumberOfCells || col >= MapGrid.NumberOfCells)
+          return null;
 
         return Layout[row, col];
       }
@@ -4781,8 +4774,8 @@ namespace Oxide.Plugins
         Map = new UserMap(this);
         Hud = new UserHud(this);
 
-        InvokeRepeating("UpdateHud", 5f, 5f);
-        InvokeRepeating("CheckArea", 2f, 2f);
+        InvokeRepeating(nameof(UpdateHud), 5f, 5f);
+        InvokeRepeating(nameof(CheckArea), 2f, 2f);
       }
 
       void OnDestroy()
@@ -4790,8 +4783,8 @@ namespace Oxide.Plugins
         Map.Hide();
         Hud.Hide();
 
-        if (IsInvoking("UpdateHud")) CancelInvoke("UpdateHud");
-        if (IsInvoking("CheckArea")) CancelInvoke("CheckArea");
+        if (IsInvoking(nameof(UpdateHud))) CancelInvoke(nameof(UpdateHud));
+        if (IsInvoking(nameof(CheckArea))) CancelInvoke(nameof(CheckArea));
 
         if (Player != null)
           Player.displayName = OriginalName;
@@ -4871,11 +4864,11 @@ namespace Oxide.Plugins
       {
         Area currentArea = CurrentArea;
         Area correctArea = Instance.Areas.GetByEntityPosition(Player);
-        if (currentArea != null && correctArea != null && currentArea.Id != correctArea.Id)
-        {
+
+        if (currentArea != null && (correctArea == null || currentArea.Id != correctArea.Id))
           Events.OnUserLeftArea(this, currentArea);
-          Events.OnUserEnteredArea(this, correctArea);
-        }
+
+        Events.OnUserEnteredArea(this, correctArea);
       }
 
       void CheckZones()
@@ -5535,7 +5528,7 @@ namespace Oxide.Plugins
 
         foreach (var entry in Instance.Options.Zones.MonumentZones)
         {
-          if (monument.name.Contains(entry.Key))
+          if (monument.name.ToLowerInvariant().Contains(entry.Key))
             return entry.Value;
         }
 
@@ -6181,10 +6174,7 @@ namespace Oxide.Plugins
         Area area = User.CurrentArea;
 
         if (area == null)
-        {
-          Instance.PrintWarning("Player attempted to add claim but wasn't in an area. This shouldn't happen.");
           return false;
-        }
 
         if (!Instance.EnsureUserCanChangeFactionClaims(User, Faction))
           return false;
@@ -6297,7 +6287,7 @@ namespace Oxide.Plugins
 
         if (area == null)
         {
-          Instance.PrintWarning("Player attempted to assign claim but wasn't in an area. This shouldn't happen.");
+          User.SendChatMessage(Messages.YouAreInTheGreatUnknown);
           return false;
         }
 
@@ -6729,6 +6719,9 @@ namespace Oxide.Plugins
       [JsonProperty("allowedInRaidZones")]
       public bool AllowedInRaidZones;
 
+      [JsonProperty("allowedInDeepWater")]
+      public bool AllowedInDeepWater;
+
       [JsonProperty("enablePvpCommand")]
       public bool EnablePvpCommand;
 
@@ -6743,6 +6736,7 @@ namespace Oxide.Plugins
         AllowedInMonumentZones = true,
         AllowedInRaidZones = true,
         AllowedInWilderness = true,
+        AllowedInDeepWater = true,
         EnablePvpCommand = false,
         CommandCooldownSeconds = 60
       };
@@ -7502,8 +7496,7 @@ namespace Oxide.Plugins
 
       public void Show()
       {
-        if (User.CurrentArea != null)
-          CuiHelper.AddUi(User.Player, Build());
+        CuiHelper.AddUi(User.Player, Build());
       }
 
       public void Hide()
@@ -7554,20 +7547,23 @@ namespace Oxide.Plugins
 
         AddWidget(container, Ui.Element.HudPanelLeft, GetLocationIcon(), GetLeftPanelTextColor(), GetLocationDescription());
 
-        if (area.Type == AreaType.Badlands)
+        if (area != null)
         {
-          string harvestBonus = String.Format("+{0}%", Instance.Options.Taxes.BadlandsGatherBonus * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Harvest, GetLeftPanelTextColor(), harvestBonus, 0.77f);
-        }
-        else if (area.IsWarZone)
-        {
-          string defensiveBonus = String.Format("+{0}%", area.GetDefensiveBonus() * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Defense, GetLeftPanelTextColor(), defensiveBonus, 0.77f);
-        }
-        else if (area.IsTaxableClaim)
-        {
-          string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
-          AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Taxes, GetLeftPanelTextColor(), taxRate, 0.78f);
+          if (area.Type == AreaType.Badlands)
+          {
+            string harvestBonus = String.Format("+{0}%", Instance.Options.Taxes.BadlandsGatherBonus * 100);
+            AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Harvest, GetLeftPanelTextColor(), harvestBonus, 0.77f);
+          }
+          else if (area.IsWarZone)
+          {
+            string defensiveBonus = String.Format("+{0}%", area.GetDefensiveBonus() * 100);
+            AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Defense, GetLeftPanelTextColor(), defensiveBonus, 0.77f);
+          }
+          else if (area.IsTaxableClaim)
+          {
+            string taxRate = String.Format("{0}%", area.GetTaxRate() * 100);
+            AddWidget(container, Ui.Element.HudPanelLeft, Ui.HudIcon.Taxes, GetLeftPanelTextColor(), taxRate, 0.78f);
+          }
         }
 
         string planeIcon = Instance.Hud.GameEvents.IsCargoPlaneActive ? Ui.HudIcon.CargoPlaneIndicatorOn : Ui.HudIcon.CargoPlaneIndicatorOff;
@@ -7645,6 +7641,14 @@ namespace Oxide.Plugins
 
         Area area = User.CurrentArea;
 
+        if (area == null)
+        {
+          if (Instance.Options.Pvp.AllowedInDeepWater)
+            return Ui.HudIcon.Monument;
+          else
+            return Ui.HudIcon.Wilderness;
+        }
+
         if (area.IsWarZone)
           return Ui.HudIcon.WarZone;
 
@@ -7667,7 +7671,15 @@ namespace Oxide.Plugins
         Zone zone = User.CurrentZones.FirstOrDefault();
 
         if (zone != null)
-          return $"{area.Id}: {zone.Name}";
+        {
+          if (area == null)
+            return zone.Name;
+          else
+            return $"{area.Id}: {zone.Name}";
+        }
+
+        if (area == null)
+          return "The Great Unknown";
 
         switch (area.Type)
         {
@@ -7695,10 +7707,27 @@ namespace Oxide.Plugins
 
         Area area = User.CurrentArea;
 
-        if (area.IsWarZone || area.Type == AreaType.Badlands)
+        if (area == null)
+        {
+          if (Instance.Options.Pvp.AllowedInDeepWater)
+            return PanelColor.BackgroundDanger;
+          else
+            return PanelColor.BackgroundNormal;
+        }
+
+        if (area.IsWarZone)
           return PanelColor.BackgroundDanger;
-        else
-          return PanelColor.BackgroundNormal;
+
+        switch (area.Type)
+        {
+          case AreaType.Badlands:
+            return Instance.Options.Pvp.AllowedInBadlands ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
+          case AreaType.Claimed:
+          case AreaType.Headquarters:
+            return Instance.Options.Pvp.AllowedInClaimedLand ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
+          default:
+            return Instance.Options.Pvp.AllowedInWilderness ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
+        }
       }
 
       string GetLeftPanelTextColor()
@@ -7707,6 +7736,14 @@ namespace Oxide.Plugins
           return PanelColor.TextDanger;
 
         Area area = User.CurrentArea;
+
+        if (area == null)
+        {
+          if (Instance.Options.Pvp.AllowedInDeepWater)
+            return PanelColor.TextDanger;
+          else
+            return PanelColor.TextNormal;
+        }
 
         if (area.IsWarZone || area.Type == AreaType.Badlands)
           return PanelColor.TextDanger;
