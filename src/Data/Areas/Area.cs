@@ -62,7 +62,7 @@
 
       void Awake()
       {
-        InvokeRepeating("CheckClaimCupboard", 60f, 60f);
+        InvokeRepeating(nameof(CheckClaimCupboard), 60f, 60f);
       }
 
       void OnDestroy()
@@ -72,8 +72,8 @@
         if (collider != null)
           Destroy(collider);
 
-        if (IsInvoking("CheckClaimCupboard"))
-          CancelInvoke("CheckClaimCupboard");
+        if (IsInvoking(nameof(CheckClaimCupboard)))
+          CancelInvoke(nameof(CheckClaimCupboard));
       }
 
       void TryLoadInfo(AreaInfo info)

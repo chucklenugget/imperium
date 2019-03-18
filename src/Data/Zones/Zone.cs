@@ -51,7 +51,7 @@
         collider.enabled = true;
 
         if (endTime != null)
-          InvokeRepeating("CheckIfShouldDestroy", 10f, 5f);
+          InvokeRepeating(nameof(CheckIfShouldDestroy), 10f, 5f);
       }
 
       void OnDestroy()
@@ -64,8 +64,8 @@
         foreach (BaseEntity sphere in Spheres)
           sphere.KillMessage();
 
-        if (IsInvoking("CheckIfShouldDestroy"))
-          CancelInvoke("CheckIfShouldDestroy");
+        if (IsInvoking(nameof(CheckIfShouldDestroy)))
+          CancelInvoke(nameof(CheckIfShouldDestroy));
       }
 
       void OnTriggerEnter(Collider collider)

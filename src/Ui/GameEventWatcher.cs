@@ -52,7 +52,7 @@
         foreach (CargoShip ship in FindObjectsOfType<CargoShip>())
           BeginEvent(ship);
 
-        InvokeRepeating("CheckEvents", CheckIntervalSeconds, CheckIntervalSeconds);
+        InvokeRepeating(nameof(CheckEvents), CheckIntervalSeconds, CheckIntervalSeconds);
       }
 
       void OnDestroy()

@@ -8,12 +8,12 @@
     {
       void Awake()
       {
-        InvokeRepeating("CheckTaxChests", 60f, 60f);
+        InvokeRepeating(nameof(EnsureAllTaxChestsStillExist), 60f, 60f);
       }
 
       void OnDestroy()
       {
-        if (IsInvoking("CheckTaxChests")) CancelInvoke("CheckTaxChests");
+        if (IsInvoking(nameof(EnsureAllTaxChestsStillExist))) CancelInvoke(nameof(EnsureAllTaxChestsStillExist));
       }
 
       void EnsureAllTaxChestsStillExist()
