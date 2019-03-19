@@ -28,7 +28,7 @@
           return null;
 
         // If both the attacker and the defender are in PVP mode, or in a PVP area/zone, they can damage one another.
-        if (IsUserInDanger(attacker) && IsUserInDanger(defender))
+        if (attacker.IsInDanger && defender.IsInDanger)
           return null;
 
         // Stop the damage.
@@ -48,7 +48,7 @@
           return null;
 
         // If the player is in a PVP area or in PVP mode, allow the damage.
-        if (IsUserInDanger(defender))
+        if (defender.IsInDanger)
           return null;
 
         return false;
@@ -71,7 +71,7 @@
 
         // If the defender is in a PVP area or zone, the trap can trigger.
         // TODO: Ensure the trap is also in the PVP zone.
-        if (IsUserInDanger(defender))
+        if (defender.IsInDanger)
           return null;
 
         // Stop the trap from triggering.
@@ -98,50 +98,10 @@
 
         // If the defender is in a PVP area or zone, the turret can trigger.
         // TODO: Ensure the turret is also in the PVP zone.
-        if (IsUserInDanger(defender))
+        if (defender.IsInDanger)
           return null;
 
         return false;
-      }
-
-      static bool IsUserInDanger(User user)
-      {
-        return user.IsInPvpMode || IsPvpArea(user.CurrentArea) || user.CurrentZones.Any(IsPvpZone);
-      }
-
-      static bool IsPvpZone(Zone zone)
-      {
-        switch (zone.Type)
-        {
-          case ZoneType.Debris:
-          case ZoneType.SupplyDrop:
-            return Instance.Options.Pvp.AllowedInEventZones;
-          case ZoneType.Monument:
-            return Instance.Options.Pvp.AllowedInMonumentZones;
-          case ZoneType.Raid:
-            return Instance.Options.Pvp.AllowedInRaidZones;
-          default:
-            throw new InvalidOperationException($"Unknown zone type {zone.Type}");
-        }
-      }
-
-      static bool IsPvpArea(Area area)
-      {
-        if (area == null)
-          return Instance.Options.Pvp.AllowedInDeepWater;
-
-        switch (area.Type)
-        {
-          case AreaType.Badlands:
-            return Instance.Options.Pvp.AllowedInBadlands;
-          case AreaType.Claimed:
-          case AreaType.Headquarters:
-            return Instance.Options.Pvp.AllowedInClaimedLand;
-          case AreaType.Wilderness:
-            return Instance.Options.Pvp.AllowedInWilderness;
-          default:
-            throw new InvalidOperationException($"Unknown area type {area.Type}");
-        }
       }
     }
   }

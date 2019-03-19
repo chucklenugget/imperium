@@ -2,6 +2,7 @@
 {
   using System;
   using System.Collections.Generic;
+  using System.Linq;
   using System.Text;
   using UnityEngine;
 
@@ -38,6 +39,11 @@
       public string UserNameWithFactionTag
       {
         get { return Player.displayName; }
+      }
+
+      public bool IsInDanger
+      {
+        get { return IsInPvpMode || Area.IsPvp(CurrentArea) || CurrentZones.Any(Zone.IsPvp); }
       }
 
       public void Init(BasePlayer player)

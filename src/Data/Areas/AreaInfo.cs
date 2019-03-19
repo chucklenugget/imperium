@@ -24,6 +24,9 @@
 
       [JsonProperty("cupboardId")]
       public uint? CupboardId;
+
+      [JsonProperty("pvp")]
+      public bool? Pvp;
     }
   }
 }

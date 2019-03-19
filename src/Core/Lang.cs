@@ -14,6 +14,7 @@
       public const string WarDisabled = "War is currently disabled.";
       public const string PinsDisabled = "Map pins are currently disabled.";
       public const string PvpModeDisabled = "PVP Mode is currently not available.";
+      public const string PvpTogglingDisabled = "PVP toggling in claims is currently not available.";
 
       public const string AreaIsBadlands = "<color=#ffd479>{0}</color> is a part of the badlands.";
       public const string AreaIsClaimed = "<color=#ffd479>{0}</color> has been claimed by <color=#ffd479>[{1}]</color>.";
@@ -24,6 +25,9 @@
       public const string AreaNotWilderness = "<color=#ffd479>{0}</color> is not currently wilderness.";
       public const string AreaNotContiguous = "<color=#ffd479>{0}</color> is not connected to territory owned by <color=#ffd479>[{1}]</color>.";
       public const string YouAreInTheGreatUnknown = "You are currently in the great unknown!";
+      public const string AreaIsAlreadyPvp = "<color=#ffd479>{0}</color> is already designated as a PVP area.";
+      public const string AreaIsNotPvp = "<color=#ffd479>{0}</color> is not designated as a PVP area.";
+      public const string AreaAlreadyHasRuleChangePending = "<color=#ffd479>{0}</color> already has a rule change pending. You can't do that right now.";
 
       public const string InteractionCanceled = "Command canceled.";
       public const string NoInteractionInProgress = "You aren't currently executing any commands.";
@@ -130,6 +134,8 @@
       public const string AreaClaimedAnnouncement = "<color=#00ff00>AREA CLAIMED:</color> <color=#ffd479>[{0}]</color> claims <color=#ffd479>{1}</color>!";
       public const string AreaClaimedAsHeadquartersAnnouncement = "<color=#00ff00>AREA CLAIMED:</color> <color=#ffd479>[{0}]</color> claims <color=#ffd479>{1}</color> as their headquarters!";
       public const string AreaCapturedAnnouncement = "<color=#ff0000>AREA CAPTURED:</color> <color=#ffd479>[{0}]</color> has captured <color=#ffd479>{1}</color> from <color=#ffd479>[{2}]</color>!";
+      public const string AreaPvpEnabledAnnouncement = "<color=#ff0000>AREA RULES CHANGED:</color> <color=#ffd479>[{0}]</color> declares that <color=#ffd479>{1}</color> is now a PVP area! The new rules will take effect in {2} seconds.";
+      public const string AreaPvpDisabledAnnouncement = "<color=#00ff00>AREA RULES CHANGED:</color> <color=#ffd479>[{0}]</color> declares <color=#ffd479>{1}</color> is no longer a PVP area. The new rules will take effect in {2} seconds.";
       public const string AreaClaimRemovedAnnouncement = "<color=#ff0000>CLAIM REMOVED:</color> <color=#ffd479>[{0}]</color> has relinquished their claim on <color=#ffd479>{1}</color>!";
       public const string AreaClaimTransferredAnnouncement = "<color=#ff0000>CLAIM TRANSFERRED:</color> <color=#ffd479>[{0}]</color> has transferred their claim on <color=#ffd479>{1}</color> to <color=#ffd479>[{2}]</color>!";
       public const string AreaClaimAssignedAnnouncement = "<color=#ff0000>AREA CLAIM ASSIGNED:</color> <color=#ffd479>{0}</color> has been assigned to <color=#ffd479>[{1}]</color> by an admin.";
