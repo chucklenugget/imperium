@@ -40,6 +40,7 @@
       public const string InvalidUser = "Couldn't find a user whose name matches \"{0}\".";
       public const string InvalidFactionName = "Faction names must be between {0} and {1} alphanumeric characters.";
       public const string NotAtWar = "You are not currently at war with <color=#ffd479>[{0}]</color>!";
+      public const string FactionsAreNotAtWar = "<color=#ffd479>[{0}]</color> is not currently at war with <color=#ffd479>[{1}]</color>!";
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";
       public const string CommandIsOnCooldown = "You can't do that again so quickly. Try again in {0} seconds.";
@@ -141,6 +142,7 @@
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
       public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended, since <color=#ffd479>[{2}]</color> no longer holds any land.";
+      public const string WarEndedByAdminAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended by the decision of an admin.";
       public const string PinAddedAnnouncement = "<color=#00ff00>POINT OF INTEREST:</color> <color=#ffd479>[{0}]</color> announces the creation of <color=#ffd479>{1}</color>, a new {2} located in <color=#ffd479>{3}</color>!";
     }
 

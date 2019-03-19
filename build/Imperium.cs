@@ -32,7 +32,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.10.0")]
+  [Info("Imperium", "chucklenugget", "1.10.2")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -2207,6 +2207,53 @@ namespace Oxide.Plugins
 {
   public partial class Imperium
   {
+    void OnWarCancelCommand(User user, string[] args)
+    {
+      if (!user.HasPermission(Permission.AdminWars))
+      {
+        user.SendChatMessage(Messages.NoPermission);
+        return;
+      }
+
+      if (args.Length < 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/war cancel FACTION1 FACTION2");
+        return;
+      }
+
+      Faction faction1 = Factions.Get(Util.NormalizeFactionId(args[0]));
+      Faction faction2 = Factions.Get(Util.NormalizeFactionId(args[1]));
+
+      if (faction1 == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (faction2 == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[1]);
+        return;
+      }
+
+      War war = Wars.GetActiveWarBetween(faction1, faction2);
+
+      if (war == null)
+      {
+        user.SendChatMessage(Messages.FactionsAreNotAtWar, faction1.Id, faction2.Id);
+        return;
+      }
+
+      Wars.EndWar(war, WarEndReason.CanceledByAdmin);
+      PrintToChat(Messages.WarEndedByAdminAnnouncement, war.AttackerId, war.DefenderId);
+      Log($"{Util.Format(user)} canceled the war between {war.DefenderId} and {war.AttackerId}");
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
     void OnWarDeclareCommand(User user, string[] args)
     {
       Faction attacker = Factions.GetByMember(user);
@@ -2322,6 +2369,12 @@ namespace Oxide.Plugins
       sb.AppendLine("  <color=#ffd479>/war declare FACTION \"REASON\"</color>: Declare war against another faction");
       sb.AppendLine("  <color=#ffd479>/war end FACTION</color>: Offer to end a war, or accept an offer made to you");
       sb.AppendLine("  <color=#ffd479>/war help</color>: Show this message");
+
+      if (user.HasPermission(Permission.AdminWars))
+      {
+        sb.AppendLine("Admin commands:");
+        sb.AppendLine("  <color=#ffd479>/war cancel FACTION1 FACTION2</color>: Forcibly end the war between two factions");
+      }
 
       user.SendChatMessage(sb);
     }
@@ -2890,6 +2943,7 @@ namespace Oxide.Plugins
       public const string InvalidUser = "Couldn't find a user whose name matches \"{0}\".";
       public const string InvalidFactionName = "Faction names must be between {0} and {1} alphanumeric characters.";
       public const string NotAtWar = "You are not currently at war with <color=#ffd479>[{0}]</color>!";
+      public const string FactionsAreNotAtWar = "<color=#ffd479>[{0}]</color> is not currently at war with <color=#ffd479>[{1}]</color>!";
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";
       public const string CommandIsOnCooldown = "You can't do that again so quickly. Try again in {0} seconds.";
@@ -2938,7 +2992,7 @@ namespace Oxide.Plugins
       public const string ClaimsList = "<color=#ffd479>[{0}]</color> has claimed: <color=#ffd479>{1}</color>";
       public const string ClaimCost = "<color=#ffd479>{0}</color> can be claimed by <color=#ffd479>[{1}]</color> for <color=#ffd479>{2}</color> scrap.";
       public const string UpkeepCost = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Upkeep is due <color=#ffd479>{3}</color> hours from now.";
-      public const string UpkeepCostOverdue = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Your upkeep is <color=#ffd479>{3}</color> hours overdue! Fill your tax chest with scrap immediately, before your claims begin to fall into ruin.";
+      public const string UpkeepCostOverdue = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Your upkeep is <color=#ffd479>{3}</color> hours overdue! Fill your headquarters TC with scrap immediately, before your claims begin to fall into ruin.";
 
       public const string SelectTaxChest = "Use the hammer to select the container to receive your faction's tribute. Say <color=#ffd479>/cancel</color> to cancel.";
       public const string SelectingTaxChestFailedInvalidTarget = "That can't be used as a tax chest.";
@@ -2991,6 +3045,7 @@ namespace Oxide.Plugins
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
       public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended, since <color=#ffd479>[{2}]</color> no longer holds any land.";
+      public const string WarEndedByAdminAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended by the decision of an admin.";
       public const string PinAddedAnnouncement = "<color=#00ff00>POINT OF INTEREST:</color> <color=#ffd479>[{0}]</color> announces the creation of <color=#ffd479>{1}</color>, a new {2} located in <color=#ffd479>{3}</color>!";
     }
 
@@ -3653,7 +3708,7 @@ namespace Oxide.Plugins
 
       void Awake()
       {
-        InvokeRepeating("CheckClaimCupboard", 60f, 60f);
+        InvokeRepeating(nameof(CheckClaimCupboard), 60f, 60f);
       }
 
       void OnDestroy()
@@ -3663,8 +3718,8 @@ namespace Oxide.Plugins
         if (collider != null)
           Destroy(collider);
 
-        if (IsInvoking("CheckClaimCupboard"))
-          CancelInvoke("CheckClaimCupboard");
+        if (IsInvoking(nameof(CheckClaimCupboard)))
+          CancelInvoke(nameof(CheckClaimCupboard));
       }
 
       void TryLoadInfo(AreaInfo info)
@@ -4365,12 +4420,12 @@ namespace Oxide.Plugins
     {
       void Awake()
       {
-        InvokeRepeating("CheckTaxChests", 60f, 60f);
+        InvokeRepeating(nameof(EnsureAllTaxChestsStillExist), 60f, 60f);
       }
 
       void OnDestroy()
       {
-        if (IsInvoking("CheckTaxChests")) CancelInvoke("CheckTaxChests");
+        if (IsInvoking(nameof(EnsureAllTaxChestsStillExist))) CancelInvoke(nameof(EnsureAllTaxChestsStillExist));
       }
 
       void EnsureAllTaxChestsStillExist()
@@ -5145,7 +5200,8 @@ namespace Oxide.Plugins
     {
       Treaty,
       AttackerEliminatedDefender,
-      DefenderEliminatedAttacker
+      DefenderEliminatedAttacker,
+      CanceledByAdmin
     }
   }
 }
@@ -5355,7 +5411,7 @@ namespace Oxide.Plugins
         collider.enabled = true;
 
         if (endTime != null)
-          InvokeRepeating("CheckIfShouldDestroy", 10f, 5f);
+          InvokeRepeating(nameof(CheckIfShouldDestroy), 10f, 5f);
       }
 
       void OnDestroy()
@@ -5368,8 +5424,8 @@ namespace Oxide.Plugins
         foreach (BaseEntity sphere in Spheres)
           sphere.KillMessage();
 
-        if (IsInvoking("CheckIfShouldDestroy"))
-          CancelInvoke("CheckIfShouldDestroy");
+        if (IsInvoking(nameof(CheckIfShouldDestroy)))
+          CancelInvoke(nameof(CheckIfShouldDestroy));
       }
 
       void OnTriggerEnter(Collider collider)
@@ -5946,6 +6002,7 @@ namespace Oxide.Plugins
       public const string AdminClaims = "imperium.claims.admin";
       public const string AdminBadlands = "imperium.badlands.admin";
       public const string AdminPins = "imperium.pins.admin";
+      public const string AdminWars = "imperium.wars.admin";
       public const string ManageFactions = "imperium.factions";
 
       public static void RegisterAll(Imperium instance)
@@ -6912,6 +6969,7 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
+  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -6957,13 +7015,13 @@ namespace Oxide.Plugins
         foreach (CH47Helicopter chinook in FindObjectsOfType<CH47Helicopter>())
           BeginEvent(chinook);
 
-        foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>())
+        foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>().Where(IsChinookCrate))
           BeginEvent(crate);
 
         foreach (CargoShip ship in FindObjectsOfType<CargoShip>())
           BeginEvent(ship);
 
-        InvokeRepeating("CheckEvents", CheckIntervalSeconds, CheckIntervalSeconds);
+        InvokeRepeating(nameof(CheckEvents), CheckIntervalSeconds, CheckIntervalSeconds);
       }
 
       void OnDestroy()
@@ -7016,6 +7074,12 @@ namespace Oxide.Plugins
       bool IsEntityGone(BaseEntity entity)
       {
         return !entity.IsValid() || !entity.gameObject.activeInHierarchy;
+      }
+
+      bool IsChinookCrate(HackableLockedCrate crate)
+      {
+        BaseEntity parent = crate.GetParentEntity();
+        return parent == null || !(parent is CargoShip);
       }
     }
   }

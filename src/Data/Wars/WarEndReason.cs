@@ -6,7 +6,8 @@
     {
       Treaty,
       AttackerEliminatedDefender,
-      DefenderEliminatedAttacker
+      DefenderEliminatedAttacker,
+      CanceledByAdmin
     }
   }
 }
