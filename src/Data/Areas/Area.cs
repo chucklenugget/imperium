@@ -1,12 +1,35 @@
 ﻿namespace Oxide.Plugins
 {
   using Rust;
+  using System;
   using UnityEngine;
 
   public partial class Imperium
   {
     class Area : MonoBehaviour
     {
+      public static bool IsPvp(Area area)
+      {
+        if (area == null)
+          return Instance.Options.Pvp.AllowedInDeepWater;
+
+        if (area.IsWarZone)
+          return true;
+
+        switch (area.Type)
+        {
+          case AreaType.Badlands:
+            return Instance.Options.Pvp.AllowedInBadlands;
+          case AreaType.Claimed:
+          case AreaType.Headquarters:
+            return (area.IsPvpEnabled != null) ? area.IsPvpEnabled.Value : Instance.Options.Pvp.AllowedInClaimedLand;
+          case AreaType.Wilderness:
+            return Instance.Options.Pvp.AllowedInWilderness;
+          default:
+            throw new InvalidOperationException($"Unknown area type {area.Type}");
+        }
+      }
+
       public Vector3 Position { get; private set; }
       public Vector3 Size { get; private set; }
 
@@ -19,6 +42,8 @@
       public string FactionId { get; set; }
       public string ClaimantId { get; set; }
       public BuildingPrivlidge ClaimCupboard { get; set; }
+      public bool? IsPvpEnabled { get; private set; }
+      public bool? PendingIsPvpEnabled { get; private set; }
 
       public bool IsClaimed
       {
@@ -33,6 +58,20 @@
       public bool IsWarZone
       {
         get { return GetActiveWars().Length > 0; }
+      }
+
+      public bool HasPendingRuleChange
+      {
+        get { return PendingIsPvpEnabled != null; }
+      }
+
+      public void SetPvpEnabled(bool isPvpEnabled)
+      {
+        if (HasPendingRuleChange)
+          throw new InvalidOperationException("Attempted to change rules on an area where a rule change was already pending");
+
+        PendingIsPvpEnabled = isPvpEnabled;
+        Invoke(nameof(CommitPvpRuleChange), Instance.Options.Pvp.RuleChangeDelaySeconds);
       }
 
       public void Init(string id, int row, int col, Vector3 position, Vector3 size, AreaInfo info)
@@ -105,6 +144,7 @@
         FactionId = info.FactionId;
         ClaimantId = info.ClaimantId;
         ClaimCupboard = cupboard;
+        IsPvpEnabled = info.Pvp;
 
         if (FactionId != null)
           Instance.Log($"[LOAD] Area {Id}: Claimed by {FactionId}, type = {Type}, cupboard = {Util.Format(ClaimCupboard)}");
@@ -118,6 +158,13 @@
         Instance.Log($"{FactionId} lost their claim on {Id} because the tool cupboard was destroyed (periodic check)");
         Instance.PrintToChat(Messages.AreaClaimLostCupboardDestroyedAnnouncement, FactionId, Id);
         Instance.Areas.Unclaim(this);
+      }
+
+      void CommitPvpRuleChange()
+      {
+        IsPvpEnabled = PendingIsPvpEnabled;
+        PendingIsPvpEnabled = null;
+        Events.OnAreaChanged(this);
       }
 
       void OnTriggerEnter(Collider collider)
@@ -192,7 +239,8 @@
           Type = Type,
           FactionId = FactionId,
           ClaimantId = ClaimantId,
-          CupboardId = ClaimCupboard?.net?.ID
+          CupboardId = ClaimCupboard?.net?.ID,
+          Pvp = IsPvpEnabled
         };
       }
     }

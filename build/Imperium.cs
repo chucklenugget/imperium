@@ -1,7 +1,7 @@
 ﻿// Reference: System.Drawing
 
 /*
- * Copyright (C) 2017-2018 chucklenugget
+ * Copyright (C) 2017-2019 chucklenugget
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.10.0")]
+  [Info("Imperium", "chucklenugget", "1.10.2")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -903,8 +903,11 @@ namespace Oxide.Plugins
       sb.AppendLine("  <color=#ffd479>/claim list FACTION</color>: List all areas claimed for a faction");
       sb.AppendLine("  <color=#ffd479>/claim cost [XY]</color>: Show the cost for your faction to claim an area");
 
-      if (!Options.Upkeep.Enabled)
+      if (Options.Upkeep.Enabled)
         sb.AppendLine("  <color=#ffd479>/claim upkeep</color>: Show information about upkeep costs for your faction");
+
+      if (Options.Pvp.EnablePvpTogglingForClaims)
+        sb.AppendLine("  <color=#ffd479>/claim pvp XY on|off</color>: Enable or disable PVP in a claimed area");
 
       sb.AppendLine("  <color=#ffd479>/claim help</color>: Prints this message");
 
@@ -961,6 +964,84 @@ namespace Oxide.Plugins
       }
 
       user.SendChatMessage(sb);
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnClaimPvpCommand(User user, string[] args)
+    {
+      if (!Options.Pvp.EnablePvpTogglingForClaims)
+      {
+        user.SendChatMessage(Messages.PvpTogglingDisabled);
+        return;
+      }
+
+      Faction faction = Factions.GetByMember(user);
+
+      if (!EnsureUserCanChangeFactionClaims(user, faction))
+        return;
+
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/claim pvp XY on|off");
+        return;
+      }
+
+      string mode = args[1].ToLowerInvariant();
+
+      if (mode != "on" && mode != "off")
+      {
+        user.SendChatMessage(Messages.Usage, "/claim pvp XY on|off");
+        return;
+      }
+
+      bool isPvp = (mode == "on");
+      Area area = Areas.Get(args[0]);
+
+      if (area == null)
+      {
+        user.SendChatMessage(Messages.UnknownArea, args[0]);
+        return;
+      }
+
+      if (area.FactionId != user.Faction.Id)
+      {
+        user.SendChatMessage(Messages.AreaNotOwnedByYourFaction, area.Id);
+        return;
+      }
+
+      if (area.HasPendingRuleChange)
+      {
+        user.SendChatMessage(Messages.AreaAlreadyHasRuleChangePending, area.Id);
+        return;
+      }
+
+      if (isPvp && area.IsPvpEnabled == true)
+      {
+        user.SendChatMessage(Messages.AreaIsAlreadyPvp, area.Id);
+        return;
+      }
+
+      if (!isPvp && area.IsPvpEnabled == false)
+      {
+        user.SendChatMessage(Messages.AreaIsNotPvp, area.Id);
+        return;
+      }
+
+      if (isPvp)
+      {
+        PrintToChat(Messages.AreaPvpEnabledAnnouncement, user.Faction.Id, area.Id, Options.Pvp.RuleChangeDelaySeconds);
+        Log($"[PVP] {Util.Format(user)} has enabled PVP on {area.Id} on behalf of {faction.Id}");
+      }
+      else
+      {
+        PrintToChat(Messages.AreaPvpDisabledAnnouncement, user.Faction.Id, area.Id, Options.Pvp.RuleChangeDelaySeconds);
+        Log($"[PVP] {Util.Format(user)} has disabled PVP on {area.Id} on behalf of {faction.Id}");
+      }
+
+      area.SetPvpEnabled(isPvp);
     }
   }
 }﻿namespace Oxide.Plugins
@@ -2864,6 +2945,7 @@ namespace Oxide.Plugins
       public const string WarDisabled = "War is currently disabled.";
       public const string PinsDisabled = "Map pins are currently disabled.";
       public const string PvpModeDisabled = "PVP Mode is currently not available.";
+      public const string PvpTogglingDisabled = "PVP toggling in claims is currently not available.";
 
       public const string AreaIsBadlands = "<color=#ffd479>{0}</color> is a part of the badlands.";
       public const string AreaIsClaimed = "<color=#ffd479>{0}</color> has been claimed by <color=#ffd479>[{1}]</color>.";
@@ -2874,6 +2956,9 @@ namespace Oxide.Plugins
       public const string AreaNotWilderness = "<color=#ffd479>{0}</color> is not currently wilderness.";
       public const string AreaNotContiguous = "<color=#ffd479>{0}</color> is not connected to territory owned by <color=#ffd479>[{1}]</color>.";
       public const string YouAreInTheGreatUnknown = "You are currently in the great unknown!";
+      public const string AreaIsAlreadyPvp = "<color=#ffd479>{0}</color> is already designated as a PVP area.";
+      public const string AreaIsNotPvp = "<color=#ffd479>{0}</color> is not designated as a PVP area.";
+      public const string AreaAlreadyHasRuleChangePending = "<color=#ffd479>{0}</color> already has a rule change pending. You can't do that right now.";
 
       public const string InteractionCanceled = "Command canceled.";
       public const string NoInteractionInProgress = "You aren't currently executing any commands.";
@@ -2938,7 +3023,7 @@ namespace Oxide.Plugins
       public const string ClaimsList = "<color=#ffd479>[{0}]</color> has claimed: <color=#ffd479>{1}</color>";
       public const string ClaimCost = "<color=#ffd479>{0}</color> can be claimed by <color=#ffd479>[{1}]</color> for <color=#ffd479>{2}</color> scrap.";
       public const string UpkeepCost = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Upkeep is due <color=#ffd479>{3}</color> hours from now.";
-      public const string UpkeepCostOverdue = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Your upkeep is <color=#ffd479>{3}</color> hours overdue! Fill your tax chest with scrap immediately, before your claims begin to fall into ruin.";
+      public const string UpkeepCostOverdue = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Your upkeep is <color=#ffd479>{3}</color> hours overdue! Fill your headquarters TC with scrap immediately, before your claims begin to fall into ruin.";
 
       public const string SelectTaxChest = "Use the hammer to select the container to receive your faction's tribute. Say <color=#ffd479>/cancel</color> to cancel.";
       public const string SelectingTaxChestFailedInvalidTarget = "That can't be used as a tax chest.";
@@ -2980,6 +3065,8 @@ namespace Oxide.Plugins
       public const string AreaClaimedAnnouncement = "<color=#00ff00>AREA CLAIMED:</color> <color=#ffd479>[{0}]</color> claims <color=#ffd479>{1}</color>!";
       public const string AreaClaimedAsHeadquartersAnnouncement = "<color=#00ff00>AREA CLAIMED:</color> <color=#ffd479>[{0}]</color> claims <color=#ffd479>{1}</color> as their headquarters!";
       public const string AreaCapturedAnnouncement = "<color=#ff0000>AREA CAPTURED:</color> <color=#ffd479>[{0}]</color> has captured <color=#ffd479>{1}</color> from <color=#ffd479>[{2}]</color>!";
+      public const string AreaPvpEnabledAnnouncement = "<color=#ff0000>AREA RULES CHANGED:</color> <color=#ffd479>[{0}]</color> declares that <color=#ffd479>{1}</color> is now a PVP area! The new rules will take effect in {2} seconds.";
+      public const string AreaPvpDisabledAnnouncement = "<color=#00ff00>AREA RULES CHANGED:</color> <color=#ffd479>[{0}]</color> declares <color=#ffd479>{1}</color> is no longer a PVP area. The new rules will take effect in {2} seconds.";
       public const string AreaClaimRemovedAnnouncement = "<color=#ff0000>CLAIM REMOVED:</color> <color=#ffd479>[{0}]</color> has relinquished their claim on <color=#ffd479>{1}</color>!";
       public const string AreaClaimTransferredAnnouncement = "<color=#ff0000>CLAIM TRANSFERRED:</color> <color=#ffd479>[{0}]</color> has transferred their claim on <color=#ffd479>{1}</color> to <color=#ffd479>[{2}]</color>!";
       public const string AreaClaimAssignedAnnouncement = "<color=#ff0000>AREA CLAIM ASSIGNED:</color> <color=#ffd479>{0}</color> has been assigned to <color=#ffd479>[{1}]</color> by an admin.";
@@ -3034,7 +3121,7 @@ namespace Oxide.Plugins
           return null;
 
         // If both the attacker and the defender are in PVP mode, or in a PVP area/zone, they can damage one another.
-        if (IsUserInDanger(attacker) && IsUserInDanger(defender))
+        if (attacker.IsInDanger && defender.IsInDanger)
           return null;
 
         // Stop the damage.
@@ -3054,7 +3141,7 @@ namespace Oxide.Plugins
           return null;
 
         // If the player is in a PVP area or in PVP mode, allow the damage.
-        if (IsUserInDanger(defender))
+        if (defender.IsInDanger)
           return null;
 
         return false;
@@ -3077,7 +3164,7 @@ namespace Oxide.Plugins
 
         // If the defender is in a PVP area or zone, the trap can trigger.
         // TODO: Ensure the trap is also in the PVP zone.
-        if (IsUserInDanger(defender))
+        if (defender.IsInDanger)
           return null;
 
         // Stop the trap from triggering.
@@ -3104,50 +3191,10 @@ namespace Oxide.Plugins
 
         // If the defender is in a PVP area or zone, the turret can trigger.
         // TODO: Ensure the turret is also in the PVP zone.
-        if (IsUserInDanger(defender))
+        if (defender.IsInDanger)
           return null;
 
         return false;
-      }
-
-      static bool IsUserInDanger(User user)
-      {
-        return user.IsInPvpMode || IsPvpArea(user.CurrentArea) || user.CurrentZones.Any(IsPvpZone);
-      }
-
-      static bool IsPvpZone(Zone zone)
-      {
-        switch (zone.Type)
-        {
-          case ZoneType.Debris:
-          case ZoneType.SupplyDrop:
-            return Instance.Options.Pvp.AllowedInEventZones;
-          case ZoneType.Monument:
-            return Instance.Options.Pvp.AllowedInMonumentZones;
-          case ZoneType.Raid:
-            return Instance.Options.Pvp.AllowedInRaidZones;
-          default:
-            throw new InvalidOperationException($"Unknown zone type {zone.Type}");
-        }
-      }
-
-      static bool IsPvpArea(Area area)
-      {
-        if (area == null)
-          return Instance.Options.Pvp.AllowedInDeepWater;
-
-        switch (area.Type)
-        {
-          case AreaType.Badlands:
-            return Instance.Options.Pvp.AllowedInBadlands;
-          case AreaType.Claimed:
-          case AreaType.Headquarters:
-            return Instance.Options.Pvp.AllowedInClaimedLand;
-          case AreaType.Wilderness:
-            return Instance.Options.Pvp.AllowedInWilderness;
-          default:
-            throw new InvalidOperationException($"Unknown area type {area.Type}");
-        }
       }
     }
   }
@@ -3592,12 +3639,35 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using Rust;
+  using System;
   using UnityEngine;
 
   public partial class Imperium
   {
     class Area : MonoBehaviour
     {
+      public static bool IsPvp(Area area)
+      {
+        if (area == null)
+          return Instance.Options.Pvp.AllowedInDeepWater;
+
+        if (area.IsWarZone)
+          return true;
+
+        switch (area.Type)
+        {
+          case AreaType.Badlands:
+            return Instance.Options.Pvp.AllowedInBadlands;
+          case AreaType.Claimed:
+          case AreaType.Headquarters:
+            return (area.IsPvpEnabled != null) ? area.IsPvpEnabled.Value : Instance.Options.Pvp.AllowedInClaimedLand;
+          case AreaType.Wilderness:
+            return Instance.Options.Pvp.AllowedInWilderness;
+          default:
+            throw new InvalidOperationException($"Unknown area type {area.Type}");
+        }
+      }
+
       public Vector3 Position { get; private set; }
       public Vector3 Size { get; private set; }
 
@@ -3610,6 +3680,8 @@ namespace Oxide.Plugins
       public string FactionId { get; set; }
       public string ClaimantId { get; set; }
       public BuildingPrivlidge ClaimCupboard { get; set; }
+      public bool? IsPvpEnabled { get; private set; }
+      public bool? PendingIsPvpEnabled { get; private set; }
 
       public bool IsClaimed
       {
@@ -3624,6 +3696,20 @@ namespace Oxide.Plugins
       public bool IsWarZone
       {
         get { return GetActiveWars().Length > 0; }
+      }
+
+      public bool HasPendingRuleChange
+      {
+        get { return PendingIsPvpEnabled != null; }
+      }
+
+      public void SetPvpEnabled(bool isPvpEnabled)
+      {
+        if (HasPendingRuleChange)
+          throw new InvalidOperationException("Attempted to change rules on an area where a rule change was already pending");
+
+        PendingIsPvpEnabled = isPvpEnabled;
+        Invoke(nameof(CommitPvpRuleChange), Instance.Options.Pvp.RuleChangeDelaySeconds);
       }
 
       public void Init(string id, int row, int col, Vector3 position, Vector3 size, AreaInfo info)
@@ -3653,7 +3739,7 @@ namespace Oxide.Plugins
 
       void Awake()
       {
-        InvokeRepeating("CheckClaimCupboard", 60f, 60f);
+        InvokeRepeating(nameof(CheckClaimCupboard), 60f, 60f);
       }
 
       void OnDestroy()
@@ -3663,8 +3749,8 @@ namespace Oxide.Plugins
         if (collider != null)
           Destroy(collider);
 
-        if (IsInvoking("CheckClaimCupboard"))
-          CancelInvoke("CheckClaimCupboard");
+        if (IsInvoking(nameof(CheckClaimCupboard)))
+          CancelInvoke(nameof(CheckClaimCupboard));
       }
 
       void TryLoadInfo(AreaInfo info)
@@ -3696,6 +3782,7 @@ namespace Oxide.Plugins
         FactionId = info.FactionId;
         ClaimantId = info.ClaimantId;
         ClaimCupboard = cupboard;
+        IsPvpEnabled = info.Pvp;
 
         if (FactionId != null)
           Instance.Log($"[LOAD] Area {Id}: Claimed by {FactionId}, type = {Type}, cupboard = {Util.Format(ClaimCupboard)}");
@@ -3709,6 +3796,13 @@ namespace Oxide.Plugins
         Instance.Log($"{FactionId} lost their claim on {Id} because the tool cupboard was destroyed (periodic check)");
         Instance.PrintToChat(Messages.AreaClaimLostCupboardDestroyedAnnouncement, FactionId, Id);
         Instance.Areas.Unclaim(this);
+      }
+
+      void CommitPvpRuleChange()
+      {
+        IsPvpEnabled = PendingIsPvpEnabled;
+        PendingIsPvpEnabled = null;
+        Events.OnAreaChanged(this);
       }
 
       void OnTriggerEnter(Collider collider)
@@ -3783,7 +3877,8 @@ namespace Oxide.Plugins
           Type = Type,
           FactionId = FactionId,
           ClaimantId = ClaimantId,
-          CupboardId = ClaimCupboard?.net?.ID
+          CupboardId = ClaimCupboard?.net?.ID,
+          Pvp = IsPvpEnabled
         };
       }
     }
@@ -3815,6 +3910,9 @@ namespace Oxide.Plugins
 
       [JsonProperty("cupboardId")]
       public uint? CupboardId;
+
+      [JsonProperty("pvp")]
+      public bool? Pvp;
     }
   }
 }
@@ -4365,12 +4463,12 @@ namespace Oxide.Plugins
     {
       void Awake()
       {
-        InvokeRepeating("CheckTaxChests", 60f, 60f);
+        InvokeRepeating(nameof(EnsureAllTaxChestsStillExist), 60f, 60f);
       }
 
       void OnDestroy()
       {
-        if (IsInvoking("CheckTaxChests")) CancelInvoke("CheckTaxChests");
+        if (IsInvoking(nameof(EnsureAllTaxChestsStillExist))) CancelInvoke(nameof(EnsureAllTaxChestsStillExist));
       }
 
       void EnsureAllTaxChestsStillExist()
@@ -4725,6 +4823,7 @@ namespace Oxide.Plugins
 {
   using System;
   using System.Collections.Generic;
+  using System.Linq;
   using System.Text;
   using UnityEngine;
 
@@ -4761,6 +4860,11 @@ namespace Oxide.Plugins
       public string UserNameWithFactionTag
       {
         get { return Player.displayName; }
+      }
+
+      public bool IsInDanger
+      {
+        get { return IsInPvpMode || Area.IsPvp(CurrentArea) || CurrentZones.Any(Zone.IsPvp); }
       }
 
       public void Init(BasePlayer player)
@@ -5315,6 +5419,22 @@ namespace Oxide.Plugins
     {
       const string SpherePrefab = "assets/prefabs/visualization/sphere.prefab";
 
+      public static bool IsPvp(Zone zone)
+      {
+        switch (zone.Type)
+        {
+          case ZoneType.Debris:
+          case ZoneType.SupplyDrop:
+            return Instance.Options.Pvp.AllowedInEventZones;
+          case ZoneType.Monument:
+            return Instance.Options.Pvp.AllowedInMonumentZones;
+          case ZoneType.Raid:
+            return Instance.Options.Pvp.AllowedInRaidZones;
+          default:
+            throw new InvalidOperationException($"Unknown zone type {zone.Type}");
+        }
+      }
+
       List<BaseEntity> Spheres = new List<BaseEntity>();
 
       public ZoneType Type { get; private set; }
@@ -5355,7 +5475,7 @@ namespace Oxide.Plugins
         collider.enabled = true;
 
         if (endTime != null)
-          InvokeRepeating("CheckIfShouldDestroy", 10f, 5f);
+          InvokeRepeating(nameof(CheckIfShouldDestroy), 10f, 5f);
       }
 
       void OnDestroy()
@@ -5368,8 +5488,8 @@ namespace Oxide.Plugins
         foreach (BaseEntity sphere in Spheres)
           sphere.KillMessage();
 
-        if (IsInvoking("CheckIfShouldDestroy"))
-          CancelInvoke("CheckIfShouldDestroy");
+        if (IsInvoking(nameof(CheckIfShouldDestroy)))
+          CancelInvoke(nameof(CheckIfShouldDestroy));
       }
 
       void OnTriggerEnter(Collider collider)
@@ -6725,8 +6845,14 @@ namespace Oxide.Plugins
       [JsonProperty("enablePvpCommand")]
       public bool EnablePvpCommand;
 
+      [JsonProperty("enablePvpTogglingForClaims")]
+      public bool EnablePvpTogglingForClaims;
+
       [JsonProperty("commandCooldownSeconds")]
       public int CommandCooldownSeconds;
+
+      [JsonProperty("ruleChangeDelaySeconds")]
+      public int RuleChangeDelaySeconds;
 
       public static PvpOptions Default = new PvpOptions {
         RestrictPvp = false,
@@ -6738,7 +6864,9 @@ namespace Oxide.Plugins
         AllowedInWilderness = true,
         AllowedInDeepWater = true,
         EnablePvpCommand = false,
-        CommandCooldownSeconds = 60
+        EnablePvpTogglingForClaims = false,
+        CommandCooldownSeconds = 60,
+        RuleChangeDelaySeconds = 300,
       };
     }
   }
@@ -6963,7 +7091,7 @@ namespace Oxide.Plugins
         foreach (CargoShip ship in FindObjectsOfType<CargoShip>())
           BeginEvent(ship);
 
-        InvokeRepeating("CheckEvents", CheckIntervalSeconds, CheckIntervalSeconds);
+        InvokeRepeating(nameof(CheckEvents), CheckIntervalSeconds, CheckIntervalSeconds);
       }
 
       void OnDestroy()
@@ -7702,53 +7830,12 @@ namespace Oxide.Plugins
 
       string GetLeftPanelBackgroundColor()
       {
-        if (User.CurrentZones.Count > 0)
-          return PanelColor.BackgroundDanger;
-
-        Area area = User.CurrentArea;
-
-        if (area == null)
-        {
-          if (Instance.Options.Pvp.AllowedInDeepWater)
-            return PanelColor.BackgroundDanger;
-          else
-            return PanelColor.BackgroundNormal;
-        }
-
-        if (area.IsWarZone)
-          return PanelColor.BackgroundDanger;
-
-        switch (area.Type)
-        {
-          case AreaType.Badlands:
-            return Instance.Options.Pvp.AllowedInBadlands ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
-          case AreaType.Claimed:
-          case AreaType.Headquarters:
-            return Instance.Options.Pvp.AllowedInClaimedLand ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
-          default:
-            return Instance.Options.Pvp.AllowedInWilderness ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
-        }
+        return User.IsInDanger ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
       }
 
       string GetLeftPanelTextColor()
       {
-        if (User.CurrentZones.Count > 0)
-          return PanelColor.TextDanger;
-
-        Area area = User.CurrentArea;
-
-        if (area == null)
-        {
-          if (Instance.Options.Pvp.AllowedInDeepWater)
-            return PanelColor.TextDanger;
-          else
-            return PanelColor.TextNormal;
-        }
-
-        if (area.IsWarZone || area.Type == AreaType.Badlands)
-          return PanelColor.TextDanger;
-        else
-          return PanelColor.TextNormal;
+        return User.IsInDanger ? PanelColor.TextDanger : PanelColor.TextNormal;
       }
 
       void AddWidget(CuiElementContainer container, string parent, string iconName, string textColor, string text, float left = 0f)

@@ -33,8 +33,14 @@
       [JsonProperty("enablePvpCommand")]
       public bool EnablePvpCommand;
 
+      [JsonProperty("enablePvpTogglingForClaims")]
+      public bool EnablePvpTogglingForClaims;
+
       [JsonProperty("commandCooldownSeconds")]
       public int CommandCooldownSeconds;
+
+      [JsonProperty("ruleChangeDelaySeconds")]
+      public int RuleChangeDelaySeconds;
 
       public static PvpOptions Default = new PvpOptions {
         RestrictPvp = false,
@@ -46,7 +52,9 @@
         AllowedInWilderness = true,
         AllowedInDeepWater = true,
         EnablePvpCommand = false,
-        CommandCooldownSeconds = 60
+        EnablePvpTogglingForClaims = false,
+        CommandCooldownSeconds = 60,
+        RuleChangeDelaySeconds = 300,
       };
     }
   }

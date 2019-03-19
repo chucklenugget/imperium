@@ -238,53 +238,12 @@
 
       string GetLeftPanelBackgroundColor()
       {
-        if (User.CurrentZones.Count > 0)
-          return PanelColor.BackgroundDanger;
-
-        Area area = User.CurrentArea;
-
-        if (area == null)
-        {
-          if (Instance.Options.Pvp.AllowedInDeepWater)
-            return PanelColor.BackgroundDanger;
-          else
-            return PanelColor.BackgroundNormal;
-        }
-
-        if (area.IsWarZone)
-          return PanelColor.BackgroundDanger;
-
-        switch (area.Type)
-        {
-          case AreaType.Badlands:
-            return Instance.Options.Pvp.AllowedInBadlands ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
-          case AreaType.Claimed:
-          case AreaType.Headquarters:
-            return Instance.Options.Pvp.AllowedInClaimedLand ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
-          default:
-            return Instance.Options.Pvp.AllowedInWilderness ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
-        }
+        return User.IsInDanger ? PanelColor.BackgroundDanger : PanelColor.BackgroundNormal;
       }
 
       string GetLeftPanelTextColor()
       {
-        if (User.CurrentZones.Count > 0)
-          return PanelColor.TextDanger;
-
-        Area area = User.CurrentArea;
-
-        if (area == null)
-        {
-          if (Instance.Options.Pvp.AllowedInDeepWater)
-            return PanelColor.TextDanger;
-          else
-            return PanelColor.TextNormal;
-        }
-
-        if (area.IsWarZone || area.Type == AreaType.Badlands)
-          return PanelColor.TextDanger;
-        else
-          return PanelColor.TextNormal;
+        return User.IsInDanger ? PanelColor.TextDanger : PanelColor.TextNormal;
       }
 
       void AddWidget(CuiElementContainer container, string parent, string iconName, string textColor, string text, float left = 0f)

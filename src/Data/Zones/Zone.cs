@@ -11,6 +11,22 @@
     {
       const string SpherePrefab = "assets/prefabs/visualization/sphere.prefab";
 
+      public static bool IsPvp(Zone zone)
+      {
+        switch (zone.Type)
+        {
+          case ZoneType.Debris:
+          case ZoneType.SupplyDrop:
+            return Instance.Options.Pvp.AllowedInEventZones;
+          case ZoneType.Monument:
+            return Instance.Options.Pvp.AllowedInMonumentZones;
+          case ZoneType.Raid:
+            return Instance.Options.Pvp.AllowedInRaidZones;
+          default:
+            throw new InvalidOperationException($"Unknown zone type {zone.Type}");
+        }
+      }
+
       List<BaseEntity> Spheres = new List<BaseEntity>();
 
       public ZoneType Type { get; private set; }

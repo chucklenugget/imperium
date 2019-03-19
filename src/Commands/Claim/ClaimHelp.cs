@@ -18,8 +18,11 @@
       sb.AppendLine("  <color=#ffd479>/claim list FACTION</color>: List all areas claimed for a faction");
       sb.AppendLine("  <color=#ffd479>/claim cost [XY]</color>: Show the cost for your faction to claim an area");
 
-      if (!Options.Upkeep.Enabled)
+      if (Options.Upkeep.Enabled)
         sb.AppendLine("  <color=#ffd479>/claim upkeep</color>: Show information about upkeep costs for your faction");
+
+      if (Options.Pvp.EnablePvpTogglingForClaims)
+        sb.AppendLine("  <color=#ffd479>/claim pvp XY on|off</color>: Enable or disable PVP in a claimed area");
 
       sb.AppendLine("  <color=#ffd479>/claim help</color>: Prints this message");
 

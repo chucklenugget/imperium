@@ -32,6 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\Badlands\BadlandsHelp.cs" />
+    <Compile Include="Commands\Claim\ClaimPvp.cs" />
     <Compile Include="Commands\Pins\Pin.cs" />
     <Compile Include="Commands\Pins\PinList.cs" />
     <Compile Include="Commands\Pins\PinHelp.cs" />
