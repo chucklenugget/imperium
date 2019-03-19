@@ -147,6 +147,17 @@
         return true;
       }
 
+      public bool SetOwner(User user)
+      {
+        if (!MemberIds.Contains(user.Id))
+          throw new InvalidOperationException($"Cannot set player {user.Id} as owner of faction {Id}, since they are not a member");
+
+        ManagerIds.Remove(user.Id);
+
+        OwnerId = user.Id;
+        return true;
+      }
+
       public bool HasOwner(User user)
       {
         return HasOwner(user.Id);

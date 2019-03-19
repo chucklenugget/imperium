@@ -24,6 +24,16 @@
       sb.AppendLine("  <color=#ffd479>/faction disband forever</color>: Disband your faction immediately (no undo!)");
       sb.AppendLine("  <color=#ffd479>/faction help</color>: Prints this message");
 
+      if (user.HasPermission(Permission.AdminFactions))
+      {
+        sb.AppendLine("Admin commands:");
+        sb.AppendLine("  <color=#ffd479>/faction admin promote FACTION \"PLAYER\"</color>: Forcibly promote a player");
+        sb.AppendLine("  <color=#ffd479>/faction admin demote FACTION \"PLAYER\"</color>: Forcibly demote a player");
+        sb.AppendLine("  <color=#ffd479>/faction admin kick FACTION \"PLAYER\"</color>: Forcibly kick a player from a faction");
+        sb.AppendLine("  <color=#ffd479>/faction admin owner FACTION \"PLAYER\"</color>: Forcibly change the owner of a faction");
+        sb.AppendLine("  <color=#ffd479>/faction admin disband FACTION</color>: Forcibly disband a faction");
+      }
+
       user.SendChatMessage(sb);
     }
   }

@@ -32,6 +32,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\Badlands\BadlandsHelp.cs" />
+    <Compile Include="Commands\Faction\FactionAdmin.cs" />
+    <Compile Include="Commands\Faction\FactionAdminOwner.cs" />
+    <Compile Include="Commands\Faction\FactionAdminDisband.cs" />
+    <Compile Include="Commands\Faction\FactionAdminDemote.cs" />
+    <Compile Include="Commands\Faction\FactionAdminPromote.cs" />
+    <Compile Include="Commands\Faction\FactionAdminKick.cs" />
     <Compile Include="Commands\Pins\Pin.cs" />
     <Compile Include="Commands\Pins\PinList.cs" />
     <Compile Include="Commands\Pins\PinHelp.cs" />

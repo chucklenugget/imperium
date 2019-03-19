@@ -1148,6 +1148,9 @@ namespace Oxide.Plugins
         case "disband":
           OnFactionDisbandCommand(user, restArguments);
           break;
+        case "admin":
+          OnFactionAdminCommand(user, restArguments);
+          break;
         case "help":
         default:
           OnFactionHelpCommand(user);
@@ -1163,6 +1166,273 @@ namespace Oxide.Plugins
   }
 }
 ﻿namespace Oxide.Plugins
+{
+  using System.Linq;
+
+  public partial class Imperium
+  {
+    void OnFactionAdminCommand(User user, string[] args)
+    {
+      if (!user.HasPermission(Permission.AdminFactions))
+      {
+        user.SendChatMessage(Messages.NoPermission);
+        return;
+      }
+
+      if (args.Length == 0)
+      {
+        OnFactionHelpCommand(user);
+        return;
+      }
+
+      var restArguments = args.Skip(1).ToArray();
+
+      switch (args[0].ToLower())
+      {
+        case "promote":
+          OnFactionAdminPromoteCommand(user, restArguments);
+          break;
+        case "demote":
+          OnFactionAdminDemoteCommand(user, restArguments);
+          break;
+        case "kick":
+          OnFactionAdminKickCommand(user, restArguments);
+          break;
+        case "owner":
+          OnFactionAdminOwnerCommand(user, restArguments);
+          break;
+        case "disband":
+          OnFactionAdminDisbandCommand(user, restArguments);
+          break;
+        default:
+          OnFactionHelpCommand(user);
+          break;
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminDemoteCommand(User user, string[] args)
+    {
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin demote FACTION \"PLAYER\"");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+      User member = Users.Find(args[1]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (member == null)
+      {
+        user.SendChatMessage(Messages.InvalidUser, args[1]);
+        return;
+      }
+
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasOwner(member))
+      {
+        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (!faction.HasManager(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotManagerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      user.SendChatMessage(Messages.ManagerRemoved, member.UserName, faction.Id);
+      Log($"{Util.Format(user)} forcibly demoted {Util.Format(member)} in faction {faction.Id}");
+
+      faction.Demote(member);
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminDisbandCommand(User user, string[] args)
+    {
+      if (args.Length != 1)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin disband FACTION");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      PrintToChat(Messages.FactionDisbandedByAdminAnnouncement, faction.Id);
+      Log($"{Util.Format(user)} forcibly disbanded faction {faction.Id}");
+
+      Factions.Disband(faction);
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminKickCommand(User user, string[] args)
+    {
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin kick FACTION \"PLAYER\"");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+      User member = Users.Find(args[1]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (member == null)
+      {
+        user.SendChatMessage(Messages.InvalidUser, args[1]);
+        return;
+      }
+
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasLeader(member))
+      {
+        user.SendChatMessage(Messages.CannotKickLeaderOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      user.SendChatMessage(Messages.MemberRemoved, member.UserName, faction.Id);
+      PrintToChat(Messages.FactionMemberLeftAnnouncement, member.UserName, faction.Id);
+
+      Log($"{Util.Format(user)} forcibly kicked {Util.Format(member)} from faction {faction.Id}");
+
+      faction.RemoveMember(member);
+      member.SetFaction(null);
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminOwnerCommand(User user, string[] args)
+    {
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin owner FACTION \"PLAYER\"");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+      User member = Users.Find(args[1]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (member == null)
+      {
+        user.SendChatMessage(Messages.InvalidUser, args[1]);
+        return;
+      }
+
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasOwner(member))
+      {
+        user.SendChatMessage(Messages.UserIsAlreadyOwnerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      user.SendChatMessage(Messages.FactionOwnerChanged, faction.Id, member.UserName);
+      Log($"{Util.Format(user)} forcibly set {Util.Format(member)} as the owner of faction {faction.Id}");
+
+      faction.SetOwner(member);
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminPromoteCommand(User user, string[] args)
+    {
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin promote FACTION \"PLAYER\"");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+      User member = Users.Find(args[1]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (member == null)
+      {
+        user.SendChatMessage(Messages.InvalidUser, args[1]);
+        return;
+      }
+
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasOwner(member))
+      {
+        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasManager(member))
+      {
+        user.SendChatMessage(Messages.UserIsAlreadyManagerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      user.SendChatMessage(Messages.ManagerAdded, member.UserName, faction.Id);
+      Log($"{Util.Format(user)} forcibly promoted {Util.Format(member)} in faction {faction.Id}");
+
+      faction.Promote(member);
+    }
+  }
+}﻿namespace Oxide.Plugins
 {
   using System;
 
@@ -1348,6 +1618,16 @@ namespace Oxide.Plugins
       sb.AppendLine("  <color=#ffd479>/faction demote \"PLAYER\"</color>: Remove a faction member as manager");
       sb.AppendLine("  <color=#ffd479>/faction disband forever</color>: Disband your faction immediately (no undo!)");
       sb.AppendLine("  <color=#ffd479>/faction help</color>: Prints this message");
+
+      if (user.HasPermission(Permission.AdminFactions))
+      {
+        sb.AppendLine("Admin commands:");
+        sb.AppendLine("  <color=#ffd479>/faction admin promote FACTION \"PLAYER\"</color>: Forcibly promote a player");
+        sb.AppendLine("  <color=#ffd479>/faction admin demote FACTION \"PLAYER\"</color>: Forcibly demote a player");
+        sb.AppendLine("  <color=#ffd479>/faction admin kick FACTION \"PLAYER\"</color>: Forcibly kick a player from a faction");
+        sb.AppendLine("  <color=#ffd479>/faction admin owner FACTION \"PLAYER\"</color>: Forcibly change the owner of a faction");
+        sb.AppendLine("  <color=#ffd479>/faction admin disband FACTION</color>: Forcibly disband a faction");
+      }
 
       user.SendChatMessage(sb);
     }
@@ -2953,10 +3233,12 @@ namespace Oxide.Plugins
       public const string MemberRemoved = "You have removed <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
       public const string ManagerAdded = "You have added <color=#ffd479>{0}</color> as a manager of <color=#ffd479>[{1}]</color>.";
       public const string ManagerRemoved = "You have removed <color=#ffd479>{0}</color> as a manager of <color=#ffd479>[{1}]</color>.";
+      public const string FactionOwnerChanged = "You have changed the owner of <color=#ffd479>{0}</color> to <color=#ffd479>[{1}]</color>.";
       public const string UserIsAlreadyMemberOfFaction = "<color=#ffd479>{0}</color> is already a member of <color=#ffd479>[{1}]</color>.";
       public const string UserIsNotMemberOfFaction = "<color=#ffd479>{0}</color> is not a member of <color=#ffd479>[{1}]</color>.";
       public const string UserIsAlreadyManagerOfFaction = "<color=#ffd479>{0}</color> is already a manager of <color=#ffd479>[{1}]</color>.";
       public const string UserIsNotManagerOfFaction = "<color=#ffd479>{0}</color> is not a manager of <color=#ffd479>[{1}]</color>.";
+      public const string UserIsAlreadyOwnerOfFaction = "<color=#ffd479>{0}</color> is already the owner of <color=#ffd479>[{1}]</color>.";
       public const string CannotPromoteOrDemoteOwnerOfFaction = "<color=#ffd479>{0}</color> cannot be promoted or demoted, since they are the owner of <color=#ffd479>[{1}]</color>.";
       public const string CannotKickLeaderOfFaction = "<color=#ffd479>{0}</color> cannot be kicked, since they are an owner or manager of <color=#ffd479>[{1}]</color>.";
       public const string InviteAdded = "You have invited <color=#ffd479>{0}</color> to join <color=#ffd479>[{1}]</color>.";
@@ -3028,6 +3310,7 @@ namespace Oxide.Plugins
 
       public const string FactionCreatedAnnouncement = "<color=#00ff00>FACTION CREATED:</color> A new faction <color=#ffd479>[{0}]</color> has been created!";
       public const string FactionDisbandedAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded!";
+      public const string FactionDisbandedByAdminAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded by an admin.";
       public const string FactionMemberJoinedAnnouncement = "<color=#00ff00>MEMBER JOINED:</color> <color=#ffd479>{0}</color> has joined <color=#ffd479>[{1}]</color>!";
       public const string FactionMemberLeftAnnouncement = "<color=#00ff00>MEMBER LEFT:</color> <color=#ffd479>{0}</color> has left <color=#ffd479>[{1}]</color>!";
 
@@ -4311,6 +4594,17 @@ namespace Oxide.Plugins
           return false;
 
         Events.OnPlayerDemoted(this, user);
+        return true;
+      }
+
+      public bool SetOwner(User user)
+      {
+        if (!MemberIds.Contains(user.Id))
+          throw new InvalidOperationException($"Cannot set player {user.Id} as owner of faction {Id}, since they are not a member");
+
+        ManagerIds.Remove(user.Id);
+
+        OwnerId = user.Id;
         return true;
       }
 
