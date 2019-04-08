@@ -40,6 +40,7 @@
       public const string InvalidUser = "Couldn't find a user whose name matches \"{0}\".";
       public const string InvalidFactionName = "Faction names must be between {0} and {1} alphanumeric characters.";
       public const string NotAtWar = "You are not currently at war with <color=#ffd479>[{0}]</color>!";
+      public const string FactionsAreNotAtWar = "<color=#ffd479>[{0}]</color> is not currently at war with <color=#ffd479>[{1}]</color>!";
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";
       public const string CommandIsOnCooldown = "You can't do that again so quickly. Try again in {0} seconds.";
@@ -49,10 +50,12 @@
       public const string MemberRemoved = "You have removed <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
       public const string ManagerAdded = "You have added <color=#ffd479>{0}</color> as a manager of <color=#ffd479>[{1}]</color>.";
       public const string ManagerRemoved = "You have removed <color=#ffd479>{0}</color> as a manager of <color=#ffd479>[{1}]</color>.";
+      public const string FactionOwnerChanged = "You have changed the owner of <color=#ffd479>{0}</color> to <color=#ffd479>[{1}]</color>.";
       public const string UserIsAlreadyMemberOfFaction = "<color=#ffd479>{0}</color> is already a member of <color=#ffd479>[{1}]</color>.";
       public const string UserIsNotMemberOfFaction = "<color=#ffd479>{0}</color> is not a member of <color=#ffd479>[{1}]</color>.";
       public const string UserIsAlreadyManagerOfFaction = "<color=#ffd479>{0}</color> is already a manager of <color=#ffd479>[{1}]</color>.";
       public const string UserIsNotManagerOfFaction = "<color=#ffd479>{0}</color> is not a manager of <color=#ffd479>[{1}]</color>.";
+      public const string UserIsAlreadyOwnerOfFaction = "<color=#ffd479>{0}</color> is already the owner of <color=#ffd479>[{1}]</color>.";
       public const string CannotPromoteOrDemoteOwnerOfFaction = "<color=#ffd479>{0}</color> cannot be promoted or demoted, since they are the owner of <color=#ffd479>[{1}]</color>.";
       public const string CannotKickLeaderOfFaction = "<color=#ffd479>{0}</color> cannot be kicked, since they are an owner or manager of <color=#ffd479>[{1}]</color>.";
       public const string InviteAdded = "You have invited <color=#ffd479>{0}</color> to join <color=#ffd479>[{1}]</color>.";
@@ -124,6 +127,7 @@
 
       public const string FactionCreatedAnnouncement = "<color=#00ff00>FACTION CREATED:</color> A new faction <color=#ffd479>[{0}]</color> has been created!";
       public const string FactionDisbandedAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded!";
+      public const string FactionDisbandedByAdminAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded by an admin.";
       public const string FactionMemberJoinedAnnouncement = "<color=#00ff00>MEMBER JOINED:</color> <color=#ffd479>{0}</color> has joined <color=#ffd479>[{1}]</color>!";
       public const string FactionMemberLeftAnnouncement = "<color=#00ff00>MEMBER LEFT:</color> <color=#ffd479>{0}</color> has left <color=#ffd479>[{1}]</color>!";
 
@@ -141,6 +145,7 @@
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
       public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended, since <color=#ffd479>[{2}]</color> no longer holds any land.";
+      public const string WarEndedByAdminAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended by the decision of an admin.";
       public const string PinAddedAnnouncement = "<color=#00ff00>POINT OF INTEREST:</color> <color=#ffd479>[{0}]</color> announces the creation of <color=#ffd479>{1}</color>, a new {2} located in <color=#ffd479>{3}</color>!";
     }
 

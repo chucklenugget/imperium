@@ -1,6 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
+  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -46,7 +47,7 @@
         foreach (CH47Helicopter chinook in FindObjectsOfType<CH47Helicopter>())
           BeginEvent(chinook);
 
-        foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>())
+        foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>().Where(IsChinookCrate))
           BeginEvent(crate);
 
         foreach (CargoShip ship in FindObjectsOfType<CargoShip>())
@@ -105,6 +106,12 @@
       bool IsEntityGone(BaseEntity entity)
       {
         return !entity.IsValid() || !entity.gameObject.activeInHierarchy;
+      }
+
+      bool IsChinookCrate(HackableLockedCrate crate)
+      {
+        BaseEntity parent = crate.GetParentEntity();
+        return parent == null || !(parent is CargoShip);
       }
     }
   }

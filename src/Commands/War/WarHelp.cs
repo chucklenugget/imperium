@@ -15,6 +15,12 @@
       sb.AppendLine("  <color=#ffd479>/war end FACTION</color>: Offer to end a war, or accept an offer made to you");
       sb.AppendLine("  <color=#ffd479>/war help</color>: Show this message");
 
+      if (user.HasPermission(Permission.AdminWars))
+      {
+        sb.AppendLine("Admin commands:");
+        sb.AppendLine("  <color=#ffd479>/war cancel FACTION1 FACTION2</color>: Forcibly end the war between two factions");
+      }
+
       user.SendChatMessage(sb);
     }
   }

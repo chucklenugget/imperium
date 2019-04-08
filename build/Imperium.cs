@@ -32,7 +32,7 @@ namespace Oxide.Plugins
   using System.Collections.Generic;
   using System.Linq;
 
-  [Info("Imperium", "chucklenugget", "1.10.0")]
+  [Info("Imperium", "chucklenugget", "1.10.2")]
   public partial class Imperium : RustPlugin
   {
     static Imperium Instance;
@@ -1148,6 +1148,9 @@ namespace Oxide.Plugins
         case "disband":
           OnFactionDisbandCommand(user, restArguments);
           break;
+        case "admin":
+          OnFactionAdminCommand(user, restArguments);
+          break;
         case "help":
         default:
           OnFactionHelpCommand(user);
@@ -1163,6 +1166,273 @@ namespace Oxide.Plugins
   }
 }
 ﻿namespace Oxide.Plugins
+{
+  using System.Linq;
+
+  public partial class Imperium
+  {
+    void OnFactionAdminCommand(User user, string[] args)
+    {
+      if (!user.HasPermission(Permission.AdminFactions))
+      {
+        user.SendChatMessage(Messages.NoPermission);
+        return;
+      }
+
+      if (args.Length == 0)
+      {
+        OnFactionHelpCommand(user);
+        return;
+      }
+
+      var restArguments = args.Skip(1).ToArray();
+
+      switch (args[0].ToLower())
+      {
+        case "promote":
+          OnFactionAdminPromoteCommand(user, restArguments);
+          break;
+        case "demote":
+          OnFactionAdminDemoteCommand(user, restArguments);
+          break;
+        case "kick":
+          OnFactionAdminKickCommand(user, restArguments);
+          break;
+        case "owner":
+          OnFactionAdminOwnerCommand(user, restArguments);
+          break;
+        case "disband":
+          OnFactionAdminDisbandCommand(user, restArguments);
+          break;
+        default:
+          OnFactionHelpCommand(user);
+          break;
+      }
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminDemoteCommand(User user, string[] args)
+    {
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin demote FACTION \"PLAYER\"");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+      User member = Users.Find(args[1]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (member == null)
+      {
+        user.SendChatMessage(Messages.InvalidUser, args[1]);
+        return;
+      }
+
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasOwner(member))
+      {
+        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (!faction.HasManager(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotManagerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      user.SendChatMessage(Messages.ManagerRemoved, member.UserName, faction.Id);
+      Log($"{Util.Format(user)} forcibly demoted {Util.Format(member)} in faction {faction.Id}");
+
+      faction.Demote(member);
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminDisbandCommand(User user, string[] args)
+    {
+      if (args.Length != 1)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin disband FACTION");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      PrintToChat(Messages.FactionDisbandedByAdminAnnouncement, faction.Id);
+      Log($"{Util.Format(user)} forcibly disbanded faction {faction.Id}");
+
+      Factions.Disband(faction);
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminKickCommand(User user, string[] args)
+    {
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin kick FACTION \"PLAYER\"");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+      User member = Users.Find(args[1]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (member == null)
+      {
+        user.SendChatMessage(Messages.InvalidUser, args[1]);
+        return;
+      }
+
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasLeader(member))
+      {
+        user.SendChatMessage(Messages.CannotKickLeaderOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      user.SendChatMessage(Messages.MemberRemoved, member.UserName, faction.Id);
+      PrintToChat(Messages.FactionMemberLeftAnnouncement, member.UserName, faction.Id);
+
+      Log($"{Util.Format(user)} forcibly kicked {Util.Format(member)} from faction {faction.Id}");
+
+      faction.RemoveMember(member);
+      member.SetFaction(null);
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminOwnerCommand(User user, string[] args)
+    {
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin owner FACTION \"PLAYER\"");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+      User member = Users.Find(args[1]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (member == null)
+      {
+        user.SendChatMessage(Messages.InvalidUser, args[1]);
+        return;
+      }
+
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasOwner(member))
+      {
+        user.SendChatMessage(Messages.UserIsAlreadyOwnerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      user.SendChatMessage(Messages.FactionOwnerChanged, faction.Id, member.UserName);
+      Log($"{Util.Format(user)} forcibly set {Util.Format(member)} as the owner of faction {faction.Id}");
+
+      faction.SetOwner(member);
+    }
+  }
+}﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
+    void OnFactionAdminPromoteCommand(User user, string[] args)
+    {
+      if (args.Length != 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/faction admin promote FACTION \"PLAYER\"");
+        return;
+      }
+
+      Faction faction = Factions.Get(args[0]);
+      User member = Users.Find(args[1]);
+
+      if (faction == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (member == null)
+      {
+        user.SendChatMessage(Messages.InvalidUser, args[1]);
+        return;
+      }
+
+      if (!faction.HasMember(member))
+      {
+        user.SendChatMessage(Messages.UserIsNotMemberOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasOwner(member))
+      {
+        user.SendChatMessage(Messages.CannotPromoteOrDemoteOwnerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      if (faction.HasManager(member))
+      {
+        user.SendChatMessage(Messages.UserIsAlreadyManagerOfFaction, member.UserName, faction.Id);
+        return;
+      }
+
+      user.SendChatMessage(Messages.ManagerAdded, member.UserName, faction.Id);
+      Log($"{Util.Format(user)} forcibly promoted {Util.Format(member)} in faction {faction.Id}");
+
+      faction.Promote(member);
+    }
+  }
+}﻿namespace Oxide.Plugins
 {
   using System;
 
@@ -1348,6 +1618,16 @@ namespace Oxide.Plugins
       sb.AppendLine("  <color=#ffd479>/faction demote \"PLAYER\"</color>: Remove a faction member as manager");
       sb.AppendLine("  <color=#ffd479>/faction disband forever</color>: Disband your faction immediately (no undo!)");
       sb.AppendLine("  <color=#ffd479>/faction help</color>: Prints this message");
+
+      if (user.HasPermission(Permission.AdminFactions))
+      {
+        sb.AppendLine("Admin commands:");
+        sb.AppendLine("  <color=#ffd479>/faction admin promote FACTION \"PLAYER\"</color>: Forcibly promote a player");
+        sb.AppendLine("  <color=#ffd479>/faction admin demote FACTION \"PLAYER\"</color>: Forcibly demote a player");
+        sb.AppendLine("  <color=#ffd479>/faction admin kick FACTION \"PLAYER\"</color>: Forcibly kick a player from a faction");
+        sb.AppendLine("  <color=#ffd479>/faction admin owner FACTION \"PLAYER\"</color>: Forcibly change the owner of a faction");
+        sb.AppendLine("  <color=#ffd479>/faction admin disband FACTION</color>: Forcibly disband a faction");
+      }
 
       user.SendChatMessage(sb);
     }
@@ -2207,6 +2487,53 @@ namespace Oxide.Plugins
 {
   public partial class Imperium
   {
+    void OnWarCancelCommand(User user, string[] args)
+    {
+      if (!user.HasPermission(Permission.AdminWars))
+      {
+        user.SendChatMessage(Messages.NoPermission);
+        return;
+      }
+
+      if (args.Length < 2)
+      {
+        user.SendChatMessage(Messages.Usage, "/war cancel FACTION1 FACTION2");
+        return;
+      }
+
+      Faction faction1 = Factions.Get(Util.NormalizeFactionId(args[0]));
+      Faction faction2 = Factions.Get(Util.NormalizeFactionId(args[1]));
+
+      if (faction1 == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[0]);
+        return;
+      }
+
+      if (faction2 == null)
+      {
+        user.SendChatMessage(Messages.FactionDoesNotExist, args[1]);
+        return;
+      }
+
+      War war = Wars.GetActiveWarBetween(faction1, faction2);
+
+      if (war == null)
+      {
+        user.SendChatMessage(Messages.FactionsAreNotAtWar, faction1.Id, faction2.Id);
+        return;
+      }
+
+      Wars.EndWar(war, WarEndReason.CanceledByAdmin);
+      PrintToChat(Messages.WarEndedByAdminAnnouncement, war.AttackerId, war.DefenderId);
+      Log($"{Util.Format(user)} canceled the war between {war.DefenderId} and {war.AttackerId}");
+    }
+  }
+}
+﻿namespace Oxide.Plugins
+{
+  public partial class Imperium
+  {
     void OnWarDeclareCommand(User user, string[] args)
     {
       Faction attacker = Factions.GetByMember(user);
@@ -2322,6 +2649,12 @@ namespace Oxide.Plugins
       sb.AppendLine("  <color=#ffd479>/war declare FACTION \"REASON\"</color>: Declare war against another faction");
       sb.AppendLine("  <color=#ffd479>/war end FACTION</color>: Offer to end a war, or accept an offer made to you");
       sb.AppendLine("  <color=#ffd479>/war help</color>: Show this message");
+
+      if (user.HasPermission(Permission.AdminWars))
+      {
+        sb.AppendLine("Admin commands:");
+        sb.AppendLine("  <color=#ffd479>/war cancel FACTION1 FACTION2</color>: Forcibly end the war between two factions");
+      }
 
       user.SendChatMessage(sb);
     }
@@ -2890,6 +3223,7 @@ namespace Oxide.Plugins
       public const string InvalidUser = "Couldn't find a user whose name matches \"{0}\".";
       public const string InvalidFactionName = "Faction names must be between {0} and {1} alphanumeric characters.";
       public const string NotAtWar = "You are not currently at war with <color=#ffd479>[{0}]</color>!";
+      public const string FactionsAreNotAtWar = "<color=#ffd479>[{0}]</color> is not currently at war with <color=#ffd479>[{1}]</color>!";
 
       public const string Usage = "Usage: <color=#ffd479>{0}</color>";
       public const string CommandIsOnCooldown = "You can't do that again so quickly. Try again in {0} seconds.";
@@ -2899,10 +3233,12 @@ namespace Oxide.Plugins
       public const string MemberRemoved = "You have removed <color=#ffd479>{0}</color> as a member of <color=#ffd479>[{1}]</color>.";
       public const string ManagerAdded = "You have added <color=#ffd479>{0}</color> as a manager of <color=#ffd479>[{1}]</color>.";
       public const string ManagerRemoved = "You have removed <color=#ffd479>{0}</color> as a manager of <color=#ffd479>[{1}]</color>.";
+      public const string FactionOwnerChanged = "You have changed the owner of <color=#ffd479>{0}</color> to <color=#ffd479>[{1}]</color>.";
       public const string UserIsAlreadyMemberOfFaction = "<color=#ffd479>{0}</color> is already a member of <color=#ffd479>[{1}]</color>.";
       public const string UserIsNotMemberOfFaction = "<color=#ffd479>{0}</color> is not a member of <color=#ffd479>[{1}]</color>.";
       public const string UserIsAlreadyManagerOfFaction = "<color=#ffd479>{0}</color> is already a manager of <color=#ffd479>[{1}]</color>.";
       public const string UserIsNotManagerOfFaction = "<color=#ffd479>{0}</color> is not a manager of <color=#ffd479>[{1}]</color>.";
+      public const string UserIsAlreadyOwnerOfFaction = "<color=#ffd479>{0}</color> is already the owner of <color=#ffd479>[{1}]</color>.";
       public const string CannotPromoteOrDemoteOwnerOfFaction = "<color=#ffd479>{0}</color> cannot be promoted or demoted, since they are the owner of <color=#ffd479>[{1}]</color>.";
       public const string CannotKickLeaderOfFaction = "<color=#ffd479>{0}</color> cannot be kicked, since they are an owner or manager of <color=#ffd479>[{1}]</color>.";
       public const string InviteAdded = "You have invited <color=#ffd479>{0}</color> to join <color=#ffd479>[{1}]</color>.";
@@ -2938,7 +3274,7 @@ namespace Oxide.Plugins
       public const string ClaimsList = "<color=#ffd479>[{0}]</color> has claimed: <color=#ffd479>{1}</color>";
       public const string ClaimCost = "<color=#ffd479>{0}</color> can be claimed by <color=#ffd479>[{1}]</color> for <color=#ffd479>{2}</color> scrap.";
       public const string UpkeepCost = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Upkeep is due <color=#ffd479>{3}</color> hours from now.";
-      public const string UpkeepCostOverdue = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Your upkeep is <color=#ffd479>{3}</color> hours overdue! Fill your tax chest with scrap immediately, before your claims begin to fall into ruin.";
+      public const string UpkeepCostOverdue = "It will cost <color=#ffd479>{0}</color> scrap per day to maintain the <color=#ffd479>{1}</color> areas claimed by <color=#ffd479>[{2}]</color>. Your upkeep is <color=#ffd479>{3}</color> hours overdue! Fill your headquarters TC with scrap immediately, before your claims begin to fall into ruin.";
 
       public const string SelectTaxChest = "Use the hammer to select the container to receive your faction's tribute. Say <color=#ffd479>/cancel</color> to cancel.";
       public const string SelectingTaxChestFailedInvalidTarget = "That can't be used as a tax chest.";
@@ -2974,6 +3310,7 @@ namespace Oxide.Plugins
 
       public const string FactionCreatedAnnouncement = "<color=#00ff00>FACTION CREATED:</color> A new faction <color=#ffd479>[{0}]</color> has been created!";
       public const string FactionDisbandedAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded!";
+      public const string FactionDisbandedByAdminAnnouncement = "<color=#00ff00>FACTION DISBANDED:</color> <color=#ffd479>[{0}]</color> has been disbanded by an admin.";
       public const string FactionMemberJoinedAnnouncement = "<color=#00ff00>MEMBER JOINED:</color> <color=#ffd479>{0}</color> has joined <color=#ffd479>[{1}]</color>!";
       public const string FactionMemberLeftAnnouncement = "<color=#00ff00>MEMBER LEFT:</color> <color=#ffd479>{0}</color> has left <color=#ffd479>[{1}]</color>!";
 
@@ -2991,6 +3328,7 @@ namespace Oxide.Plugins
       public const string WarDeclaredAnnouncement = "<color=#ff0000>WAR DECLARED:</color> <color=#ffd479>[{0}]</color> has declared war on <color=#ffd479>[{1}]</color>! Their reason: <color=#ffd479>{2}</color>";
       public const string WarEndedTreatyAcceptedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended after both sides have agreed to a treaty.";
       public const string WarEndedFactionEliminatedAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended, since <color=#ffd479>[{2}]</color> no longer holds any land.";
+      public const string WarEndedByAdminAnnouncement = "<color=#00ff00>WAR ENDED:</color> The war between <color=#ffd479>[{0}]</color> and <color=#ffd479>[{1}]</color> has ended by the decision of an admin.";
       public const string PinAddedAnnouncement = "<color=#00ff00>POINT OF INTEREST:</color> <color=#ffd479>[{0}]</color> announces the creation of <color=#ffd479>{1}</color>, a new {2} located in <color=#ffd479>{3}</color>!";
     }
 
@@ -3653,7 +3991,7 @@ namespace Oxide.Plugins
 
       void Awake()
       {
-        InvokeRepeating("CheckClaimCupboard", 60f, 60f);
+        InvokeRepeating(nameof(CheckClaimCupboard), 60f, 60f);
       }
 
       void OnDestroy()
@@ -3663,8 +4001,8 @@ namespace Oxide.Plugins
         if (collider != null)
           Destroy(collider);
 
-        if (IsInvoking("CheckClaimCupboard"))
-          CancelInvoke("CheckClaimCupboard");
+        if (IsInvoking(nameof(CheckClaimCupboard)))
+          CancelInvoke(nameof(CheckClaimCupboard));
       }
 
       void TryLoadInfo(AreaInfo info)
@@ -4259,6 +4597,17 @@ namespace Oxide.Plugins
         return true;
       }
 
+      public bool SetOwner(User user)
+      {
+        if (!MemberIds.Contains(user.Id))
+          throw new InvalidOperationException($"Cannot set player {user.Id} as owner of faction {Id}, since they are not a member");
+
+        ManagerIds.Remove(user.Id);
+
+        OwnerId = user.Id;
+        return true;
+      }
+
       public bool HasOwner(User user)
       {
         return HasOwner(user.Id);
@@ -4365,12 +4714,12 @@ namespace Oxide.Plugins
     {
       void Awake()
       {
-        InvokeRepeating("CheckTaxChests", 60f, 60f);
+        InvokeRepeating(nameof(EnsureAllTaxChestsStillExist), 60f, 60f);
       }
 
       void OnDestroy()
       {
-        if (IsInvoking("CheckTaxChests")) CancelInvoke("CheckTaxChests");
+        if (IsInvoking(nameof(EnsureAllTaxChestsStillExist))) CancelInvoke(nameof(EnsureAllTaxChestsStillExist));
       }
 
       void EnsureAllTaxChestsStillExist()
@@ -5145,7 +5494,8 @@ namespace Oxide.Plugins
     {
       Treaty,
       AttackerEliminatedDefender,
-      DefenderEliminatedAttacker
+      DefenderEliminatedAttacker,
+      CanceledByAdmin
     }
   }
 }
@@ -5355,7 +5705,7 @@ namespace Oxide.Plugins
         collider.enabled = true;
 
         if (endTime != null)
-          InvokeRepeating("CheckIfShouldDestroy", 10f, 5f);
+          InvokeRepeating(nameof(CheckIfShouldDestroy), 10f, 5f);
       }
 
       void OnDestroy()
@@ -5368,8 +5718,8 @@ namespace Oxide.Plugins
         foreach (BaseEntity sphere in Spheres)
           sphere.KillMessage();
 
-        if (IsInvoking("CheckIfShouldDestroy"))
-          CancelInvoke("CheckIfShouldDestroy");
+        if (IsInvoking(nameof(CheckIfShouldDestroy)))
+          CancelInvoke(nameof(CheckIfShouldDestroy));
       }
 
       void OnTriggerEnter(Collider collider)
@@ -5946,6 +6296,7 @@ namespace Oxide.Plugins
       public const string AdminClaims = "imperium.claims.admin";
       public const string AdminBadlands = "imperium.badlands.admin";
       public const string AdminPins = "imperium.pins.admin";
+      public const string AdminWars = "imperium.wars.admin";
       public const string ManageFactions = "imperium.factions";
 
       public static void RegisterAll(Imperium instance)
@@ -6912,6 +7263,7 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
   using System.Collections.Generic;
+  using System.Linq;
   using UnityEngine;
 
   public partial class Imperium
@@ -6957,13 +7309,13 @@ namespace Oxide.Plugins
         foreach (CH47Helicopter chinook in FindObjectsOfType<CH47Helicopter>())
           BeginEvent(chinook);
 
-        foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>())
+        foreach (HackableLockedCrate crate in FindObjectsOfType<HackableLockedCrate>().Where(IsChinookCrate))
           BeginEvent(crate);
 
         foreach (CargoShip ship in FindObjectsOfType<CargoShip>())
           BeginEvent(ship);
 
-        InvokeRepeating("CheckEvents", CheckIntervalSeconds, CheckIntervalSeconds);
+        InvokeRepeating(nameof(CheckEvents), CheckIntervalSeconds, CheckIntervalSeconds);
       }
 
       void OnDestroy()
@@ -7016,6 +7368,12 @@ namespace Oxide.Plugins
       bool IsEntityGone(BaseEntity entity)
       {
         return !entity.IsValid() || !entity.gameObject.activeInHierarchy;
+      }
+
+      bool IsChinookCrate(HackableLockedCrate crate)
+      {
+        BaseEntity parent = crate.GetParentEntity();
+        return parent == null || !(parent is CargoShip);
       }
     }
   }

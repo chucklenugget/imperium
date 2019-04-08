@@ -32,6 +32,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\Badlands\BadlandsHelp.cs" />
+    <Compile Include="Commands\Faction\FactionAdmin.cs" />
+    <Compile Include="Commands\Faction\FactionAdminOwner.cs" />
+    <Compile Include="Commands\Faction\FactionAdminDisband.cs" />
+    <Compile Include="Commands\Faction\FactionAdminDemote.cs" />
+    <Compile Include="Commands\Faction\FactionAdminPromote.cs" />
+    <Compile Include="Commands\Faction\FactionAdminKick.cs" />
     <Compile Include="Commands\Pins\Pin.cs" />
     <Compile Include="Commands\Pins\PinList.cs" />
     <Compile Include="Commands\Pins\PinHelp.cs" />
@@ -41,6 +47,7 @@
     <Compile Include="Commands\Pvp.cs" />
     <Compile Include="Commands\Ui\LayerToggle.cs" />
     <Compile Include="Commands\Ui\Hud.cs" />
+    <Compile Include="Commands\War\WarCancel.cs" />
     <Compile Include="Core\Api.cs" />
     <Compile Include="Core\Decay.cs" />
     <Compile Include="Core\Raiding.cs" />

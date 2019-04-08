@@ -44,6 +44,9 @@
         case "disband":
           OnFactionDisbandCommand(user, restArguments);
           break;
+        case "admin":
+          OnFactionAdminCommand(user, restArguments);
+          break;
         case "help":
         default:
           OnFactionHelpCommand(user);
